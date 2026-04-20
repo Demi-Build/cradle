@@ -41,8 +41,41 @@ pub trait DataSource: Send + Sync {
 pub struct LocalFsDataSource;
 
 const ENTITY_TYPES: &[&str] = &[
-    "npcs", "items", "monsters", "quests", "rooms", "events", "classes",
+    "npcs", "items", "monsters", "quests", "rooms", "events", "classes", "music", "sfx",
 ];
+
+const AUDIO_TYPES: &[&str] = &["music", "sfx"];
+
+fn is_audio_type(type_id: &str) -> bool {
+    AUDIO_TYPES.contains(&type_id)
+}
+
+fn audio_file_stems(dir: &Path) -> Result<Vec<String>, String> {
+    if !dir.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut out = Vec::new();
+    for entry in std::fs::read_dir(dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let fname = entry.file_name().to_string_lossy().to_string();
+        let lower = fname.to_lowercase();
+        if lower.ends_with(".mp3") || lower.ends_with(".wav") || lower.ends_with(".ogg") {
+            if let Some(stem) = Path::new(&fname).file_stem().and_then(|s| s.to_str()) {
+                out.push(stem.to_string());
+            }
+        }
+    }
+    out.sort();
+    Ok(out)
+}
+
+fn synthesize_audio_entity(type_id: &str, id: &str, filename: &str) -> Value {
+    let mut m = serde_json::Map::new();
+    m.insert("name".into(), Value::String(id.to_string()));
+    m.insert("filename".into(), Value::String(filename.to_string()));
+    m.insert("kind".into(), Value::String(type_id.to_string()));
+    Value::Object(m)
+}
 
 impl LocalFsDataSource {
     fn data_root(world_path: &Path) -> PathBuf {
@@ -56,6 +89,13 @@ impl LocalFsDataSource {
     }
 
     fn collection_entries(root: &Path, type_id: &str) -> Result<Vec<EntityRef>, String> {
+        if is_audio_type(type_id) {
+            let stems = audio_file_stems(&root.join(type_id))?;
+            return Ok(stems
+                .into_iter()
+                .map(|id| EntityRef { type_id: type_id.to_string(), name: Some(id.clone()), id })
+                .collect());
+        }
         let flat = root.join(type_id).join(format!("{}.json", type_id));
         if flat.is_file() {
             let v = Self::read_json(&flat)?;
@@ -141,6 +181,20 @@ impl DataSource for LocalFsDataSource {
 
     fn list_entity_rows(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRow>, String> {
         let root = Self::data_root(path);
+        if is_audio_type(type_id) {
+            let dir = root.join(type_id);
+            let stems = audio_file_stems(&dir)?;
+            return Ok(stems
+                .into_iter()
+                .map(|id| {
+                    let filename = format!("{}.mp3", id);
+                    EntityRow {
+                        id: id.clone(),
+                        data: synthesize_audio_entity(type_id, &id, &filename),
+                    }
+                })
+                .collect());
+        }
         let flat = root.join(type_id).join(format!("{}.json", type_id));
         if flat.is_file() {
             let v = Self::read_json(&flat)?;
@@ -178,6 +232,12 @@ impl DataSource for LocalFsDataSource {
 
     fn resolve_asset(&self, path: &Path, hint: &str) -> Option<String> {
         let root = Self::data_root(path);
+        for sub in ["music", "sfx"] {
+            let candidate = root.join(sub).join(hint);
+            if candidate.exists() {
+                return Some(candidate.to_string_lossy().into());
+            }
+        }
         let world_root = path;
         let hint_path = Path::new(hint);
         if hint_path.is_absolute() && hint_path.exists() {
@@ -213,6 +273,14 @@ impl DataSource for LocalFsDataSource {
 
     fn get_entity(&self, path: &Path, type_id: &str, id: &str) -> Result<Value, String> {
         let root = Self::data_root(path);
+        if is_audio_type(type_id) {
+            let dir = root.join(type_id);
+            let stems = audio_file_stems(&dir)?;
+            if !stems.contains(&id.to_string()) {
+                return Err(format!("{} entry {} not found", type_id, id));
+            }
+            return Ok(synthesize_audio_entity(type_id, id, &format!("{}.mp3", id)));
+        }
         let flat = root.join(type_id).join(format!("{}.json", type_id));
         if flat.is_file() {
             let v = Self::read_json(&flat)?;

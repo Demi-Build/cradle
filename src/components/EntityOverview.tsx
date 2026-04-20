@@ -2,6 +2,10 @@ import type { ReactNode } from "react";
 import { Portrait } from "./Portrait";
 import { EntityLink } from "./EntityLink";
 import { refFromField, REF_FIELDS } from "../lib/refs";
+import { AbilityList, SpellList } from "./class/AbilityList";
+import { RoomContents, RoomLayout } from "./room/RoomContents";
+import { MonsterStatBlock, MonsterAbilities } from "./monster/MonsterStatBlock";
+import { AudioPlayer } from "./AudioPlayer";
 
 type Json = Record<string, unknown>;
 
@@ -59,6 +63,41 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
     (data[PORTRAIT_FIELDS[1]] as string | undefined) ??
     (typeId === "rooms" ? `${entityId}_map.png` : null);
 
+  const isClass = typeId === "classes";
+  const isRoom = typeId === "rooms";
+  const isMonster = typeId === "monsters";
+  const isAudio = typeId === "music" || typeId === "sfx";
+
+  if (isAudio) {
+    const filename = (data.filename as string | undefined) ?? `${entityId}.mp3`;
+    const displayName = (data.name as string | undefined) ?? entityId;
+    return (
+      <div className="overview">
+        <header className="overview-header">
+          <div className="overview-titleblock">
+            <h2 className="overview-name">{displayName}</h2>
+            <div className="overview-sub">
+              <span className="chip">{typeId}</span>
+              <span className="chip chip-muted">{filename}</span>
+            </div>
+          </div>
+        </header>
+        <AudioPlayer hint={filename} name={displayName} kind={typeId} />
+      </div>
+    );
+  }
+
+  const typeSkip = new Set<string>();
+  if (isClass) ["abilities", "ability_pool", "spells", "spell_pool"].forEach((k) => typeSkip.add(k));
+  if (isRoom)
+    ["grid", "npc_positions", "item_placements", "event_positions", "quest_ids",
+      "gate_encounter_id", "door_position", "door_revealed", "player_start",
+    ].forEach((k) => typeSkip.add(k));
+  if (isMonster)
+    ["abilities", "hp_range", "ac_range", "damage_type", "physical_type",
+      "elemental_affinity", "weakness", "is_boss", "time_availability",
+    ].forEach((k) => typeSkip.add(k));
+
   const prose: Array<[string, string]> = [];
   const scalars: Array<[string, string]> = [];
   const refs: Array<[string, ReturnType<typeof refFromField>]> = [];
@@ -66,6 +105,7 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
 
   for (const [key, value] of Object.entries(data)) {
     if (HIDE_FIELDS.has(key)) continue;
+    if (typeSkip.has(key)) continue;
     if (key in REF_FIELDS) {
       const ref = refFromField(key, value);
       if (ref) {
@@ -86,6 +126,12 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
     }
   }
 
+  const abilities = (data.abilities as unknown[] | undefined) ?? [];
+  const abilityPool = (data.ability_pool as unknown[] | undefined) ?? [];
+  const spells = (data.spells as unknown[] | undefined) ?? [];
+  const spellPool = (data.spell_pool as unknown[] | undefined) ?? [];
+  const isBoss = isMonster && data.is_boss === true;
+
   return (
     <div className="overview">
       <header className="overview-header">
@@ -96,6 +142,7 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
             <span className="chip">{typeId}</span>
             {typeof data.id !== "undefined" && <span className="chip chip-muted">id {String(data.id)}</span>}
             {typeof data.type === "string" && <span className="chip chip-muted">{data.type}</span>}
+            {isBoss && <span className="ability-badge starting">boss</span>}
           </div>
         </div>
       </header>
@@ -144,6 +191,29 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
             ) : null,
           )}
         </section>
+      )}
+
+      {isMonster && <MonsterStatBlock data={data as Parameters<typeof MonsterStatBlock>[0]["data"]} />}
+      {isMonster && Array.isArray(data.abilities) && (
+        <MonsterAbilities abilities={data.abilities as Parameters<typeof MonsterAbilities>[0]["abilities"]} />
+      )}
+
+      {isRoom && <RoomLayout data={data as Parameters<typeof RoomLayout>[0]["data"]} />}
+      {isRoom && <RoomContents data={data as Parameters<typeof RoomContents>[0]["data"]} />}
+
+      {isClass && (abilities.length > 0 || abilityPool.length > 0) && (
+        <AbilityList
+          starting={abilities as Parameters<typeof AbilityList>[0]["starting"]}
+          pool={abilityPool as Parameters<typeof AbilityList>[0]["pool"]}
+          label="Ability pool"
+        />
+      )}
+      {isClass && (spells.length > 0 || spellPool.length > 0) && (
+        <SpellList
+          starting={spells as Parameters<typeof SpellList>[0]["starting"]}
+          pool={spellPool as Parameters<typeof SpellList>[0]["pool"]}
+          label="Spell pool"
+        />
       )}
 
       {complex.length > 0 && (

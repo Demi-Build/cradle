@@ -6,6 +6,8 @@ import { EntityOverview } from "./EntityOverview";
 import { EntityTable } from "./EntityTable";
 import { DialogueTab } from "./dialogue/DialogueTab";
 import type { DialogueTree } from "./dialogue/types";
+import { PuzzleTab } from "./event/PuzzleTab";
+import { hasTreeView, type PuzzleEvent } from "./event/types";
 import { WorldBibleView } from "./WorldBibleView";
 
 type Json = Record<string, unknown>;
@@ -63,6 +65,14 @@ export function DetailPane() {
         content: <DialogueTab tree={dialogueTree} />,
       });
     }
+    if (selection.typeId === "events" && hasTreeView(data as PuzzleEvent)) {
+      const label = (data as PuzzleEvent).type === "puzzle" ? "Puzzle" : "Choices";
+      tabs.push({
+        id: "puzzle",
+        label,
+        content: <PuzzleTab event={data as PuzzleEvent} />,
+      });
+    }
     tabs.push({
       id: "raw",
       label: "Raw JSON",
@@ -103,7 +113,7 @@ export function DetailPane() {
         <div className="detail-header">
           <h2>{selection.typeId}</h2>
         </div>
-        <EntityTable typeId={selection.typeId} rows={rows} />
+        <EntityTable key={selection.typeId} typeId={selection.typeId} rows={rows} />
       </main>
     );
   }

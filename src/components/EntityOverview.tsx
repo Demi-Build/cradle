@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { Portrait } from "./Portrait";
+import { EntityLink } from "./EntityLink";
+import { refFromField, REF_FIELDS } from "../lib/refs";
 
 type Json = Record<string, unknown>;
 
@@ -59,10 +61,22 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
 
   const prose: Array<[string, string]> = [];
   const scalars: Array<[string, string]> = [];
+  const refs: Array<[string, ReturnType<typeof refFromField>]> = [];
   const complex: Array<[string, unknown]> = [];
 
   for (const [key, value] of Object.entries(data)) {
     if (HIDE_FIELDS.has(key)) continue;
+    if (key in REF_FIELDS) {
+      const ref = refFromField(key, value);
+      if (ref) {
+        refs.push([key, ref]);
+        continue;
+      }
+    }
+    if (key === "loot_table" && Array.isArray(value) && value.length > 0) {
+      complex.push([key, value]);
+      continue;
+    }
     if (PROSE_FIELDS.has(key) && typeof value === "string" && value.length > 60) {
       prose.push([key, value]);
     } else if (isScalar(value)) {
@@ -108,11 +122,38 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
         </section>
       )}
 
+      {refs.length > 0 && (
+        <section className="overview-refs">
+          {refs.map(([k, ref]) =>
+            ref && ref.kind === "one" ? (
+              <div key={k} className="ref-row">
+                <div className="field-key">{labelFor(k)}</div>
+                <div className="field-val">
+                  <EntityLink typeId={ref.typeId} id={ref.id} />
+                </div>
+              </div>
+            ) : ref && ref.kind === "many" ? (
+              <div key={k} className="ref-row">
+                <div className="field-key">{labelFor(k)}</div>
+                <div className="field-val ref-list">
+                  {ref.ids.map((id) => (
+                    <EntityLink key={id} typeId={ref.typeId} id={id} />
+                  ))}
+                </div>
+              </div>
+            ) : null,
+          )}
+        </section>
+      )}
+
       {complex.length > 0 && (
         <section className="overview-complex">
-          {complex.map(([k, v]) => (
-            <ComplexField key={k} name={k} value={v} />
-          ))}
+          {complex.map(([k, v]) => {
+            if (k === "loot_table" && Array.isArray(v)) {
+              return <LootTable key={k} rows={v as LootEntry[]} />;
+            }
+            return <ComplexField key={k} name={k} value={v} />;
+          })}
         </section>
       )}
     </div>
@@ -125,5 +166,39 @@ function ComplexField({ name, value }: { name: string; value: unknown }): ReactN
       <summary>{labelFor(name)}</summary>
       <pre className="complex-json">{JSON.stringify(value, null, 2)}</pre>
     </details>
+  );
+}
+
+type LootEntry = { item_id?: number | string; drop_chance?: number };
+
+function LootTable({ rows }: { rows: LootEntry[] }) {
+  return (
+    <div className="loot-table">
+      <div className="loot-header">loot table</div>
+      <table>
+        <thead>
+          <tr>
+            <th>item</th>
+            <th>drop chance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <td>
+                {r.item_id !== undefined ? (
+                  <EntityLink typeId="items" id={String(r.item_id)} />
+                ) : (
+                  "—"
+                )}
+              </td>
+              <td className="loot-chance">
+                {typeof r.drop_chance === "number" ? `${(r.drop_chance * 100).toFixed(1)}%` : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

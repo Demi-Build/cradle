@@ -21,6 +21,11 @@ fn get_world_bible(path: String, state: State<'_, AppState>) -> Result<Value, St
 }
 
 #[tauri::command]
+fn read_world_json(path: String, name: String, state: State<'_, AppState>) -> Result<Value, String> {
+    state.source.read_world_json(&PathBuf::from(path), &name)
+}
+
+#[tauri::command]
 fn list_entities(path: String, type_id: String, state: State<'_, AppState>) -> Result<Vec<EntityRef>, String> {
     state.source.list_entities(&PathBuf::from(path), &type_id)
 }
@@ -49,6 +54,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             load_world,
             get_world_bible,
+            read_world_json,
             list_entities,
             list_entity_rows,
             get_entity,

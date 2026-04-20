@@ -31,6 +31,7 @@ pub struct EntityRow {
 pub trait DataSource: Send + Sync {
     fn load_world(&self, path: &Path) -> Result<WorldSummary, String>;
     fn get_world_bible(&self, path: &Path) -> Result<Value, String>;
+    fn read_world_json(&self, path: &Path, name: &str) -> Result<Value, String>;
     fn list_entities(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRef>, String>;
     fn list_entity_rows(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRow>, String>;
     fn get_entity(&self, path: &Path, type_id: &str, id: &str) -> Result<Value, String>;
@@ -123,6 +124,15 @@ impl DataSource for LocalFsDataSource {
     fn get_world_bible(&self, path: &Path) -> Result<Value, String> {
         let bible = Self::data_root(path).join("world_bible.json");
         Self::read_json(&bible)
+    }
+
+    fn read_world_json(&self, path: &Path, name: &str) -> Result<Value, String> {
+        if name.contains("..") || name.contains('/') || name.contains('\\') {
+            return Err(format!("invalid name: {}", name));
+        }
+        let fname = if name.ends_with(".json") { name.to_string() } else { format!("{}.json", name) };
+        let target = Self::data_root(path).join(&fname);
+        Self::read_json(&target)
     }
 
     fn list_entities(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRef>, String> {

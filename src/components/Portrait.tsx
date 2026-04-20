@@ -5,6 +5,7 @@ import { useStore } from "../store";
 
 export function Portrait({ hint, alt, size = 180 }: { hint: string | null | undefined; alt: string; size?: number }) {
   const worldPath = useStore((s) => s.worldPath);
+  const openLightbox = useStore((s) => s.openLightbox);
   const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -40,11 +41,16 @@ export function Portrait({ hint, alt, size = 180 }: { hint: string | null | unde
   }
   return (
     <img
-      className="portrait"
+      className="portrait portrait-clickable"
       src={src}
       alt={alt}
       style={{ width: size, height: size }}
       onError={() => setFailed(true)}
+      onClick={(e) => {
+        e.stopPropagation();
+        openLightbox({ src, alt });
+      }}
+      title="click to enlarge"
     />
   );
 }

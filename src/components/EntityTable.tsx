@@ -22,6 +22,16 @@ const COLUMN_CONFIG: Record<string, string[]> = {
   quests: ["title", "type", "is_story_quest", "room_id"],
   classes: ["name", "archetype"],
   rooms: ["environment_name", "environment", "level"],
+  music: ["name", "filename"],
+  sfx: ["name", "filename"],
+};
+
+const SFX_CATEGORY_RE = /^(weapon|spell|ambience|item|door|player|dice|event)/;
+
+const PARTITION_FIELD: Record<string, string> = {
+  items: "category",
+  events: "type",
+  quests: "type",
 };
 
 function labelFor(key: string): string {
@@ -46,6 +56,42 @@ export function EntityTable({ typeId, rows }: { typeId: string; rows: Row[] }) {
   const select = useStore((s) => s.select);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [filter, setFilter] = useState("");
+  const [partition, setPartition] = useState<string | null>(null);
+  const partitionKey = PARTITION_FIELD[typeId];
+
+  const partitionCounts = useMemo(() => {
+    if (typeId === "sfx") {
+      const counts = new Map<string, number>();
+      for (const r of rows) {
+        const m = SFX_CATEGORY_RE.exec(r.id);
+        if (!m) continue;
+        counts.set(m[1], (counts.get(m[1]) ?? 0) + 1);
+      }
+      if (counts.size < 2) return null;
+      return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+    }
+    if (!partitionKey) return null;
+    const counts = new Map<string, number>();
+    for (const r of rows) {
+      const v = r.data?.[partitionKey];
+      if (typeof v !== "string") continue;
+      counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    if (counts.size < 2) return null;
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+  }, [rows, partitionKey, typeId]);
+
+  const filteredRows = useMemo(() => {
+    if (!partition) return rows;
+    if (typeId === "sfx") {
+      return rows.filter((r) => {
+        const m = SFX_CATEGORY_RE.exec(r.id);
+        return m?.[1] === partition;
+      });
+    }
+    if (!partitionKey) return rows;
+    return rows.filter((r) => r.data?.[partitionKey] === partition);
+  }, [rows, partition, partitionKey, typeId]);
 
   const columns = useMemo<ColumnDef<Row>[]>(() => {
     const configured = COLUMN_CONFIG[typeId] ?? [];
@@ -83,7 +129,7 @@ export function EntityTable({ typeId, rows }: { typeId: string; rows: Row[] }) {
   }, [typeId, rows]);
 
   const table = useReactTable({
-    data: rows,
+    data: filteredRows,
     columns,
     state: { sorting, globalFilter: filter },
     onSortingChange: setSorting,
@@ -105,15 +151,35 @@ export function EntityTable({ typeId, rows }: { typeId: string; rows: Row[] }) {
 
   return (
     <div className="entity-table-wrap">
+      {partitionCounts && (
+        <div className="partition-chips">
+          <button
+            className={`partition-chip ${partition === null ? "active" : ""}`}
+            onClick={() => setPartition(null)}
+          >
+            all <span className="partition-count">{rows.length}</span>
+          </button>
+          {partitionCounts.map(([value, count]) => (
+            <button
+              key={value}
+              className={`partition-chip ${partition === value ? "active" : ""}`}
+              onClick={() => setPartition(value)}
+            >
+              {value} <span className="partition-count">{count}</span>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="entity-table-toolbar">
         <input
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder={`Filter ${rows.length} ${typeId}…`}
+          placeholder={`Filter ${filteredRows.length} ${partition ?? typeId}…`}
           className="entity-filter"
         />
         <span className="entity-table-count">
-          {table.getFilteredRowModel().rows.length} / {rows.length}
+          {table.getFilteredRowModel().rows.length} / {filteredRows.length}
+          {partition ? ` (of ${rows.length} total)` : ""}
         </span>
       </div>
       <table className="entity-table">

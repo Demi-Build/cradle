@@ -1,0 +1,1307 @@
+{
+  "2000": {
+    "category": "food",
+    "name": "convergence bread",
+    "desc": "Village loaf baked with crystal salt, shimmers faintly in shadow.",
+    "room_level": 1,
+    "item_stats": {
+      "stamina_value": 7,
+      "health_value": 1,
+      "uses": 1,
+      "price": 5
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_convergence_bread.png"
+  },
+  "2001": {
+    "category": "food",
+    "name": "shadow-touched berries",
+    "desc": "Local berries that grew near vanishing sites, taste of twilight.",
+    "room_level": 1,
+    "item_stats": {
+      "stamina_value": 10,
+      "health_value": 6,
+      "uses": 1,
+      "price": 12
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_shadow-touched_berries.png"
+  },
+  "2002": {
+    "category": "food",
+    "name": "Miriam's blessed rations",
+    "desc": "Chapel food consecrated against Covenant influence.",
+    "room_level": 1,
+    "item_stats": {
+      "stamina_value": 8,
+      "health_value": 5,
+      "uses": 1,
+      "price": 15
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_miriam's_blessed_rations.png"
+  },
+  "2003": {
+    "category": "food",
+    "name": "merchant's trail cake",
+    "desc": "Dense cake that travels well, recipe predates the old empire.",
+    "room_level": 1,
+    "item_stats": {
+      "stamina_value": 12,
+      "health_value": 4,
+      "uses": 1,
+      "price": 8
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_merchant's_trail_cake.png"
+  },
+  "2004": {
+    "category": "drink",
+    "name": "brook water",
+    "desc": "Clear water from Whisperbrook's source, untainted by shadow residue.",
+    "room_level": 1,
+    "item_stats": {
+      "stamina_value": 5,
+      "health_value": 5,
+      "uses": 1,
+      "price": 10
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_brook_water.png"
+  },
+  "2005": {
+    "category": "drink",
+    "name": "evening market ale",
+    "desc": "Local brew sold by potentially infiltrated merchants.",
+    "room_level": 1,
+    "item_stats": {
+      "stamina_value": 14,
+      "health_value": 1,
+      "uses": 1,
+      "price": 7
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_evening_market_ale.png"
+  },
+  "2006": {
+    "category": "drink",
+    "name": "chapel wine",
+    "desc": "Sacred wine Elder Miriam uses for protection rituals.",
+    "room_level": 1,
+    "item_stats": {
+      "stamina_value": 11,
+      "health_value": 5,
+      "uses": 1,
+      "price": 7
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_chapel_wine.png"
+  },
+  "2007": {
+    "category": "drink",
+    "name": "crystal-filtered spirits",
+    "desc": "Strong drink passed through ancient filtering stones.",
+    "room_level": 1,
+    "item_stats": {
+      "stamina_value": 9,
+      "health_value": 5,
+      "uses": 1,
+      "price": 15
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_crystal-filtered_spirits.png"
+  },
+  "2008": {
+    "category": "tool",
+    "name": "covenant detector",
+    "desc": "Crystalline rod that hums near shadow magic traces.",
+    "room_level": 1,
+    "item_stats": {
+      "attribute": "cutting",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 23
+    }
+  },
+  "2009": {
+    "category": "tool",
+    "name": "chapel climbing rope",
+    "desc": "Blessed rope from Elder Miriam's emergency supplies.",
+    "room_level": 1,
+    "item_stats": {
+      "attribute": "climbing",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 12
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_chapel_climbing_rope.png"
+  },
+  "2010": {
+    "category": "tool",
+    "name": "artifact spade",
+    "desc": "Tool for unearthing buried pre-fall relics safely.",
+    "room_level": 1,
+    "item_stats": {
+      "attribute": "digging",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 18
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_artifact_spade.png"
+  },
+  "2011": {
+    "category": "weapon",
+    "name": "market warden's maul",
+    "desc": "Heavy iron maul for enforcing village law against infiltrators.",
+    "weapon_type": "heavy",
+    "damage_type": "bludgeoning",
+    "weapon_category": "martial",
+    "room_level": 1,
+    "item_stats": {
+      "attack_dice": "1d8",
+      "stat_modifier": "STR",
+      "price": 31
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_market_warden's_maul.png"
+  },
+  "2012": {
+    "category": "weapon",
+    "name": "Miriam's consecrated flail",
+    "desc": "Chapel weapon blessed to harm shadow-touched beings.",
+    "weapon_type": "sacred",
+    "damage_type": "bludgeoning",
+    "weapon_category": "simple",
+    "room_level": 1,
+    "item_stats": {
+      "attack_dice": "1d6",
+      "stat_modifier": "CON",
+      "price": 25
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_miriam's_consecrated_flail.png"
+  },
+  "2013": {
+    "category": "weapon",
+    "name": "heirloom greatsword",
+    "desc": "Family blade with crystal fragments in its fuller.",
+    "weapon_type": "heavy",
+    "damage_type": "slashing",
+    "weapon_category": "martial",
+    "room_level": 1,
+    "item_stats": {
+      "attack_dice": "1d8",
+      "stat_modifier": "STR",
+      "price": 32
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_heirloom_greatsword.png"
+  },
+  "2014": {
+    "category": "weapon",
+    "name": "covenant crystal staff",
+    "desc": "Captured cult weapon pulsing with shadow energy.",
+    "weapon_type": "arcane",
+    "damage_type": "bludgeoning",
+    "weapon_category": "martial",
+    "room_level": 1,
+    "item_stats": {
+      "attack_dice": "1d4",
+      "stat_modifier": "INT",
+      "price": 11
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_covenant_crystal_staff.png"
+  },
+  "2015": {
+    "category": "weapon",
+    "name": "elder's war hammer",
+    "desc": "Sacred hammer wielded in the chapel's defense.",
+    "weapon_type": "sacred",
+    "damage_type": "bludgeoning",
+    "weapon_category": "simple",
+    "room_level": 1,
+    "item_stats": {
+      "attack_dice": "1d6",
+      "stat_modifier": "CON",
+      "price": 22
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_elder's_war_hammer.png"
+  },
+  "2016": {
+    "category": "weapon",
+    "name": "runic village blade",
+    "desc": "Sword etched with protective glyphs against the Covenant.",
+    "weapon_type": "enchanted",
+    "damage_type": "slashing",
+    "weapon_category": "simple",
+    "room_level": 1,
+    "item_stats": {
+      "attack_dice": "1d4",
+      "stat_modifier": "WIS",
+      "price": 13
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_runic_village_blade.png"
+  },
+  "2017": {
+    "category": "spell_scroll",
+    "name": "scroll of shadow ward",
+    "desc": "Creates protective barrier against Covenant infiltration.",
+    "spell_effect": "shield",
+    "room_level": 1,
+    "item_stats": {
+      "health_value": 0,
+      "stamina_value": 0,
+      "price": 25
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_scroll_of_shadow_ward.png"
+  },
+  "2018": {
+    "category": "spell_scroll",
+    "name": "scroll of crystal sight",
+    "desc": "Reveals hidden artifacts and shadow magic traces.",
+    "spell_effect": "reveal",
+    "room_level": 1,
+    "item_stats": {
+      "health_value": 0,
+      "stamina_value": 0,
+      "price": 30
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_scroll_of_crystal_sight.png"
+  },
+  "2019": {
+    "category": "food",
+    "name": "crystallized rations",
+    "desc": "Covenant provisions infused with shadow essence for extended shelf life.",
+    "room_level": 2,
+    "item_stats": {
+      "stamina_value": 14,
+      "health_value": 6,
+      "uses": 1,
+      "price": 6
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_crystallized_rations.png"
+  },
+  "2020": {
+    "category": "food",
+    "name": "umbral fruit",
+    "desc": "Dark berries that grow only in shadow-touched soil.",
+    "room_level": 2,
+    "item_stats": {
+      "stamina_value": 18,
+      "health_value": 6,
+      "uses": 1,
+      "price": 11
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_umbral_fruit.png"
+  },
+  "2021": {
+    "category": "food",
+    "name": "ritual bread",
+    "desc": "Dense loaves marked with ancient glyphs, sustaining cultists during long ceremonies.",
+    "room_level": 2,
+    "item_stats": {
+      "stamina_value": 22,
+      "health_value": 2,
+      "uses": 1,
+      "price": 7
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_ritual_bread.png"
+  },
+  "2022": {
+    "category": "food",
+    "name": "preserved shadowmeat",
+    "desc": "Meat from creatures pulled between realms, dried with crystal salts.",
+    "room_level": 2,
+    "item_stats": {
+      "stamina_value": 6,
+      "health_value": 2,
+      "uses": 1,
+      "price": 10
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_preserved_shadowmeat.png"
+  },
+  "2023": {
+    "category": "drink",
+    "name": "shadow wine",
+    "desc": "Dark vintage that enhances perception of the shadow realm.",
+    "room_level": 2,
+    "item_stats": {
+      "stamina_value": 3,
+      "health_value": 3,
+      "uses": 1,
+      "price": 10
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_shadow_wine.png"
+  },
+  "2024": {
+    "category": "drink",
+    "name": "crystal-filtered water",
+    "desc": "Spring water purified through Covenant filtration arrays.",
+    "room_level": 2,
+    "item_stats": {
+      "stamina_value": 14,
+      "health_value": 6,
+      "uses": 1,
+      "price": 18
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_crystal-filtered_water.png"
+  },
+  "2025": {
+    "category": "drink",
+    "name": "void essence",
+    "desc": "Thick, dark liquid that whispers when consumed.",
+    "room_level": 2,
+    "item_stats": {
+      "stamina_value": 18,
+      "health_value": 1,
+      "uses": 1,
+      "price": 14
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_void_essence.png"
+  },
+  "2026": {
+    "category": "drink",
+    "name": "memory draught",
+    "desc": "Brew that allows glimpses of the empire's lost knowledge.",
+    "room_level": 2,
+    "item_stats": {
+      "stamina_value": 19,
+      "health_value": 5,
+      "uses": 1,
+      "price": 6
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_memory_draught.png"
+  },
+  "2027": {
+    "category": "tool",
+    "name": "crystal chisel",
+    "desc": "Precision tool for extracting arcane components from ruin walls.",
+    "room_level": 2,
+    "item_stats": {
+      "attribute": "digging",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 29
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_crystal_chisel.png"
+  },
+  "2028": {
+    "category": "tool",
+    "name": "shadow rope",
+    "desc": "Climbing cord woven from solidified darkness.",
+    "room_level": 2,
+    "item_stats": {
+      "attribute": "climbing",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 28
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_shadow_rope.png"
+  },
+  "2029": {
+    "category": "tool",
+    "name": "relic hammer",
+    "desc": "Heavy tool used to break open ancient containment vessels.",
+    "room_level": 2,
+    "item_stats": {
+      "attribute": "bludgeon",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 20
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_relic_hammer.png"
+  },
+  "2030": {
+    "category": "weapon",
+    "name": "Archive Codex",
+    "desc": "A tome bound in shadow-touched leather that channels forbidden knowledge through crystalline inlays.",
+    "weapon_type": "arcane",
+    "damage_type": "slashing",
+    "weapon_category": "simple",
+    "room_level": 2,
+    "item_stats": {
+      "attack_dice": "1d6",
+      "stat_modifier": "INT",
+      "price": 25
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_archive_codex.png"
+  },
+  "2031": {
+    "category": "weapon",
+    "name": "Covenant Warspear",
+    "desc": "Heavy piercing weapon with a crystal core that pulses with stored shadow energy.",
+    "weapon_type": "heavy",
+    "damage_type": "piercing",
+    "weapon_category": "simple",
+    "room_level": 2,
+    "item_stats": {
+      "attack_dice": "1d10",
+      "stat_modifier": "STR",
+      "price": 55
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_covenant_warspear.png"
+  },
+  "2032": {
+    "category": "weapon",
+    "name": "Whisper Blade",
+    "desc": "A slender dagger forged from metal drawn from the shadow realm itself.",
+    "weapon_type": "light",
+    "damage_type": "piercing",
+    "weapon_category": "simple",
+    "room_level": 2,
+    "item_stats": {
+      "attack_dice": "1d8",
+      "stat_modifier": "DEX",
+      "price": 33
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_whisper_blade.png"
+  },
+  "2033": {
+    "category": "weapon",
+    "name": "Dawnbreaker Stiletto",
+    "desc": "Light-blessed blade that burns with holy fire, anathema to shadow creatures.",
+    "weapon_type": "light",
+    "damage_type": "slashing",
+    "weapon_category": "simple",
+    "room_level": 2,
+    "item_stats": {
+      "attack_dice": "1d8",
+      "stat_modifier": "DEX",
+      "price": 37
+    },
+    "magic_element": "light",
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_dawnbreaker_stiletto.png"
+  },
+  "2034": {
+    "category": "weapon",
+    "name": "Voidthorn Dart",
+    "desc": "Thin piercing weapon tipped with crystallized shadow essence.",
+    "weapon_type": "light",
+    "damage_type": "piercing",
+    "weapon_category": "martial",
+    "room_level": 2,
+    "item_stats": {
+      "attack_dice": "1d8",
+      "stat_modifier": "DEX",
+      "price": 31
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_voidthorn_dart.png"
+  },
+  "2035": {
+    "category": "weapon",
+    "name": "Convergence Mace",
+    "desc": "Ancient bludgeon inscribed with runes that bind physical and shadow realms.",
+    "weapon_type": "enchanted",
+    "damage_type": "bludgeoning",
+    "weapon_category": "simple",
+    "room_level": 2,
+    "item_stats": {
+      "attack_dice": "1d6",
+      "stat_modifier": "WIS",
+      "price": 25
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_convergence_mace.png"
+  },
+  "2036": {
+    "category": "spell_scroll",
+    "name": "Scroll of Shadow Mend",
+    "desc": "Covenant healing magic that draws life force from the shadow realm.",
+    "spell_effect": "heal",
+    "room_level": 2,
+    "item_stats": {
+      "health_value": 28,
+      "stamina_value": 0,
+      "price": 32
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_scroll_of_shadow_mend.png"
+  },
+  "2037": {
+    "category": "spell_scroll",
+    "name": "Scroll of Crystal Ward",
+    "desc": "Creates a barrier of hardened light that deflects shadow magic.",
+    "spell_effect": "shield",
+    "room_level": 2,
+    "item_stats": {
+      "health_value": 0,
+      "stamina_value": 0,
+      "price": 46
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_scroll_of_crystal_ward.png"
+  },
+  "2038": {
+    "category": "food",
+    "name": "shadow-touched rations",
+    "desc": "Military provisions partially corrupted by Umbral energies.",
+    "room_level": 3,
+    "item_stats": {
+      "stamina_value": 20,
+      "health_value": 6,
+      "uses": 1,
+      "price": 16
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_shadow-touched_rations.png"
+  },
+  "2039": {
+    "category": "food",
+    "name": "crystal fungi",
+    "desc": "Luminescent mushrooms that feed on corrupted crystal essence.",
+    "room_level": 3,
+    "item_stats": {
+      "stamina_value": 19,
+      "health_value": 8,
+      "uses": 1,
+      "price": 11
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_crystal_fungi.png"
+  },
+  "2040": {
+    "category": "food",
+    "name": "preserved glowworm",
+    "desc": "Ancient mining sustenance, now a desperate survival food.",
+    "room_level": 3,
+    "item_stats": {
+      "stamina_value": 19,
+      "health_value": 6,
+      "uses": 1,
+      "price": 8
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_preserved_glowworm.png"
+  },
+  "2041": {
+    "category": "food",
+    "name": "stone bread",
+    "desc": "Dense bread mixed with mineral dust from collapsed tunnels.",
+    "room_level": 3,
+    "item_stats": {
+      "stamina_value": 22,
+      "health_value": 1,
+      "uses": 1,
+      "price": 9
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_stone_bread.png"
+  },
+  "2042": {
+    "category": "drink",
+    "name": "corrupted crystal water",
+    "desc": "Spring water tainted with dark crystalline residue.",
+    "room_level": 3,
+    "item_stats": {
+      "stamina_value": 14,
+      "health_value": 6,
+      "uses": 1,
+      "price": 9
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_corrupted_crystal_water.png"
+  },
+  "2043": {
+    "category": "drink",
+    "name": "shadow essence",
+    "desc": "Liquid darkness harvested from bleeding crystal nodes.",
+    "room_level": 3,
+    "item_stats": {
+      "stamina_value": 22,
+      "health_value": 8,
+      "uses": 1,
+      "price": 24
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_shadow_essence.png"
+  },
+  "2044": {
+    "category": "drink",
+    "name": "miner's brew",
+    "desc": "Bitter drink once used by ancient excavation crews.",
+    "room_level": 3,
+    "item_stats": {
+      "stamina_value": 9,
+      "health_value": 4,
+      "uses": 1,
+      "price": 11
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_miner's_brew.png"
+  },
+  "2045": {
+    "category": "drink",
+    "name": "Oracle's tears",
+    "desc": "Glowing fluid that seeps from the bound construct.",
+    "room_level": 3,
+    "item_stats": {
+      "stamina_value": 16,
+      "health_value": 3,
+      "uses": 1,
+      "price": 20
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_oracle's_tears.png"
+  },
+  "2046": {
+    "category": "tool",
+    "name": "Covenant excavator",
+    "desc": "Shadow-forged pickaxe used to corrupt crystal formations.",
+    "room_level": 3,
+    "item_stats": {
+      "attribute": "digging",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 32
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_covenant_excavator.png"
+  },
+  "2047": {
+    "category": "tool",
+    "name": "umbral hammer",
+    "desc": "Heavy tool for shattering light-crystal barriers.",
+    "room_level": 3,
+    "item_stats": {
+      "attribute": "bludgeon",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 25
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_umbral_hammer.png"
+  },
+  "2048": {
+    "category": "tool",
+    "name": "shadow-silk rope",
+    "desc": "Climbing cord woven from darkness itself.",
+    "room_level": 3,
+    "item_stats": {
+      "attribute": "climbing",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 32
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_shadow-silk_rope.png"
+  },
+  "2049": {
+    "category": "weapon",
+    "name": "Depth-Render Maul",
+    "desc": "Massive hammer carved from corrupted crystal cores.",
+    "weapon_type": "heavy",
+    "damage_type": "bludgeoning",
+    "weapon_category": "martial",
+    "room_level": 3,
+    "item_stats": {
+      "attack_dice": "1d12",
+      "stat_modifier": "STR",
+      "price": 70
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_depth-render_maul.png"
+  },
+  "2050": {
+    "category": "weapon",
+    "name": "Whisperbound Cudgel",
+    "desc": "Shadow-wrapped club that echoes with Covenant chants.",
+    "weapon_type": "enchanted",
+    "damage_type": "bludgeoning",
+    "weapon_category": "simple",
+    "room_level": 3,
+    "item_stats": {
+      "attack_dice": "1d8",
+      "stat_modifier": "WIS",
+      "price": 37
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_whisperbound_cudgel.png"
+  },
+  "2051": {
+    "category": "weapon",
+    "name": "Oracle's Mace",
+    "desc": "Sacred weapon blessed by the ancient construct's light.",
+    "weapon_type": "sacred",
+    "damage_type": "bludgeoning",
+    "weapon_category": "martial",
+    "room_level": 3,
+    "item_stats": {
+      "attack_dice": "1d10",
+      "stat_modifier": "CON",
+      "price": 48
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_oracle's_mace.png"
+  },
+  "2052": {
+    "category": "weapon",
+    "name": "Fissure Claw",
+    "desc": "Wild blade that tears reality like the cavern walls.",
+    "weapon_type": "wild",
+    "damage_type": "slashing",
+    "weapon_category": "martial",
+    "room_level": 3,
+    "item_stats": {
+      "attack_dice": "1d10",
+      "stat_modifier": "LUCK",
+      "price": 53
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_fissure_claw.png"
+  },
+  "2053": {
+    "category": "weapon",
+    "name": "Crystal Shard Stiletto",
+    "desc": "Razor-sharp dagger hewn from pure light-crystal.",
+    "weapon_type": "light",
+    "damage_type": "piercing",
+    "weapon_category": "simple",
+    "room_level": 3,
+    "item_stats": {
+      "attack_dice": "1d10",
+      "stat_modifier": "DEX",
+      "price": 49
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_crystal_shard_stiletto.png"
+  },
+  "2054": {
+    "category": "weapon",
+    "name": "Convergence Flail",
+    "desc": "Sacred weapon designed to shatter dimensional barriers.",
+    "weapon_type": "sacred",
+    "damage_type": "bludgeoning",
+    "weapon_category": "simple",
+    "room_level": 3,
+    "item_stats": {
+      "attack_dice": "1d10",
+      "stat_modifier": "CON",
+      "price": 55
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_convergence_flail.png"
+  },
+  "2055": {
+    "category": "spell_scroll",
+    "name": "Scroll of Crystal Ward",
+    "desc": "Creates barriers of pure light-crystal against shadow.",
+    "spell_effect": "shield",
+    "room_level": 3,
+    "item_stats": {
+      "health_value": 0,
+      "stamina_value": 0,
+      "price": 64
+    }
+  },
+  "2056": {
+    "category": "spell_scroll",
+    "name": "Scroll of Umbral Sight",
+    "desc": "Reveals hidden passages through corrupted stone.",
+    "spell_effect": "reveal",
+    "room_level": 3,
+    "item_stats": {
+      "health_value": 0,
+      "stamina_value": 0,
+      "price": 40
+    }
+  },
+  "2057": {
+    "category": "food",
+    "name": "shadow-touched rations",
+    "desc": "Military rations infused with shadow essence to sustain Covenant operatives.",
+    "room_level": 4,
+    "item_stats": {
+      "stamina_value": 24,
+      "health_value": 4,
+      "uses": 1,
+      "price": 14
+    }
+  },
+  "2058": {
+    "category": "food",
+    "name": "crystallized flesh",
+    "desc": "Meat preserved in crystal matrices, still warm with stolen life force.",
+    "room_level": 4,
+    "item_stats": {
+      "stamina_value": 28,
+      "health_value": 8,
+      "uses": 1,
+      "price": 12
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_crystallized_flesh.png"
+  },
+  "2059": {
+    "category": "food",
+    "name": "voidfruit preserves",
+    "desc": "Dark fruit from the shadow realm, jarred in obsidian containers.",
+    "room_level": 4,
+    "item_stats": {
+      "stamina_value": 30,
+      "health_value": 4,
+      "uses": 1,
+      "price": 20
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_voidfruit_preserves.png"
+  },
+  "2060": {
+    "category": "food",
+    "name": "bone meal wafers",
+    "desc": "Compressed nutrients from fallen fortress defenders.",
+    "room_level": 4,
+    "item_stats": {
+      "stamina_value": 20,
+      "health_value": 12,
+      "uses": 1,
+      "price": 16
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_bone_meal_wafers.png"
+  },
+  "2061": {
+    "category": "drink",
+    "name": "umbral wine",
+    "desc": "Wine aged in shadow-touched cellars, swirling with dark energy.",
+    "room_level": 4,
+    "item_stats": {
+      "stamina_value": 22,
+      "health_value": 4,
+      "uses": 1,
+      "price": 20
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_umbral_wine.png"
+  },
+  "2062": {
+    "category": "drink",
+    "name": "crystal-filtered water",
+    "desc": "Water purified through corrupted crystal networks.",
+    "room_level": 4,
+    "item_stats": {
+      "stamina_value": 16,
+      "health_value": 4,
+      "uses": 1,
+      "price": 20
+    }
+  },
+  "2063": {
+    "category": "drink",
+    "name": "life essence draught",
+    "desc": "Glowing red liquid siphoned from imprisoned soldiers.",
+    "room_level": 4,
+    "item_stats": {
+      "stamina_value": 26,
+      "health_value": 12,
+      "uses": 1,
+      "price": 14
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_life_essence_draught.png"
+  },
+  "2064": {
+    "category": "drink",
+    "name": "void whiskey",
+    "desc": "Spirits distilled with shadow realm vapors.",
+    "room_level": 4,
+    "item_stats": {
+      "stamina_value": 22,
+      "health_value": 6,
+      "uses": 1,
+      "price": 22
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_void_whiskey.png"
+  },
+  "2065": {
+    "category": "tool",
+    "name": "crystal resonance hammer",
+    "desc": "Hammer attuned to shatter crystal formations.",
+    "room_level": 4,
+    "item_stats": {
+      "attribute": "bludgeon",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 48
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_crystal_resonance_hammer.png"
+  },
+  "2066": {
+    "category": "tool",
+    "name": "shadow-forged chisel",
+    "desc": "Chisel that cuts through dimensional barriers.",
+    "room_level": 4,
+    "item_stats": {
+      "attribute": "cutting",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 48
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_shadow-forged_chisel.png"
+  },
+  "2067": {
+    "category": "tool",
+    "name": "umbral climbing claws",
+    "desc": "Claws that find purchase on shadow-touched stone.",
+    "room_level": 4,
+    "item_stats": {
+      "attribute": "climbing",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 40
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_umbral_climbing_claws.png"
+  },
+  "2068": {
+    "category": "weapon",
+    "name": "Voidcaller's Scepter",
+    "desc": "Crystal-tipped staff channeling shadow realm energies.",
+    "weapon_type": "arcane",
+    "damage_type": "bludgeoning",
+    "weapon_category": "simple",
+    "room_level": 4,
+    "item_stats": {
+      "attack_dice": "1d10",
+      "stat_modifier": "INT",
+      "price": 47
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_voidcaller's_scepter.png"
+  },
+  "2069": {
+    "category": "weapon",
+    "name": "Shadowstrike Baton",
+    "desc": "Compact rod crackling with dark lightning.",
+    "weapon_type": "light",
+    "damage_type": "bludgeoning",
+    "weapon_category": "simple",
+    "room_level": 4,
+    "item_stats": {
+      "attack_dice": "1d12",
+      "stat_modifier": "DEX",
+      "price": 63
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_shadowstrike_baton.png"
+  },
+  "2070": {
+    "category": "weapon",
+    "name": "Convergence Catalyst",
+    "desc": "Floating orb that reshapes reality with each strike.",
+    "weapon_type": "arcane",
+    "damage_type": "bludgeoning",
+    "weapon_category": "simple",
+    "room_level": 4,
+    "item_stats": {
+      "attack_dice": "1d10",
+      "stat_modifier": "INT",
+      "price": 54
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_convergence_catalyst.png"
+  },
+  "2071": {
+    "category": "weapon",
+    "name": "Chaos Wrench",
+    "desc": "Unpredictable tool that bends probability itself.",
+    "weapon_type": "wild",
+    "damage_type": "bludgeoning",
+    "weapon_category": "martial",
+    "room_level": 4,
+    "item_stats": {
+      "attack_dice": "1d12",
+      "stat_modifier": "LUCK",
+      "price": 67
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_chaos_wrench.png"
+  },
+  "2072": {
+    "category": "weapon",
+    "name": "Covenant Executioner",
+    "desc": "Massive blade forged from fallen crystal spires.",
+    "weapon_type": "heavy",
+    "damage_type": "slashing",
+    "weapon_category": "simple",
+    "room_level": 4,
+    "item_stats": {
+      "attack_dice": "2d6",
+      "stat_modifier": "STR",
+      "price": 25
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_covenant_executioner.png"
+  },
+  "2073": {
+    "category": "weapon",
+    "name": "Fortress Breaker",
+    "desc": "Warhammer capable of shattering dimensional anchors.",
+    "weapon_type": "heavy",
+    "damage_type": "bludgeoning",
+    "weapon_category": "martial",
+    "room_level": 4,
+    "item_stats": {
+      "attack_dice": "2d6",
+      "stat_modifier": "STR",
+      "price": 28
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_fortress_breaker.png"
+  },
+  "2074": {
+    "category": "spell_scroll",
+    "name": "scroll of shadow mending",
+    "desc": "Weaves darkness to seal wounds with shadow energy.",
+    "spell_effect": "heal",
+    "room_level": 4,
+    "item_stats": {
+      "health_value": 37,
+      "stamina_value": 0,
+      "price": 44
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_scroll_of_shadow_mending.png"
+  },
+  "2075": {
+    "category": "spell_scroll",
+    "name": "scroll of umbral sight",
+    "desc": "Pierces illusions to reveal hidden crystal networks.",
+    "spell_effect": "reveal",
+    "room_level": 4,
+    "item_stats": {
+      "health_value": 0,
+      "stamina_value": 0,
+      "price": 50
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_scroll_of_umbral_sight.png"
+  },
+  "2076": {
+    "category": "food",
+    "name": "convergence wafers",
+    "desc": "Crystalline wafers that shimmer between dimensions when consumed.",
+    "room_level": 5,
+    "item_stats": {
+      "stamina_value": 26,
+      "health_value": 2,
+      "uses": 1,
+      "price": 30
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_convergence_wafers.png"
+  },
+  "2077": {
+    "category": "food",
+    "name": "shadow-touched fruit",
+    "desc": "Dark fruit from trees growing in dimensional rifts, phases slightly out of reality.",
+    "room_level": 5,
+    "item_stats": {
+      "stamina_value": 10,
+      "health_value": 8,
+      "uses": 1,
+      "price": 12
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_shadow-touched_fruit.png"
+  },
+  "2078": {
+    "category": "food",
+    "name": "voidbound rations",
+    "desc": "Preserved meals infused with shadow essence, sustaining both flesh and spirit.",
+    "room_level": 5,
+    "item_stats": {
+      "stamina_value": 30,
+      "health_value": 8,
+      "uses": 1,
+      "price": 26
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_voidbound_rations.png"
+  },
+  "2079": {
+    "category": "food",
+    "name": "echo bread",
+    "desc": "Bread that whispers fragments of ancient Umbral prayers when broken.",
+    "room_level": 5,
+    "item_stats": {
+      "stamina_value": 30,
+      "health_value": 6,
+      "uses": 1,
+      "price": 22
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_echo_bread.png"
+  },
+  "2080": {
+    "category": "drink",
+    "name": "rift water",
+    "desc": "Water drawn from pools where shadow bleeds into reality, tastes of distant stars.",
+    "room_level": 5,
+    "item_stats": {
+      "stamina_value": 24,
+      "health_value": 8,
+      "uses": 1,
+      "price": 24
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_rift_water.png"
+  },
+  "2081": {
+    "category": "drink",
+    "name": "crystal essence",
+    "desc": "Liquefied crystal technology that pulses with arcane energy.",
+    "room_level": 5,
+    "item_stats": {
+      "stamina_value": 22,
+      "health_value": 2,
+      "uses": 1,
+      "price": 28
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_crystal_essence.png"
+  },
+  "2082": {
+    "category": "drink",
+    "name": "umbral wine",
+    "desc": "Dark wine aged in shadow-touched cellars, grants brief glimpses of the void.",
+    "room_level": 5,
+    "item_stats": {
+      "stamina_value": 16,
+      "health_value": 6,
+      "uses": 1,
+      "price": 26
+    }
+  },
+  "2083": {
+    "category": "drink",
+    "name": "nexus elixir",
+    "desc": "Swirling potion that shifts between dimensions with each sip.",
+    "room_level": 5,
+    "item_stats": {
+      "stamina_value": 26,
+      "health_value": 4,
+      "uses": 1,
+      "price": 26
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_nexus_elixir.png"
+  },
+  "2084": {
+    "category": "tool",
+    "name": "voidforge hammer",
+    "desc": "Heavy hammer wreathed in shadow energy, strikes phase through armor.",
+    "room_level": 5,
+    "item_stats": {
+      "attribute": "bludgeon",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 24
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_voidforge_hammer.png"
+  },
+  "2085": {
+    "category": "tool",
+    "name": "rift cutter",
+    "desc": "Crystalline blade that slices through dimensional barriers and stone alike.",
+    "room_level": 5,
+    "item_stats": {
+      "attribute": "cutting",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 42
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_rift_cutter.png"
+  },
+  "2086": {
+    "category": "tool",
+    "name": "shadow anchor",
+    "desc": "Crystalline grapnel that extends tendrils into the shadow realm for climbing.",
+    "room_level": 5,
+    "item_stats": {
+      "attribute": "climbing",
+      "stamina_value": -5,
+      "health_value": 0,
+      "uses": 3,
+      "price": 28
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_shadow_anchor.png"
+  },
+  "2087": {
+    "category": "weapon",
+    "name": "Thorne's redemption spear",
+    "desc": "Sacred spear bearing scars of shadow-burn, wielded by the freed captain.",
+    "weapon_type": "sacred",
+    "damage_type": "piercing",
+    "weapon_category": "martial",
+    "room_level": 5,
+    "item_stats": {
+      "attack_dice": "2d6",
+      "stat_modifier": "CON",
+      "price": 19
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_thorne's_redemption_spear.png"
+  },
+  "2088": {
+    "category": "weapon",
+    "name": "covenant piercer",
+    "desc": "Ritual lance channeling umbral faith through crystalline focus.",
+    "weapon_type": "sacred",
+    "damage_type": "piercing",
+    "weapon_category": "martial",
+    "room_level": 5,
+    "item_stats": {
+      "attack_dice": "2d6",
+      "stat_modifier": "CON",
+      "price": 30
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_covenant_piercer.png"
+  },
+  "2089": {
+    "category": "weapon",
+    "name": "Koreth's reversal staff",
+    "desc": "Arcane staff designed to disrupt crystal alignments and ritual matrices.",
+    "weapon_type": "arcane",
+    "damage_type": "bludgeoning",
+    "weapon_category": "simple",
+    "room_level": 5,
+    "item_stats": {
+      "attack_dice": "1d12",
+      "stat_modifier": "INT",
+      "price": 70
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_koreth's_reversal_staff.png"
+  },
+  "2090": {
+    "category": "weapon",
+    "name": "voidbound saber",
+    "desc": "Enchanted blade that phases between shadow and steel mid-strike.",
+    "weapon_type": "enchanted",
+    "damage_type": "slashing",
+    "weapon_category": "simple",
+    "room_level": 5,
+    "item_stats": {
+      "attack_dice": "1d12",
+      "stat_modifier": "WIS",
+      "price": 69
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_voidbound_saber.png"
+  },
+  "2091": {
+    "category": "weapon",
+    "name": "convergence scythe",
+    "desc": "Arcane weapon that harvests energy from dimensional rifts.",
+    "weapon_type": "arcane",
+    "damage_type": "slashing",
+    "weapon_category": "simple",
+    "room_level": 5,
+    "item_stats": {
+      "attack_dice": "1d12",
+      "stat_modifier": "INT",
+      "price": 64
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_convergence_scythe.png"
+  },
+  "2092": {
+    "category": "weapon",
+    "name": "oracle's last lance",
+    "desc": "Sacred weapon containing fragments of the Oracle's shattered consciousness.",
+    "weapon_type": "sacred",
+    "damage_type": "piercing",
+    "weapon_category": "martial",
+    "room_level": 5,
+    "item_stats": {
+      "attack_dice": "2d6",
+      "stat_modifier": "CON",
+      "price": 29
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_oracle's_last_lance.png"
+  },
+  "2093": {
+    "category": "spell_scroll",
+    "name": "scroll of dimensional anchor",
+    "desc": "Binds rifting entities to the physical realm, stabilizing reality tears.",
+    "spell_effect": "shield",
+    "room_level": 5,
+    "item_stats": {
+      "health_value": 0,
+      "stamina_value": 0,
+      "price": 62
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_scroll_of_dimensional_anchor.png"
+  },
+  "2094": {
+    "category": "spell_scroll",
+    "name": "scroll of shadow purge",
+    "desc": "Sears void-touched corruption with blinding light from the physical realm.",
+    "spell_effect": "damage",
+    "room_level": 5,
+    "item_stats": {
+      "health_value": 0,
+      "stamina_value": 0,
+      "price": 48
+    },
+    "profile_image": "/Users/wolfgangblack/Documents/projects/MazeWorld/data/portraits/items/item_scroll_of_shadow_purge.png"
+  }
+}

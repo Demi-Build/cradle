@@ -1,0 +1,450 @@
+{
+  "mage_damage": [
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "INT",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Purifying Beam",
+      "description": "A focused ray of pure white light erupts from your fingertips, searing through shadow and corruption with divine intensity."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "INT",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Dawn's Wrath",
+      "description": "Golden morning light coalesces into a blazing orb that explodes outward, banishing darkness and scorching all within its radiant embrace."
+    },
+    {
+      "spell_type": "damage_multi",
+      "element": "light",
+      "stat": "INT",
+      "targets": "multi",
+      "num_dice": 1,
+      "die_sides": 4,
+      "stamina_cost": 6,
+      "name": "Starfall Strike",
+      "description": "Brilliant points of starlight rain down from above like celestial arrows, each one piercing through enemies with ethereal fire."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "INT",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Solar Flare",
+      "description": "A miniature sun bursts forth in a blinding flash, releasing waves of searing light that wash over all nearby foes."
+    },
+    {
+      "spell_type": "damage_multi",
+      "element": "light",
+      "stat": "INT",
+      "targets": "multi",
+      "num_dice": 1,
+      "die_sides": 4,
+      "stamina_cost": 6,
+      "name": "Luminous Lance",
+      "description": "A spear of concentrated moonlight materializes and hurls itself at a single target, leaving trails of shimmering radiance in its wake."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "INT",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Prism Burst",
+      "description": "Crystalline light fractures into a rainbow of deadly beams, each one seeking a different enemy with precision and grace."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "INT",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Radiant Maelstrom",
+      "description": "A swirling vortex of liquid light engulfs the battlefield, burning away shadows while healing allies and harming enemies within its glow."
+    },
+    {
+      "spell_type": "damage_multi",
+      "element": "light",
+      "stat": "INT",
+      "targets": "multi",
+      "num_dice": 1,
+      "die_sides": 4,
+      "stamina_cost": 6,
+      "name": "Sanctuary's Retribution",
+      "description": "Divine light erupts in a protective circle around you, lashing out at any who dare approach with tendrils of blessed fire."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "INT",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Eclipse Reversal",
+      "description": "You tear through the veil of darkness itself, unleashing the trapped light beneath in a devastating explosion of purified energy."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "INT",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Celestial Cascade",
+      "description": "Streams of heavenly light pour down like a waterfall of liquid stars, washing over enemies in waves of burning sanctity."
+    }
+  ],
+  "healer_damage": [
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Divine Beacon",
+      "description": "A brilliant column of pure light erupts from the heavens to strike your enemy with celestial force."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Crystal Purge",
+      "description": "Radiant energy courses through crystalline fragments, creating a searing beam that pierces through shadow magic."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Sanctified Ray",
+      "description": "Holy light manifests as a focused lance of energy that burns away corruption and shadow."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Luminous Verdict",
+      "description": "Divine judgment takes the form of blazing light that seeks out and punishes those who embrace darkness."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Prism Strike",
+      "description": "Refracted light coalesces into a concentrated burst of rainbow-hued energy that overwhelms shadow defenses."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Hallowed Flare",
+      "description": "Sacred flame wreathed in brilliant white light erupts to banish darkness and sear unholy flesh."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Dawn's Retribution",
+      "description": "The power of sunrise channels through your divine focus to strike down creatures of shadow with merciless radiance."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Consecrated Burst",
+      "description": "Holy light explodes outward in a concentrated blast that burns through shadow magic like morning sun through mist."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Stellar Lance",
+      "description": "Starlight crystallizes into a piercing spear of celestial energy that cuts through darkness with divine precision."
+    },
+    {
+      "spell_type": "damage_single",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "single",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 4,
+      "name": "Radiant Smite",
+      "description": "Pure light coalesces around your weapon or hand before unleashing a devastating strike against creatures of shadow."
+    }
+  ],
+  "heal": [
+    {
+      "spell_type": "heal",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 5,
+      "name": "Dawn's Embrace",
+      "description": "Gentle rays of morning light envelop the target, mending wounds with the promise of a new day."
+    },
+    {
+      "spell_type": "heal",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 5,
+      "name": "Crystal Clarity",
+      "description": "Pure crystalline light flows through the body, cleansing darkness and restoring vitality."
+    },
+    {
+      "spell_type": "heal",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 5,
+      "name": "Sanctuary's Blessing",
+      "description": "A protective aura of sacred light surrounds the target, healing their injuries while warding off shadow."
+    },
+    {
+      "spell_type": "heal",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 5,
+      "name": "Starlight Restoration",
+      "description": "Distant starlight gathers to heal wounds with the eternal wisdom of the celestial realm."
+    },
+    {
+      "spell_type": "heal",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 5,
+      "name": "Chapel's Grace",
+      "description": "Holy light radiates from blessed ground, mending the faithful with divine compassion."
+    },
+    {
+      "spell_type": "heal",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 5,
+      "name": "Prism of Renewal",
+      "description": "Rainbow light refracts through the air, each hue carrying healing energy to restore the wounded."
+    },
+    {
+      "spell_type": "heal",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 5,
+      "name": "Sunbeam Sanctuary",
+      "description": "Brilliant beams of sunlight pierce through darkness to heal and protect the righteous."
+    },
+    {
+      "spell_type": "heal",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 5,
+      "name": "Luminous Balm",
+      "description": "Soft, glowing light spreads like healing salve across wounds, soothing pain and mending flesh."
+    },
+    {
+      "spell_type": "heal",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 5,
+      "name": "Beacon's Touch",
+      "description": "A guiding light reaches out to heal the injured, offering hope in the darkest moments."
+    },
+    {
+      "spell_type": "heal",
+      "element": "light",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 1,
+      "die_sides": 6,
+      "stamina_cost": 5,
+      "name": "Radiant Rebirth",
+      "description": "Intense white light floods through the target's body, burning away injuries and restoring them to full strength."
+    }
+  ],
+  "buff": [
+    {
+      "spell_type": "buff_stat",
+      "element": "dark",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 0,
+      "die_sides": 0,
+      "stamina_cost": 2,
+      "name": "Shadowmend Fortitude",
+      "description": "Dark tendrils weave through your wounds, accelerating healing while the shadows whisper ancient secrets of endurance."
+    },
+    {
+      "spell_type": "buff_sustain",
+      "element": "dark",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 0,
+      "die_sides": 0,
+      "stamina_cost": 2,
+      "name": "Umbral Vigor",
+      "description": "The essence of the shadow realm courses through your veins, restoring your stamina with the boundless energy of darkness."
+    },
+    {
+      "spell_type": "buff_stat",
+      "element": "dark",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 0,
+      "die_sides": 0,
+      "stamina_cost": 2,
+      "name": "Covenant's Blessing",
+      "description": "Ancient shadow magic wraps around you like armor, increasing your resilience while purple shadows dance across your skin."
+    },
+    {
+      "spell_type": "buff_sustain",
+      "element": "dark",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 0,
+      "die_sides": 0,
+      "stamina_cost": 2,
+      "name": "Void Walker's Grace",
+      "description": "Your movements become fluid and precise as shadow energy enhances your agility, leaving faint dark wisps in your wake."
+    },
+    {
+      "spell_type": "buff_stat",
+      "element": "dark",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 0,
+      "die_sides": 0,
+      "stamina_cost": 2,
+      "name": "Crystalline Shadow Surge",
+      "description": "Dark crystal fragments orbit your body, channeling shadow magic to dramatically boost your physical strength."
+    },
+    {
+      "spell_type": "buff_sustain",
+      "element": "dark",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 0,
+      "die_sides": 0,
+      "stamina_cost": 2,
+      "name": "Whispered Endurance",
+      "description": "The voices of the shadow realm murmur encouragement, filling you with supernatural stamina that seems to draw from the darkness itself."
+    },
+    {
+      "spell_type": "buff_stat",
+      "element": "dark",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 0,
+      "die_sides": 0,
+      "stamina_cost": 2,
+      "name": "Nyx's Resilience",
+      "description": "Shadow energy hardens your resolve and body alike, granting enhanced durability as darkness coils protectively around you."
+    },
+    {
+      "spell_type": "buff_sustain",
+      "element": "dark",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 0,
+      "die_sides": 0,
+      "stamina_cost": 2,
+      "name": "Shadowweaver's Focus",
+      "description": "Your mind becomes sharp as obsidian as dark magic enhances your concentration, purple light flickering behind your eyes."
+    },
+    {
+      "spell_type": "buff_stat",
+      "element": "dark",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 0,
+      "die_sides": 0,
+      "stamina_cost": 2,
+      "name": "Convergence Might",
+      "description": "The power of two realms flows through you, dramatically increasing your physical prowess as reality bends around your form."
+    },
+    {
+      "spell_type": "buff_sustain",
+      "element": "dark",
+      "stat": "WIS",
+      "targets": "self",
+      "num_dice": 0,
+      "die_sides": 0,
+      "stamina_cost": 2,
+      "name": "Abyssal Restoration",
+      "description": "Dark energy from the deepest shadows mends your body and spirit, restoring both health and stamina with otherworldly power."
+    }
+  ]
+}

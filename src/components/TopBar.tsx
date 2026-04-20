@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
 import { api } from "../lib/invoke";
 import { useStore } from "../store";
 
@@ -13,12 +14,22 @@ export function TopBar() {
     try {
       const summary = await api.loadWorld(path);
       setWorldPath(path);
+      setInput(path);
       setWorld(summary);
     } catch (e) {
       setError(String(e));
       setWorld(null);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function browse() {
+    try {
+      const selected = await open({ directory: true, multiple: false, title: "Select a world directory" });
+      if (typeof selected === "string") await load(selected);
+    } catch (e) {
+      setError(String(e));
     }
   }
 
@@ -44,6 +55,11 @@ export function TopBar() {
           {loading ? "Loading…" : world ? "Reload" : "Load"}
         </button>
       </form>
+      <div className="topbar-actions">
+        <button className="topbar-btn-secondary" onClick={browse} disabled={loading}>
+          Browse…
+        </button>
+      </div>
     </header>
   );
 }

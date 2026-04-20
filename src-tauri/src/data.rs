@@ -22,11 +22,19 @@ pub struct EntityRef {
     pub name: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EntityRow {
+    pub id: String,
+    pub data: Value,
+}
+
 pub trait DataSource: Send + Sync {
     fn load_world(&self, path: &Path) -> Result<WorldSummary, String>;
     fn get_world_bible(&self, path: &Path) -> Result<Value, String>;
     fn list_entities(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRef>, String>;
+    fn list_entity_rows(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRow>, String>;
     fn get_entity(&self, path: &Path, type_id: &str, id: &str) -> Result<Value, String>;
+    fn resolve_asset(&self, path: &Path, hint: &str) -> Option<String>;
 }
 
 pub struct LocalFsDataSource;
@@ -68,18 +76,28 @@ impl LocalFsDataSource {
     }
 
     fn extract_refs(type_id: &str, v: &Value) -> Vec<EntityRef> {
-        let arr = match v {
-            Value::Array(a) => a.clone(),
-            Value::Object(o) => o.values().cloned().collect(),
-            _ => return Vec::new(),
-        };
-        arr.into_iter()
-            .filter_map(|item| {
-                let id = item.get("id").map(|x| x.to_string().trim_matches('"').to_string())?;
-                let name = item.get("name").and_then(|n| n.as_str()).map(String::from);
-                Some(EntityRef { type_id: type_id.to_string(), id, name })
-            })
-            .collect()
+        match v {
+            Value::Array(a) => a
+                .iter()
+                .enumerate()
+                .map(|(i, item)| {
+                    let id = item
+                        .get("id")
+                        .map(|x| x.to_string().trim_matches('"').to_string())
+                        .unwrap_or_else(|| i.to_string());
+                    let name = item.get("name").and_then(|n| n.as_str()).map(String::from);
+                    EntityRef { type_id: type_id.to_string(), id, name }
+                })
+                .collect(),
+            Value::Object(o) => o
+                .iter()
+                .map(|(k, item)| {
+                    let name = item.get("name").and_then(|n| n.as_str()).map(String::from);
+                    EntityRef { type_id: type_id.to_string(), id: k.clone(), name }
+                })
+                .collect(),
+            _ => Vec::new(),
+        }
     }
 }
 
@@ -111,22 +129,105 @@ impl DataSource for LocalFsDataSource {
         Self::collection_entries(&Self::data_root(path), type_id)
     }
 
+    fn list_entity_rows(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRow>, String> {
+        let root = Self::data_root(path);
+        let flat = root.join(type_id).join(format!("{}.json", type_id));
+        if flat.is_file() {
+            let v = Self::read_json(&flat)?;
+            return Ok(match v {
+                Value::Array(a) => a
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, item)| {
+                        let id = item
+                            .get("id")
+                            .map(|x| x.to_string().trim_matches('"').to_string())
+                            .unwrap_or_else(|| i.to_string());
+                        EntityRow { id, data: item }
+                    })
+                    .collect(),
+                Value::Object(o) => o.into_iter().map(|(id, data)| EntityRow { id, data }).collect(),
+                _ => Vec::new(),
+            });
+        }
+        let dir = root.join(type_id);
+        if dir.is_dir() {
+            let mut rows = Vec::new();
+            for entry in std::fs::read_dir(&dir).map_err(|e| e.to_string())? {
+                let entry = entry.map_err(|e| e.to_string())?;
+                let name = entry.file_name().to_string_lossy().to_string();
+                let id = name.trim_end_matches(".json").to_string();
+                let data = self.get_entity(path, type_id, &id).unwrap_or(Value::Null);
+                rows.push(EntityRow { id, data });
+            }
+            rows.sort_by(|a, b| a.id.cmp(&b.id));
+            return Ok(rows);
+        }
+        Ok(Vec::new())
+    }
+
+    fn resolve_asset(&self, path: &Path, hint: &str) -> Option<String> {
+        let root = Self::data_root(path);
+        let world_root = path;
+        let hint_path = Path::new(hint);
+        if hint_path.is_absolute() && hint_path.exists() {
+            return Some(hint_path.to_string_lossy().into());
+        }
+        let normalized = hint.replace('\\', "/");
+        if let Some(idx) = normalized.find("data/portraits/") {
+            let suffix = &normalized[idx + "data/".len()..];
+            let candidate = root.join(suffix);
+            if candidate.exists() {
+                return Some(candidate.to_string_lossy().into());
+            }
+            let candidate2 = world_root.join(&normalized[idx..]);
+            if candidate2.exists() {
+                return Some(candidate2.to_string_lossy().into());
+            }
+        }
+        if let Some(idx) = normalized.find("portraits/") {
+            let candidate = root.join(&normalized[idx..]);
+            if candidate.exists() {
+                return Some(candidate.to_string_lossy().into());
+            }
+        }
+        let basename = hint_path.file_name()?.to_string_lossy().to_string();
+        for sub in ["npcs", "monsters", "items", "events", "classes", "maps", ""] {
+            let candidate = root.join("portraits").join(sub).join(&basename);
+            if candidate.exists() {
+                return Some(candidate.to_string_lossy().into());
+            }
+        }
+        None
+    }
+
     fn get_entity(&self, path: &Path, type_id: &str, id: &str) -> Result<Value, String> {
         let root = Self::data_root(path);
         let flat = root.join(type_id).join(format!("{}.json", type_id));
         if flat.is_file() {
             let v = Self::read_json(&flat)?;
-            let arr: Vec<Value> = match v {
-                Value::Array(a) => a,
-                Value::Object(o) => o.into_iter().map(|(_, v)| v).collect(),
-                other => vec![other],
-            };
-            for item in arr {
-                if item.get("id").map(|i| i.to_string().trim_matches('"').to_string()) == Some(id.to_string()) {
-                    return Ok(item);
+            match v {
+                Value::Array(a) => {
+                    for (i, item) in a.iter().enumerate() {
+                        let matches_id = item
+                            .get("id")
+                            .map(|x| x.to_string().trim_matches('"').to_string())
+                            == Some(id.to_string());
+                        let matches_index = i.to_string() == id;
+                        if matches_id || (item.get("id").is_none() && matches_index) {
+                            return Ok(item.clone());
+                        }
+                    }
+                    return Err(format!("entity {}/{} not found", type_id, id));
                 }
+                Value::Object(o) => {
+                    if let Some(v) = o.get(id) {
+                        return Ok(v.clone());
+                    }
+                    return Err(format!("entity {}/{} not found", type_id, id));
+                }
+                other => return Ok(other),
             }
-            return Err(format!("entity {}/{} not found", type_id, id));
         }
         let direct = root.join(type_id).join(format!("{}.json", id));
         if direct.is_file() {
@@ -134,14 +235,18 @@ impl DataSource for LocalFsDataSource {
         }
         let nested_dir = root.join(type_id).join(id);
         if nested_dir.is_dir() {
-            let mut obj = serde_json::Map::new();
+            let mut files: Vec<(String, Value)> = Vec::new();
             for entry in std::fs::read_dir(&nested_dir).map_err(|e| e.to_string())? {
                 let entry = entry.map_err(|e| e.to_string())?;
                 let fname = entry.file_name().to_string_lossy().to_string();
                 if let Some(stem) = fname.strip_suffix(".json") {
-                    obj.insert(stem.to_string(), Self::read_json(&entry.path())?);
+                    files.push((stem.to_string(), Self::read_json(&entry.path())?));
                 }
             }
+            if files.len() == 1 {
+                return Ok(files.into_iter().next().unwrap().1);
+            }
+            let obj: serde_json::Map<String, Value> = files.into_iter().collect();
             return Ok(Value::Object(obj));
         }
         Err(format!("entity {}/{} not found under {}", type_id, id, root.display()))

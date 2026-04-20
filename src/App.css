@@ -50,6 +50,18 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
   cursor: pointer;
 }
 .topbar-path button:disabled { background: #555; cursor: not-allowed; }
+.topbar-actions { display: flex; gap: 6px; }
+.topbar-btn-secondary {
+  background: #2a2a2a;
+  color: #e6e6e6;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.topbar-btn-secondary:hover { background: #333; }
+.topbar-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .app-body {
   display: grid;
@@ -134,6 +146,169 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
   border: 1px solid #333;
   border-radius: 4px;
   padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.entity-table-wrap { display: flex; flex-direction: column; gap: 8px; }
+.entity-table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.entity-filter {
+  background: #111;
+  color: #e6e6e6;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  flex: 1;
+  max-width: 320px;
+  font-family: inherit;
+}
+.entity-table-count { color: #777; font-size: 11px; font-variant-numeric: tabular-nums; }
+
+.entity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.entity-table thead th {
+  text-align: left;
+  font-weight: 500;
+  color: #888;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #333;
+  background: #1e1e1e;
+  position: sticky;
+  top: 0;
+  user-select: none;
+}
+.entity-table th.th-sortable { cursor: pointer; }
+.entity-table th.th-sortable:hover { color: #ccc; }
+.entity-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #262626;
+  vertical-align: middle;
+}
+.entity-row { cursor: pointer; }
+.entity-row:hover { background: #232323; }
+.cell-id { color: #888; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.entity-table .portrait { width: 40px !important; height: 40px !important; }
+
+.tabs { display: flex; flex-direction: column; height: 100%; }
+.tabs-header {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid #333;
+  margin-bottom: 16px;
+}
+.tab-btn {
+  background: none;
+  color: #aaa;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.tab-btn:hover { color: #e6e6e6; }
+.tab-btn.active {
+  color: #e6e6e6;
+  border-bottom-color: #2d6cdf;
+}
+.tabs-body { flex: 1; overflow: auto; }
+
+.overview { display: flex; flex-direction: column; gap: 20px; }
+.overview-header { display: flex; gap: 20px; align-items: flex-start; }
+.overview-titleblock { flex: 1; padding-top: 4px; }
+.overview-name {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+.overview-sub { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  display: inline-block;
+  background: #2d6cdf;
+  color: white;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: lowercase;
+}
+.chip-muted { background: #333; color: #bbb; }
+
+.portrait {
+  border-radius: 6px;
+  background: #111;
+  border: 1px solid #333;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.portrait-missing,
+.portrait-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  font-size: 11px;
+  font-style: italic;
+}
+
+.overview-prose { display: flex; flex-direction: column; gap: 14px; }
+.prose-block {}
+.prose-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #888;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.prose-body {
+  color: #ddd;
+  line-height: 1.55;
+  font-size: 13px;
+}
+
+.overview-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 6px 24px;
+  padding: 12px 0;
+  border-top: 1px solid #2a2a2a;
+  border-bottom: 1px solid #2a2a2a;
+}
+.field-row {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+}
+.field-key { color: #888; text-transform: capitalize; min-width: 90px; }
+.field-val { color: #e6e6e6; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-word; }
+
+.overview-complex { display: flex; flex-direction: column; gap: 8px; }
+.complex-field {
+  background: #161616;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+.complex-field summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: #aaa;
+  text-transform: capitalize;
+}
+.complex-json {
+  margin: 8px 0 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: #ccc;
   white-space: pre-wrap;
   word-break: break-word;
 }

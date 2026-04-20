@@ -1,16 +1,23 @@
-import { useEffect, useState } from "react";
-import { api } from "../lib/invoke";
+import { useEffect, useMemo, useState } from "react";
+import { api, type EntityRow } from "../lib/invoke";
 import { useStore } from "../store";
+import { Tabs } from "./Tabs";
+import { EntityOverview } from "./EntityOverview";
+import { EntityTable } from "./EntityTable";
+
+type Json = Record<string, unknown>;
 
 export function DetailPane() {
   const { selection, worldPath, world, error } = useStore();
   const [payload, setPayload] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
   const [localErr, setLocalErr] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
     setPayload(null);
     setLocalErr(null);
+    setActiveTab("overview");
     if (!worldPath || selection.kind === "none") return;
     setLoading(true);
     (async () => {
@@ -18,7 +25,7 @@ export function DetailPane() {
         if (selection.kind === "bible") {
           setPayload(await api.getWorldBible(worldPath));
         } else if (selection.kind === "type") {
-          setPayload(await api.listEntities(worldPath, selection.typeId));
+          setPayload(await api.listEntityRows(worldPath, selection.typeId));
         } else if (selection.kind === "entity") {
           setPayload(await api.getEntity(worldPath, selection.typeId, selection.id));
         }
@@ -29,6 +36,23 @@ export function DetailPane() {
       }
     })();
   }, [selection, worldPath]);
+
+  const entityTabs = useMemo(() => {
+    if (selection.kind !== "entity" || !payload) return null;
+    const data = payload as Json;
+    return [
+      {
+        id: "overview",
+        label: "Overview",
+        content: <EntityOverview data={data} typeId={selection.typeId} entityId={selection.id} />,
+      },
+      {
+        id: "raw",
+        label: "Raw JSON",
+        content: <pre className="detail-json">{JSON.stringify(data, null, 2)}</pre>,
+      },
+    ];
+  }, [selection, payload]);
 
   if (error) return <main className="detail detail-error">Error: {error}</main>;
   if (!world) {
@@ -43,23 +67,36 @@ export function DetailPane() {
   if (selection.kind === "none") {
     return <main className="detail detail-empty">Select something in the nav.</main>;
   }
+  if (loading) return <main className="detail"><p>Loading…</p></main>;
+  if (localErr) return <main className="detail"><p className="detail-error">{localErr}</p></main>;
+  if (payload === null) return <main className="detail" />;
+
+  if (selection.kind === "entity" && entityTabs) {
+    return (
+      <main className="detail">
+        <Tabs tabs={entityTabs} active={activeTab} onChange={setActiveTab} />
+      </main>
+    );
+  }
+
+  if (selection.kind === "type") {
+    const rows = (payload as EntityRow[]) ?? [];
+    return (
+      <main className="detail">
+        <div className="detail-header">
+          <h2>{selection.typeId}</h2>
+        </div>
+        <EntityTable typeId={selection.typeId} rows={rows} />
+      </main>
+    );
+  }
 
   return (
     <main className="detail">
       <div className="detail-header">
         {selection.kind === "bible" && <h2>World Bible</h2>}
-        {selection.kind === "type" && <h2>{selection.typeId}</h2>}
-        {selection.kind === "entity" && (
-          <h2>
-            {selection.typeId} / {selection.id}
-          </h2>
-        )}
       </div>
-      {loading && <p>Loading…</p>}
-      {localErr && <p className="detail-error">{localErr}</p>}
-      {!loading && payload !== null && (
-        <pre className="detail-json">{JSON.stringify(payload, null, 2)}</pre>
-      )}
+      <pre className="detail-json">{JSON.stringify(payload, null, 2)}</pre>
     </main>
   );
 }

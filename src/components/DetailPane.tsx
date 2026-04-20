@@ -4,6 +4,8 @@ import { useStore } from "../store";
 import { Tabs } from "./Tabs";
 import { EntityOverview } from "./EntityOverview";
 import { EntityTable } from "./EntityTable";
+import { DialogueTab } from "./dialogue/DialogueTab";
+import type { DialogueTree } from "./dialogue/types";
 
 type Json = Record<string, unknown>;
 
@@ -40,18 +42,32 @@ export function DetailPane() {
   const entityTabs = useMemo(() => {
     if (selection.kind !== "entity" || !payload) return null;
     const data = payload as Json;
-    return [
+    const tabs = [
       {
         id: "overview",
         label: "Overview",
         content: <EntityOverview data={data} typeId={selection.typeId} entityId={selection.id} />,
       },
-      {
-        id: "raw",
-        label: "Raw JSON",
-        content: <pre className="detail-json">{JSON.stringify(data, null, 2)}</pre>,
-      },
     ];
+    const dialogueTree = (data as { dialogue_tree?: DialogueTree }).dialogue_tree;
+    if (
+      selection.typeId === "npcs" &&
+      dialogueTree &&
+      dialogueTree.nodes &&
+      Object.keys(dialogueTree.nodes).length > 0
+    ) {
+      tabs.push({
+        id: "dialogue",
+        label: "Dialogue",
+        content: <DialogueTab tree={dialogueTree} />,
+      });
+    }
+    tabs.push({
+      id: "raw",
+      label: "Raw JSON",
+      content: <pre className="detail-json">{JSON.stringify(data, null, 2)}</pre>,
+    });
+    return tabs;
   }, [selection, payload]);
 
   if (error) return <main className="detail detail-error">Error: {error}</main>;

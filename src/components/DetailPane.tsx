@@ -6,6 +6,7 @@ import { EntityOverview } from "./EntityOverview";
 import { EntityTable } from "./EntityTable";
 import { DialogueTab } from "./dialogue/DialogueTab";
 import type { DialogueTree } from "./dialogue/types";
+import { WorldBibleView } from "./WorldBibleView";
 
 type Json = Record<string, unknown>;
 
@@ -107,12 +108,21 @@ export function DetailPane() {
     );
   }
 
-  return (
-    <main className="detail">
-      <div className="detail-header">
-        {selection.kind === "bible" && <h2>World Bible</h2>}
-      </div>
-      <pre className="detail-json">{JSON.stringify(payload, null, 2)}</pre>
-    </main>
-  );
+  if (selection.kind === "bible") {
+    const bibleTabs = [
+      { id: "overview", label: "Overview", content: <WorldBibleView /> },
+      {
+        id: "raw",
+        label: "Raw JSON",
+        content: <pre className="detail-json">{JSON.stringify(payload, null, 2)}</pre>,
+      },
+    ];
+    return (
+      <main className="detail">
+        <Tabs tabs={bibleTabs} active={activeTab} onChange={setActiveTab} />
+      </main>
+    );
+  }
+
+  return <main className="detail" />;
 }

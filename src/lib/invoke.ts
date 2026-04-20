@@ -19,6 +19,8 @@ export type EntityRow = {
 export const api = {
   loadWorld: (path: string) => invoke<WorldSummary>("load_world", { path }),
   getWorldBible: (path: string) => invoke<unknown>("get_world_bible", { path }),
+  readWorldJson: (path: string, name: string) =>
+    invoke<unknown>("read_world_json", { path, name }),
   listEntities: (path: string, typeId: string) =>
     invoke<EntityRef[]>("list_entities", { path, typeId }),
   listEntityRows: (path: string, typeId: string) =>

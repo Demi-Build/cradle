@@ -13,55 +13,54 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
 
 .app {
   display: grid;
-  grid-template-rows: 44px 1fr 28px;
+  grid-template-rows: 36px 1fr 28px;
   height: 100vh;
   background: #1a1a1a;
   color: #e6e6e6;
+  position: relative;
 }
 
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.app .titlebar {
+  display: flex; align-items: center; gap: 10px;
   padding: 0 12px;
-  border-bottom: 1px solid #333;
-  background: #222;
+  background: var(--bg-raised, #15171C);
+  border-bottom: 1px solid var(--border, #23262D);
+  z-index: 20;
 }
-.topbar-title { font-weight: 600; font-size: 13px; }
-.topbar-path { display: flex; gap: 6px; flex: 1; }
-.topbar-path input {
-  flex: 1;
-  background: #111;
-  color: #e6e6e6;
-  border: 1px solid #333;
+.app .traffic { display: flex; gap: 6px; }
+.app .traffic i { width: 11px; height: 11px; border-radius: 50%; display: block; }
+.app .traffic .tl-close { background: #ff5f57; }
+.app .traffic .tl-min   { background: #febc2e; }
+.app .traffic .tl-max   { background: #28c840; }
+.app .crumbs {
+  font-family: var(--mono, ui-monospace);
+  font-size: 11px;
+  color: var(--fg-muted, #9A988E);
+  display: flex; gap: 8px; align-items: center;
+}
+.app .crumbs .sep { color: var(--fg-dim, #5E5D55); }
+.app .crumbs .cur { color: var(--fg, #E8E6DF); }
+.app .crumb-link {
+  font-family: inherit; color: var(--fg-muted, #9A988E);
+  background: none; border: 0; padding: 0; cursor: pointer;
+}
+.app .crumb-link:hover { color: var(--fg, #E8E6DF); }
+.app .titlebar .spacer { flex: 1; }
+.app .titlebar .right { display: flex; gap: 4px; }
+.app .icon-btn {
+  width: 28px; height: 24px;
+  display: grid; place-items: center;
+  color: var(--fg-muted, #9A988E);
   border-radius: 4px;
-  padding: 4px 8px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  background: none; border: 0; cursor: pointer;
 }
-.topbar-path button,
-.topbar button {
-  background: #2d6cdf;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 4px 12px;
-  font-size: 12px;
-  cursor: pointer;
+.app .icon-btn:hover { background: var(--bg-hover, #1B1E24); color: var(--fg, #E8E6DF); }
+.app .icon-btn.on { background: var(--bg-hover, #1B1E24); color: var(--fg, #E8E6DF); }
+.app .g {
+  width: 16px; height: 16px;
+  stroke: currentColor; fill: none;
+  stroke-width: 1.5; stroke-linecap: square; stroke-linejoin: miter;
 }
-.topbar-path button:disabled { background: #555; cursor: not-allowed; }
-.topbar-actions { display: flex; gap: 6px; }
-.topbar-btn-secondary {
-  background: #2a2a2a;
-  color: #e6e6e6;
-  border: 1px solid #3a3a3a;
-  border-radius: 4px;
-  padding: 4px 12px;
-  font-size: 12px;
-  cursor: pointer;
-}
-.topbar-btn-secondary:hover { background: #333; }
-.topbar-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .app-body {
   display: grid;
@@ -719,6 +718,30 @@ html, body, #root { height: 100%; margin: 0; padding: 0; }
   color: #ccc;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.bible-hero-img {
+  width: 100%;
+  height: 260px;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a;
+  margin-bottom: 8px;
+  overflow: hidden;
+  position: relative;
+}
+.bible-hero-img-el {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  image-rendering: pixelated;
+}
+.bible-hero-img::after {
+  content: "";
+  position: absolute; inset: 0;
+  box-shadow: inset 0 -60px 80px -40px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
 }
 
 .bible { display: flex; flex-direction: column; gap: 28px; padding: 4px 4px 20px; }

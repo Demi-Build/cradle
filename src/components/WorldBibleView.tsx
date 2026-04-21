@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/invoke";
 import { useStore } from "../store";
 import { ExpandableText } from "./ExpandableText";
+import { useAssetUrl } from "./start/useAssetUrl";
 
 type Faction = {
   name?: string;
@@ -37,7 +38,7 @@ type Bible = {
   entity_index?: Record<string, unknown>;
 };
 type Manifest = {
-  seed?: string;
+  seed?: string | number;
   generated_at?: string;
   num_rooms?: number;
   environment_names?: string[];
@@ -49,6 +50,7 @@ type Manifest = {
   game_mode?: string;
   story_title?: string;
   faction_name?: string;
+  start_portrait?: string;
 };
 type Stats = {
   llm_backend?: string;
@@ -107,6 +109,7 @@ export function WorldBibleView() {
 
   return (
     <div className="bible">
+      <BibleHeroImage hint={manifest?.start_portrait} />
       <section className="bible-hero">
         <div className="bible-eyebrow">World Bible</div>
         <h1 className="bible-title">{story.title ?? "(untitled)"}</h1>
@@ -290,6 +293,17 @@ function StatCell({ k, v }: { k: string; v: string }) {
     <div className="stat-cell">
       <div className="meta-k">{k}</div>
       <div className="stat-v">{v}</div>
+    </div>
+  );
+}
+
+function BibleHeroImage({ hint }: { hint: string | undefined }) {
+  const worldPath = useStore((s) => s.worldPath);
+  const url = useAssetUrl(worldPath, hint);
+  if (!url) return null;
+  return (
+    <div className="bible-hero-img">
+      <img src={url} alt="" className="bible-hero-img-el" />
     </div>
   );
 }

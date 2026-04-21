@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 380" width="380" height="380" fill="none">
+  <title>Cradle — sub-brand mark</title>
+  <desc>Shares Demi&#39;s concentric-rings sigil; the central glyph is a small concentric &#39;C&#39; — half-circle opening to the right, arm in quadrants II + III — wrapping the center dot.</desc>
+  
+  <path d="M 190 10 A 180 180 0 0 0 190 370" stroke="#1B1D24" stroke-width="1" stroke-dasharray="2 5" opacity="0.35"></path>
+  <path d="M 190 50 A 140 140 0 0 0 190 330" stroke="#1B1D24" stroke-width="1" stroke-dasharray="2 5" opacity="0.35"></path>
+  <path d="M 190 90 A 100 100 0 0 0 190 290" stroke="#1B1D24" stroke-width="1" stroke-dasharray="2 5" opacity="0.35"></path>
+  
+  <path d="M 190 10 A 180 180 0 0 1 190 370" stroke="#1B1D24" stroke-width="2"></path>
+  <path d="M 190 50 A 140 140 0 0 1 190 330" stroke="#1B1D24" stroke-width="1.5"></path>
+  <path d="M 190 90 A 100 100 0 0 1 190 290" stroke="#1B1D24" stroke-width="1.5"></path>
+  
+  <line x1="190" y1="10" x2="190" y2="370" stroke="#A07B3C" stroke-width="2.5"></line>
+  
+  <path d="M 190 165 A 25 25 0 1 0 190 215" stroke="#A07B3C" stroke-width="3" fill="none" stroke-linecap="round"></path>
+  
+  <circle cx="190" cy="190" r="5" fill="#A07B3C"></circle>
+</svg>

@@ -1,26 +1,24 @@
-import { useStore } from "../store";
-import { Icon, IconSymbols } from "./start/Icons";
+import { useStore } from "../../store";
+import { Icon } from "./Icons";
 
-export function TopBar() {
-  const world = useStore((s) => s.world);
+export function StartTitleBar({ here = "start" }: { here?: string }) {
   const theme = useStore((s) => s.theme);
   const setTheme = useStore((s) => s.setTheme);
   const drawerOpen = useStore((s) => s.drawerOpen);
   const setDrawerOpen = useStore((s) => s.setDrawerOpen);
-  const closeWorld = useStore((s) => s.closeWorld);
+  const setRoute = useStore((s) => s.setRoute);
 
   return (
     <header className="titlebar">
-      <IconSymbols />
       <div className="traffic">
         <i className="tl-close" />
         <i className="tl-min" />
         <i className="tl-max" />
       </div>
       <div className="crumbs">
-        <button className="crumb-link" onClick={closeWorld}>cradle</button>
+        <button className="crumb-link" onClick={() => setRoute("start")}>cradle</button>
         <span className="sep">/</span>
-        <span className="cur">{world?.name ?? "world"}</span>
+        <span className="cur">{here}</span>
       </div>
       <div className="spacer" />
       <div className="right">

@@ -1,5 +1,14 @@
 import { create } from "zustand";
 import type { EntityRef, WorldSummary } from "./lib/invoke";
+import { api } from "./lib/invoke";
+import {
+  loadRecents,
+  upsertRecent,
+  removeRecent as removeRecentFn,
+  togglePin as togglePinFn,
+  type RecentProject,
+  type ValidationStatus,
+} from "./lib/recents";
 
 export type Selection =
   | { kind: "none" }
@@ -10,6 +19,8 @@ export type Selection =
 type EntitiesByType = Record<string, EntityRef[]>;
 
 export type LightboxImage = { src: string; alt: string };
+export type Route = "start" | "recents";
+export type Theme = "dark" | "light";
 
 type Store = {
   worldPath: string;
@@ -18,6 +29,11 @@ type Store = {
   selection: Selection;
   error: string | null;
   lightbox: LightboxImage | null;
+  recents: RecentProject[];
+  route: Route;
+  theme: Theme;
+  drawerOpen: boolean;
+  loading: boolean;
   setWorldPath: (p: string) => void;
   setWorld: (w: WorldSummary | null) => void;
   setEntities: (typeId: string, refs: EntityRef[]) => void;
@@ -25,15 +41,37 @@ type Store = {
   setError: (e: string | null) => void;
   openLightbox: (img: LightboxImage) => void;
   closeLightbox: () => void;
+  setRoute: (r: Route) => void;
+  setTheme: (t: Theme) => void;
+  setDrawerOpen: (open: boolean) => void;
+  loadWorldByPath: (path: string) => Promise<void>;
+  closeWorld: () => void;
+  togglePin: (path: string) => void;
+  removeRecent: (path: string) => void;
+  enrichRecent: (path: string) => Promise<void>;
 };
 
-export const useStore = create<Store>((set) => ({
+const THEME_KEY = "cradle.theme.v1";
+function initialTheme(): Theme {
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    if (v === "light" || v === "dark") return v;
+  } catch {}
+  return "dark";
+}
+
+export const useStore = create<Store>((set, get) => ({
   worldPath: "",
   world: null,
   entities: {},
   selection: { kind: "none" },
   error: null,
   lightbox: null,
+  recents: loadRecents(),
+  route: "start",
+  theme: initialTheme(),
+  drawerOpen: false,
+  loading: false,
   setWorldPath: (p) => set({ worldPath: p }),
   setWorld: (w) => set({ world: w, entities: {}, selection: w ? { kind: "bible" } : { kind: "none" } }),
   setEntities: (typeId, refs) =>
@@ -42,4 +80,137 @@ export const useStore = create<Store>((set) => ({
   setError: (e) => set({ error: e }),
   openLightbox: (img) => set({ lightbox: img }),
   closeLightbox: () => set({ lightbox: null }),
+  setRoute: (r) => set({ route: r }),
+  setTheme: (t) => {
+    try { localStorage.setItem(THEME_KEY, t); } catch {}
+    set({ theme: t });
+  },
+  setDrawerOpen: (open) => set({ drawerOpen: open }),
+  closeWorld: () => set({ world: null, worldPath: "", entities: {}, selection: { kind: "none" }, route: "start" }),
+  togglePin: (path: string) => set((s) => ({ recents: togglePinFn(s.recents, path) })),
+  removeRecent: (path) => set((s) => ({ recents: removeRecentFn(s.recents, path) })),
+  enrichRecent: async (path: string) => {
+    try {
+      const summary = await api.loadWorld(path);
+      const existing = get().recents.find((r) => r.path === path);
+      const next: RecentProject = {
+        path,
+        name: summary.name,
+        lastOpenedAt: existing?.lastOpenedAt ?? Date.now(),
+        pinned: existing?.pinned,
+      };
+      try {
+        const bible = (await api.getWorldBible(path)) as {
+          story?: { title?: string; synopsis?: string };
+        };
+        next.storyTitle = bible.story?.title ?? summary.name;
+        next.synopsis = bible.story?.synopsis;
+      } catch {}
+      try {
+        const manifest = (await api.readWorldJson(path, "manifest")) as {
+          seed?: string | number;
+          environment_names?: string[];
+          npc_count?: number;
+          quest_count?: number;
+          event_count?: number;
+          num_rooms?: number;
+          start_portrait?: string;
+          validation_report?: { status?: string } | string;
+          generation_stats?: { total_cost_usd?: number };
+        };
+        if (typeof manifest.seed === "number") next.seed = manifest.seed;
+        next.primaryEnv = manifest.environment_names?.[0];
+        next.envName = manifest.environment_names?.[0];
+        next.startPortrait = manifest.start_portrait;
+        next.rooms = manifest.num_rooms;
+        next.npcs = manifest.npc_count;
+        next.events = manifest.event_count;
+        next.quests = manifest.quest_count;
+        if (typeof manifest.generation_stats?.total_cost_usd === "number") {
+          next.cost = manifest.generation_stats.total_cost_usd;
+        }
+        next.validation = validationFrom(manifest.validation_report);
+      } catch {}
+      if (!next.rooms) next.rooms = summary.entity_counts.find((c) => c.type_id === "rooms")?.count;
+      if (!next.npcs) next.npcs = summary.entity_counts.find((c) => c.type_id === "npcs")?.count;
+      if (!next.events) next.events = summary.entity_counts.find((c) => c.type_id === "events")?.count;
+      if (!next.quests) next.quests = summary.entity_counts.find((c) => c.type_id === "quests")?.count;
+      set((s) => ({ recents: upsertRecent(s.recents.filter((r) => r.path !== path), { ...next, lastOpenedAt: existing?.lastOpenedAt ?? Date.now() }) }));
+    } catch {
+      // silent — stale entries are preserved
+    }
+  },
+  loadWorldByPath: async (path: string) => {
+    set({ loading: true, error: null });
+    try {
+      const summary = await api.loadWorld(path);
+      set({ worldPath: path, world: summary, selection: { kind: "bible" }, entities: {}, route: "start" });
+
+      // Best-effort enrichment of the recent entry.
+      let recent: RecentProject = {
+        path,
+        name: summary.name,
+        lastOpenedAt: Date.now(),
+      };
+      try {
+        const bible = (await api.getWorldBible(path)) as {
+          story?: { title?: string; synopsis?: string };
+        };
+        recent.storyTitle = bible.story?.title ?? summary.name;
+        recent.synopsis = bible.story?.synopsis;
+      } catch {}
+      try {
+        const manifest = (await api.readWorldJson(path, "manifest")) as {
+          seed?: string | number;
+          environment_names?: string[];
+          npc_count?: number;
+          quest_count?: number;
+          event_count?: number;
+          num_rooms?: number;
+          start_portrait?: string;
+          validation_report?: { status?: string } | string;
+          generation_stats?: { total_cost_usd?: number };
+        };
+        recent.seed = manifest.seed;
+        recent.primaryEnv = manifest.environment_names?.[0];
+        recent.envName = manifest.environment_names?.[0];
+        recent.startPortrait = manifest.start_portrait;
+        recent.rooms = manifest.num_rooms;
+        recent.npcs = manifest.npc_count;
+        recent.events = manifest.event_count;
+        recent.quests = manifest.quest_count;
+        if (typeof manifest.generation_stats?.total_cost_usd === "number") {
+          recent.cost = manifest.generation_stats.total_cost_usd;
+        }
+        recent.validation = validationFrom(manifest.validation_report);
+      } catch {}
+      if (!recent.rooms) recent.rooms = summary.entity_counts.find((c) => c.type_id === "rooms")?.count;
+      if (!recent.npcs) recent.npcs = summary.entity_counts.find((c) => c.type_id === "npcs")?.count;
+      if (!recent.events) recent.events = summary.entity_counts.find((c) => c.type_id === "events")?.count;
+      if (!recent.quests) recent.quests = summary.entity_counts.find((c) => c.type_id === "quests")?.count;
+
+      set((s) => ({ recents: upsertRecent(s.recents, recent) }));
+    } catch (e) {
+      set({ error: String(e), world: null });
+      throw e;
+    } finally {
+      set({ loading: false });
+    }
+  },
 }));
+
+function validationFrom(report: unknown): ValidationStatus | undefined {
+  if (!report) return undefined;
+  if (typeof report === "string") {
+    const low = report.toLowerCase();
+    if (low.includes("pass") || low.includes("valid")) return "validated";
+    if (low.includes("warn")) return "warn";
+    if (low.includes("fail") || low.includes("error")) return "failed";
+    return undefined;
+  }
+  if (typeof report === "object" && report !== null) {
+    const status = (report as { status?: string }).status;
+    return validationFrom(status);
+  }
+  return undefined;
+}

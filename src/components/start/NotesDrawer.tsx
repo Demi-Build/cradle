@@ -9,29 +9,17 @@ import { Icon } from "./Icons";
 // ============================================================
 const CHANGELOG = [
   {
-    ver: "v0.1.2",
-    title: "Monster stat blocks",
-    tag: "new" as const,
-    body: "Inline HP / AC ranges, damage type, weakness, and an ability table — no more scrolling raw JSON for every creature.",
-  },
-  {
-    ver: "v0.1.1",
+    ver: "v0.0.5",
     title: "Dialogue graph mode",
     tag: "new" as const,
     body: "Card view + graph view toggle on any NPC with a dialogue_tree. Dagre layout under the hood.",
   },
   {
-    ver: "v0.1.0",
+    ver: "v0.0.1",
     title: "First run",
     tag: null,
     body: "Three-pane read-only shell: load a world, expand a type, click an entity, read JSON. Foundations for v0.2 editing.",
-  },
-  {
-    ver: "v0.2",
-    title: "Entity detail tabs",
-    tag: "next" as const,
-    body: "Overview / Stats / Generation trail / Assets. Canon schema types land as a dependency; table sort + filter arrive.",
-  },
+  }
 ];
 
 export function NotesDrawer() {

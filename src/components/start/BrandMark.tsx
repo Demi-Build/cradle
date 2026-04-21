@@ -29,7 +29,7 @@ export function BrandMark({ size = 28 }: { size?: number }) {
   );
 }
 
-export function Branding({ version = "v0.1.2" }: { version?: string }) {
+export function Branding({ version = "v0.1" }: { version?: string }) {
   return (
     <div className="branding">
       <BrandMark />

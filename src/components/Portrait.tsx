@@ -3,7 +3,17 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { api } from "../lib/invoke";
 import { useStore } from "../store";
 
-export function Portrait({ hint, alt, size = 180 }: { hint: string | null | undefined; alt: string; size?: number }) {
+export function Portrait({
+  hint,
+  alt,
+  size = 180,
+  tooltip,
+}: {
+  hint: string | null | undefined;
+  alt: string;
+  size?: number;
+  tooltip?: string | null;
+}) {
   const worldPath = useStore((s) => s.worldPath);
   const openLightbox = useStore((s) => s.openLightbox);
   const [src, setSrc] = useState<string | null>(null);
@@ -50,7 +60,7 @@ export function Portrait({ hint, alt, size = 180 }: { hint: string | null | unde
         e.stopPropagation();
         openLightbox({ src, alt });
       }}
-      title="click to enlarge"
+      title={tooltip ? `${tooltip}\n\nclick to enlarge` : "click to enlarge"}
     />
   );
 }

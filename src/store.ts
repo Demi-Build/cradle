@@ -13,8 +13,8 @@ import {
 export type Selection =
   | { kind: "none" }
   | { kind: "bible" }
-  | { kind: "type"; typeId: string }
-  | { kind: "entity"; typeId: string; id: string };
+  | { kind: "type"; typeId: string; partition?: string }
+  | { kind: "entity"; typeId: string; id: string; tab?: string };
 
 type EntitiesByType = Record<string, EntityRef[]>;
 
@@ -22,9 +22,20 @@ export type LightboxImage = { src: string; alt: string };
 export type Route = "start" | "recents";
 export type Theme = "dark" | "light";
 
+export type BibleBeat = {
+  room_id?: string;
+  summary?: string;
+  faction_presence?: string;
+  escalation?: number;
+  boss_name?: string;
+  boss_lore?: string;
+};
+
 type Store = {
   worldPath: string;
   world: WorldSummary | null;
+  worldStoryTitle: string | null;
+  worldBeats: BibleBeat[];
   entities: EntitiesByType;
   selection: Selection;
   error: string | null;
@@ -63,6 +74,8 @@ function initialTheme(): Theme {
 export const useStore = create<Store>((set, get) => ({
   worldPath: "",
   world: null,
+  worldStoryTitle: null,
+  worldBeats: [],
   entities: {},
   selection: { kind: "none" },
   error: null,
@@ -86,7 +99,7 @@ export const useStore = create<Store>((set, get) => ({
     set({ theme: t });
   },
   setDrawerOpen: (open) => set({ drawerOpen: open }),
-  closeWorld: () => set({ world: null, worldPath: "", entities: {}, selection: { kind: "none" }, route: "start" }),
+  closeWorld: () => set({ world: null, worldPath: "", worldStoryTitle: null, worldBeats: [], entities: {}, selection: { kind: "none" }, route: "start" }),
   togglePin: (path: string) => set((s) => ({ recents: togglePinFn(s.recents, path) })),
   removeRecent: (path) => set((s) => ({ recents: removeRecentFn(s.recents, path) })),
   enrichRecent: async (path: string) => {
@@ -144,7 +157,7 @@ export const useStore = create<Store>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const summary = await api.loadWorld(path);
-      set({ worldPath: path, world: summary, selection: { kind: "bible" }, entities: {}, route: "start" });
+      set({ worldPath: path, world: summary, worldStoryTitle: null, worldBeats: [], selection: { kind: "bible" }, entities: {}, route: "start" });
 
       // Best-effort enrichment of the recent entry.
       let recent: RecentProject = {
@@ -154,10 +167,12 @@ export const useStore = create<Store>((set, get) => ({
       };
       try {
         const bible = (await api.getWorldBible(path)) as {
-          story?: { title?: string; synopsis?: string };
+          story?: { title?: string; synopsis?: string; beats?: BibleBeat[] };
         };
         recent.storyTitle = bible.story?.title ?? summary.name;
         recent.synopsis = bible.story?.synopsis;
+        if (bible.story?.title) set({ worldStoryTitle: bible.story.title });
+        if (Array.isArray(bible.story?.beats)) set({ worldBeats: bible.story.beats });
       } catch {}
       try {
         const manifest = (await api.readWorldJson(path, "manifest")) as {

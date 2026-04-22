@@ -20,6 +20,8 @@ export function IconSymbols() {
         <symbol id="g-grid" viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5" /><rect x="9" y="2" width="5" height="5" /><rect x="2" y="9" width="5" height="5" /><rect x="9" y="9" width="5" height="5" /></symbol>
         <symbol id="g-rows" viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h12" /></symbol>
         <symbol id="g-pin" viewBox="0 0 16 16"><path d="M6 1.5l4 4-1.5 1.5-1 3.5-2.5 2-5-5 2-2.5 3.5-1z" /></symbol>
+        <symbol id="g-exclaim" viewBox="0 0 16 16"><path d="M8 2v7" /><path d="M8 12.5v0.2" /><circle cx="8" cy="8" r="6.5" /></symbol>
+        <symbol id="g-star" viewBox="0 0 16 16"><path d="M8 1.5l2 4.5 5 0.5-3.8 3.3 1.2 4.7L8 12l-4.4 2.5 1.2-4.7L1 6.5l5-0.5z" /></symbol>
       </defs>
     </svg>
   );

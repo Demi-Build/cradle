@@ -1,54 +1,45 @@
-import type { DialogueNode } from "./types";
+import type { Beat } from "./types";
 
 type Mode = "compact" | "full";
 
 export function DialogueCard({
-  nodeId,
-  node,
+  beat,
   mode,
-  isEntry,
-  isTerminal,
   onChoiceClick,
   onCardClick,
 }: {
-  nodeId: string;
-  node: DialogueNode;
+  beat: Beat;
   mode: Mode;
-  isEntry?: boolean;
-  isTerminal?: boolean;
-  onChoiceClick?: (nextNodeId: string) => void;
+  onChoiceClick?: (toBeatId: string) => void;
   onCardClick?: () => void;
 }) {
-  const choices = node.choices ?? [];
-  const prompt = node.prompt ?? "";
   const compact = mode === "compact";
+  const choices = beat.choices ?? [];
+  const prompt = beat.prompt ?? "";
 
   return (
     <div
-      className={`dialogue-card ${compact ? "compact" : "full"} ${
-        isEntry ? "entry" : ""
-      } ${isTerminal ? "terminal" : ""}`}
+      className={`dialogue-card ${compact ? "compact" : "full"} kind-${beat.kind} ${
+        beat.isEntry ? "entry" : ""
+      } ${beat.isTerminal ? "terminal" : ""}`}
       onClick={onCardClick}
-      data-node-id={nodeId}
+      data-beat-id={beat.id}
     >
       <header className="dc-header">
-        <span className="dc-id">{nodeId}</span>
-        {isEntry && <span className="dc-badge dc-badge-entry">entry</span>}
-        {isTerminal && <span className="dc-badge dc-badge-terminal">end</span>}
+        <span className={`dc-kind-badge kind-${beat.kind}`}>{beat.kind}</span>
+        <span className="dc-id">{beat.label}</span>
       </header>
       <div className="dc-prompt">
         {compact && prompt.length > 140 ? `${prompt.slice(0, 140)}…` : prompt}
       </div>
       {compact ? (
-        <footer className="dc-footer">
-          {choices.length > 0 ? (
+        choices.length > 0 ? (
+          <footer className="dc-footer">
             <span className="dc-choice-count">
               {choices.length} choice{choices.length === 1 ? "" : "s"}
             </span>
-          ) : (
-            <span className="dc-choice-count dc-choice-none">no choices</span>
-          )}
-        </footer>
+          </footer>
+        ) : null
       ) : (
         choices.length > 0 && (
           <ul className="dc-choices">
@@ -58,11 +49,11 @@ export function DialogueCard({
                   className="dc-choice"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onChoiceClick?.(c.next_node_id);
+                    onChoiceClick?.(c.toBeatId);
                   }}
                 >
                   <span className="dc-choice-text">{c.text}</span>
-                  <span className="dc-choice-arrow">→ {c.next_node_id}</span>
+                  <span className="dc-choice-arrow">→ {shortDest(c.toBeatId)}</span>
                 </button>
               </li>
             ))}
@@ -71,4 +62,9 @@ export function DialogueCard({
       )}
     </div>
   );
+}
+
+function shortDest(id: string): string {
+  if (id.startsWith("tree:")) return id.slice(5);
+  return id;
 }

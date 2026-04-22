@@ -17,11 +17,33 @@ type Monster = {
   species?: string;
   time_availability?: string;
   abilities?: MonsterAbility[];
+  // Root-level base-attack fields canon may emit in a future schema revision.
+  // Any non-empty dice-notation string ("1d6", "2d8+1") on any of these keys
+  // renders as a Damage stat slot. If none are present (current data), nothing
+  // renders — cradle doesn't invent values.
+  attack_dice?: string;
+  damage_dice?: string;
+  damage?: string;
 };
 
 function range(r: [number, number] | undefined): string {
   if (!r || r.length < 2) return "—";
   return r[0] === r[1] ? String(r[0]) : `${r[0]}–${r[1]}`;
+}
+
+function baseAttackDice(m: Monster): string | null {
+  const candidates = [m.attack_dice, m.damage_dice, m.damage];
+  for (const raw of candidates) {
+    if (typeof raw !== "string") continue;
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    // Require actual dice notation; skip sentinel values like "0d0".
+    const match = /^(\d+)d(\d+)/.exec(trimmed);
+    if (match && Number(match[1]) > 0 && Number(match[2]) > 0) {
+      return trimmed;
+    }
+  }
+  return null;
 }
 
 function isDamageDice(d: string | undefined): boolean {
@@ -32,13 +54,13 @@ function isDamageDice(d: string | undefined): boolean {
 }
 
 export function MonsterStatBlock({ data }: { data: Monster }) {
+  const attack = baseAttackDice(data);
   return (
     <section className="stat-block">
       <div className="stat-block-row">
         <Stat label="HP" value={range(data.hp_range)} />
         <Stat label="AC" value={range(data.ac_range)} />
-        {typeof data.level === "number" && <Stat label="Level" value={String(data.level)} />}
-        {data.species && <Stat label="Species" value={data.species} />}
+        {attack && <Stat label="Damage" value={attack} mono />}
       </div>
       <div className="stat-block-chips">
         {data.damage_type && (
@@ -59,11 +81,11 @@ export function MonsterStatBlock({ data }: { data: Monster }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="stat-slot">
       <div className="stat-slot-label">{label}</div>
-      <div className="stat-slot-value">{value}</div>
+      <div className={`stat-slot-value ${mono ? "stat-slot-value-mono" : ""}`}>{value}</div>
     </div>
   );
 }

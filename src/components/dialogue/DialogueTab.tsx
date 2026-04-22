@@ -1,14 +1,34 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DialogueCardMode } from "./DialogueCardMode";
 import { DialogueGraphMode } from "./DialogueGraphMode";
-import type { DialogueTree } from "./types";
+import { buildDialogue, type NpcLike, type QuestLike } from "./types";
+import { api } from "../../lib/invoke";
+import { useStore } from "../../store";
 
-export function DialogueTab({ tree }: { tree: DialogueTree }) {
+export function DialogueTab({ npc }: { npc: NpcLike }) {
+  const worldPath = useStore((s) => s.worldPath);
   const [mode, setMode] = useState<"card" | "graph">("card");
-  const nodeCount = Object.keys(tree.nodes ?? {}).length;
+  const [quest, setQuest] = useState<QuestLike | null>(null);
 
-  if (nodeCount === 0) {
-    return <div className="dialogue-empty">No dialogue tree.</div>;
+  useEffect(() => {
+    setQuest(null);
+    if (!npc.quest_id || !worldPath) return;
+    let cancelled = false;
+    api
+      .getEntity(worldPath, "quests", String(npc.quest_id))
+      .then((q) => {
+        if (!cancelled) setQuest(q as QuestLike);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [npc.quest_id, worldPath]);
+
+  const { beats, edges } = useMemo(() => buildDialogue(npc, quest), [npc, quest]);
+
+  if (beats.length === 0) {
+    return <div className="dialogue-empty">No dialogue content.</div>;
   }
 
   return (
@@ -28,10 +48,12 @@ export function DialogueTab({ tree }: { tree: DialogueTree }) {
             Graph
           </button>
         </div>
-        <span className="dialogue-meta">{nodeCount} nodes</span>
+        <span className="dialogue-meta">{beats.length} beats · {edges.length} edges</span>
       </div>
       <div className="dialogue-body">
-        {mode === "card" ? <DialogueCardMode tree={tree} /> : <DialogueGraphMode tree={tree} />}
+        {mode === "card"
+          ? <DialogueCardMode beats={beats} edges={edges} />
+          : <DialogueGraphMode beats={beats} beatEdges={edges} />}
       </div>
     </div>
   );

@@ -117,6 +117,14 @@ impl LocalFsDataSource {
     }
 
     fn extract_refs(type_id: &str, v: &Value) -> Vec<EntityRef> {
+        fn display_name(item: &Value) -> Option<String> {
+            for key in ["name", "title", "environment_name"] {
+                if let Some(s) = item.get(key).and_then(|n| n.as_str()) {
+                    return Some(s.to_string());
+                }
+            }
+            None
+        }
         match v {
             Value::Array(a) => a
                 .iter()
@@ -126,14 +134,14 @@ impl LocalFsDataSource {
                         .get("id")
                         .map(|x| x.to_string().trim_matches('"').to_string())
                         .unwrap_or_else(|| i.to_string());
-                    let name = item.get("name").and_then(|n| n.as_str()).map(String::from);
+                    let name = display_name(item);
                     EntityRef { type_id: type_id.to_string(), id, name }
                 })
                 .collect(),
             Value::Object(o) => o
                 .iter()
                 .map(|(k, item)| {
-                    let name = item.get("name").and_then(|n| n.as_str()).map(String::from);
+                    let name = display_name(item);
                     EntityRef { type_id: type_id.to_string(), id: k.clone(), name }
                 })
                 .collect(),

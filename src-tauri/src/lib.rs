@@ -4,7 +4,7 @@ use data::{canon_world_root, DataSource, EntityRef, EntityRow, LocalFsDataSource
 use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 
 struct AppState {
     source: Arc<dyn DataSource>,
@@ -52,6 +52,17 @@ fn resolve_asset(path: String, hint: String, state: State<'_, AppState>) -> Opti
     state.source.resolve_asset(&canon(path), &hint)
 }
 
+#[tauri::command]
+fn get_bundled_demo_path(app: AppHandle) -> Result<String, String> {
+    let resource_dir = app.path().resource_dir().map_err(|e| e.to_string())?;
+    let demo = resource_dir.join("demo");
+    if demo.is_dir() {
+        Ok(demo.to_string_lossy().into_owned())
+    } else {
+        Err(format!("bundled demo not found at {}", demo.display()))
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -66,6 +77,7 @@ pub fn run() {
             list_entity_rows,
             get_entity,
             resolve_asset,
+            get_bundled_demo_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

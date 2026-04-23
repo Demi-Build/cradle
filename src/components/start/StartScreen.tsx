@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useStore } from "../../store";
+import { api } from "../../lib/invoke";
 import { relativeTimeFrom } from "../../lib/recents";
 import { IconSymbols } from "./Icons";
 import { StartTitleBar } from "./StartTitleBar";
@@ -9,8 +10,6 @@ import { ReturningHero } from "./ReturningHero";
 import { RecentsRail } from "./RecentsRail";
 import { FirstRunCard } from "./FirstRunCard";
 import { NotesDrawer } from "./NotesDrawer";
-
-const DEMO_PATH = "bibles/mazeworld_5_room_demo";
 
 export function StartScreen() {
   const recents = useStore((s) => s.recents);
@@ -47,7 +46,8 @@ export function StartScreen() {
 
   const tryDemo = useCallback(async () => {
     try {
-      await loadWorldByPath(DEMO_PATH);
+      const demoPath = await api.getBundledDemoPath();
+      await loadWorldByPath(demoPath);
     } catch (e) {
       setError(String(e));
     }

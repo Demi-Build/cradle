@@ -25,7 +25,7 @@ export function FirstRunCard({
           </div>
           <div className="fr-step">
             <span className="num">02</span>
-            <span><b>Or try the bundled demo</b> <span className="dim">— <code>bibles/mazeworld_5_room_demo</code>, 5 rooms, fully validated.</span></span>
+            <span><b>Or try the bundled demo</b> <span className="dim">— <i>The Convergence of Shadows</i>, 5 rooms, fully validated.</span></span>
           </div>
           <div className="fr-step">
             <span className="num">03</span>

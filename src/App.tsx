@@ -7,7 +7,9 @@ import { Lightbox } from "./components/Lightbox";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { StartScreen } from "./components/start/StartScreen";
 import { RecentProjectsPage } from "./components/recents/RecentProjectsPage";
+import { NotesDrawer } from "./components/start/NotesDrawer";
 import { useStore } from "./store";
+import { api } from "./lib/invoke";
 import "./App.css";
 
 export default function App() {
@@ -15,10 +17,120 @@ export default function App() {
   const route = useStore((s) => s.route);
   const selection = useStore((s) => s.selection);
   const theme = useStore((s) => s.theme);
+  const entities = useStore((s) => s.entities);
+  const worldPath = useStore((s) => s.worldPath);
+  const setEntities = useStore((s) => s.setEntities);
+  const select = useStore((s) => s.select);
 
   useEffect(() => {
     document.body.setAttribute("data-theme", theme);
   }, [theme]);
+
+  // Keyboard navigation (tier 1):
+  //   ↑ / ↓              cycle within current type; spill to adjacent type at boundary
+  //   ⌥↑ / ⌥↓            jump to prev/next type's first entity (skip the rest of current list)
+  //   ←                  entity → type view
+  //   →                  type view → first entity
+  // Inputs skip, modifier keys guarded, types list drives order.
+  useEffect(() => {
+    const onKey = async (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable) return;
+      }
+      if (e.metaKey || e.ctrlKey) return;
+      if (
+        e.key !== "ArrowUp" && e.key !== "ArrowDown" &&
+        e.key !== "ArrowLeft" && e.key !== "ArrowRight"
+      ) return;
+
+      const types = (world?.entity_counts ?? []).map((c) => c.type_id);
+      if (!types.length) return;
+
+      const loadList = async (t: string) => {
+        if (entities[t]) return entities[t];
+        if (!worldPath) return undefined;
+        try {
+          const refs = await api.listEntities(worldPath, t);
+          setEntities(t, refs);
+          return refs;
+        } catch {
+          return undefined;
+        }
+      };
+
+      // ⌥↑ / ⌥↓ — jump to prev/next type, land on its first entity
+      if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+        let currentTypeIdx = -1;
+        if (selection.kind === "entity" || selection.kind === "type") {
+          currentTypeIdx = types.indexOf(selection.typeId);
+        }
+        if (currentTypeIdx < 0) return;
+        const delta = e.key === "ArrowUp" ? -1 : 1;
+        const nextIdx = currentTypeIdx + delta;
+        if (nextIdx < 0 || nextIdx >= types.length) return;
+        e.preventDefault();
+        const nextType = types[nextIdx];
+        const nextList = await loadList(nextType);
+        if (nextList && nextList.length > 0) {
+          select({ kind: "entity", typeId: nextType, id: nextList[0].id });
+        } else {
+          select({ kind: "type", typeId: nextType });
+        }
+        return;
+      }
+
+      // ↑ / ↓ — cycle within type, spill at boundary
+      if (!e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && selection.kind === "entity") {
+        const typeIdx = types.indexOf(selection.typeId);
+        if (typeIdx < 0) return;
+        const list = await loadList(selection.typeId);
+        if (!list) return;
+        const entityIdx = list.findIndex((r) => r.id === selection.id);
+        if (entityIdx < 0) return;
+        const delta = e.key === "ArrowUp" ? -1 : 1;
+        const nextIdx = entityIdx + delta;
+        if (nextIdx >= 0 && nextIdx < list.length) {
+          e.preventDefault();
+          select({ kind: "entity", typeId: selection.typeId, id: list[nextIdx].id });
+          return;
+        }
+        // Spillover to adjacent type
+        const nextTypeIdx = typeIdx + delta;
+        if (nextTypeIdx < 0 || nextTypeIdx >= types.length) return;
+        e.preventDefault();
+        const nextType = types[nextTypeIdx];
+        const nextList = await loadList(nextType);
+        if (nextList && nextList.length > 0) {
+          const targetId = delta === -1 ? nextList[nextList.length - 1].id : nextList[0].id;
+          select({ kind: "entity", typeId: nextType, id: targetId });
+        } else {
+          select({ kind: "type", typeId: nextType });
+        }
+        return;
+      }
+
+      // ← — entity → type view
+      if (!e.altKey && e.key === "ArrowLeft" && selection.kind === "entity") {
+        e.preventDefault();
+        select({ kind: "type", typeId: selection.typeId });
+        return;
+      }
+
+      // → — type view → first entity
+      if (!e.altKey && e.key === "ArrowRight" && selection.kind === "type") {
+        const list = await loadList(selection.typeId);
+        if (list && list.length > 0) {
+          e.preventDefault();
+          select({ kind: "entity", typeId: selection.typeId, id: list[0].id });
+        }
+        return;
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selection, entities, worldPath, setEntities, select, world]);
 
   if (world === null) {
     return route === "recents" ? <RecentProjectsPage /> : <StartScreen />;
@@ -42,6 +154,7 @@ export default function App() {
       </div>
       <ValidationBar />
       <Lightbox />
+      <NotesDrawer />
     </div>
   );
 }

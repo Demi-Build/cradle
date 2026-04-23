@@ -299,10 +299,16 @@ function StatCell({ k, v }: { k: string; v: string }) {
 
 function BibleHeroImage({ hint }: { hint: string | undefined }) {
   const worldPath = useStore((s) => s.worldPath);
+  const openLightbox = useStore((s) => s.openLightbox);
   const url = useAssetUrl(worldPath, hint);
   if (!url) return null;
   return (
-    <div className="bible-hero-img">
+    <div
+      className="bible-hero-img"
+      onClick={() => openLightbox({ src: url, alt: "world start portrait" })}
+      title="click to enlarge"
+      style={{ cursor: "zoom-in" }}
+    >
       <img src={url} alt="" className="bible-hero-img-el" />
     </div>
   );

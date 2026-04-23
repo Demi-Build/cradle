@@ -77,6 +77,20 @@ fn synthesize_audio_entity(type_id: &str, id: &str, filename: &str) -> Value {
     Value::Object(m)
 }
 
+pub fn canon_world_root(input: &Path) -> PathBuf {
+    // If the user selected a `/data` subfolder that actually contains world_bible.json,
+    // treat the parent as the canonical world root. Otherwise return the path unchanged.
+    let last = input.file_name().and_then(|n| n.to_str());
+    if last == Some("data") {
+        if input.join("world_bible.json").is_file() {
+            if let Some(parent) = input.parent() {
+                return parent.to_path_buf();
+            }
+        }
+    }
+    input.to_path_buf()
+}
+
 impl LocalFsDataSource {
     fn data_root(world_path: &Path) -> PathBuf {
         let data = world_path.join("data");
@@ -117,6 +131,14 @@ impl LocalFsDataSource {
     }
 
     fn extract_refs(type_id: &str, v: &Value) -> Vec<EntityRef> {
+        fn display_name(item: &Value) -> Option<String> {
+            for key in ["name", "title", "environment_name"] {
+                if let Some(s) = item.get(key).and_then(|n| n.as_str()) {
+                    return Some(s.to_string());
+                }
+            }
+            None
+        }
         match v {
             Value::Array(a) => a
                 .iter()
@@ -126,14 +148,14 @@ impl LocalFsDataSource {
                         .get("id")
                         .map(|x| x.to_string().trim_matches('"').to_string())
                         .unwrap_or_else(|| i.to_string());
-                    let name = item.get("name").and_then(|n| n.as_str()).map(String::from);
+                    let name = display_name(item);
                     EntityRef { type_id: type_id.to_string(), id, name }
                 })
                 .collect(),
             Value::Object(o) => o
                 .iter()
                 .map(|(k, item)| {
-                    let name = item.get("name").and_then(|n| n.as_str()).map(String::from);
+                    let name = display_name(item);
                     EntityRef { type_id: type_id.to_string(), id: k.clone(), name }
                 })
                 .collect(),
@@ -231,43 +253,61 @@ impl DataSource for LocalFsDataSource {
     }
 
     fn resolve_asset(&self, path: &Path, hint: &str) -> Option<String> {
+        // Invariant: never return a path outside the current world's tree.
+        // Canon emits absolute paths into a shared MazeWorld scratch dir, which
+        // is the same for every generation — so a naive fallback to the raw
+        // hint makes every world show the last-generated image.
         let root = Self::data_root(path);
-        for sub in ["music", "sfx"] {
-            let candidate = root.join(sub).join(hint);
-            if candidate.exists() {
-                return Some(candidate.to_string_lossy().into());
+        let world_root = path;
+        let normalized = hint.replace('\\', "/");
+        let basename = Path::new(&normalized).file_name()?.to_string_lossy().to_string();
+
+        let under_world = |p: &Path| -> bool {
+            p.starts_with(&root) || p.starts_with(world_root)
+        };
+        let accept = |p: PathBuf| -> Option<String> {
+            if p.exists() && under_world(&p) {
+                Some(p.to_string_lossy().into())
+            } else {
+                None
+            }
+        };
+
+        // 1) Audio lookup by basename. Path::join silently returns an absolute
+        //    argument unchanged, so we must match on basename — never on the
+        //    raw hint — to avoid escaping the world tree.
+        let lower = basename.to_lowercase();
+        if lower.ends_with(".mp3") || lower.ends_with(".wav") || lower.ends_with(".ogg") {
+            for sub in ["music", "sfx"] {
+                if let Some(s) = accept(root.join(sub).join(&basename)) {
+                    return Some(s);
+                }
             }
         }
-        let world_root = path;
-        let hint_path = Path::new(hint);
-        if hint_path.is_absolute() && hint_path.exists() {
-            return Some(hint_path.to_string_lossy().into());
-        }
-        let normalized = hint.replace('\\', "/");
+
+        // 2) Re-root the hint against the current world's tree.
         if let Some(idx) = normalized.find("data/portraits/") {
             let suffix = &normalized[idx + "data/".len()..];
-            let candidate = root.join(suffix);
-            if candidate.exists() {
-                return Some(candidate.to_string_lossy().into());
+            if let Some(s) = accept(root.join(suffix)) {
+                return Some(s);
             }
-            let candidate2 = world_root.join(&normalized[idx..]);
-            if candidate2.exists() {
-                return Some(candidate2.to_string_lossy().into());
+            if let Some(s) = accept(world_root.join(&normalized[idx..])) {
+                return Some(s);
             }
         }
         if let Some(idx) = normalized.find("portraits/") {
-            let candidate = root.join(&normalized[idx..]);
-            if candidate.exists() {
-                return Some(candidate.to_string_lossy().into());
+            if let Some(s) = accept(root.join(&normalized[idx..])) {
+                return Some(s);
             }
         }
-        let basename = hint_path.file_name()?.to_string_lossy().to_string();
+
+        // 3) Basename lookup in each portrait subfolder.
         for sub in ["npcs", "monsters", "items", "events", "classes", "maps", ""] {
-            let candidate = root.join("portraits").join(sub).join(&basename);
-            if candidate.exists() {
-                return Some(candidate.to_string_lossy().into());
+            if let Some(s) = accept(root.join("portraits").join(sub).join(&basename)) {
+                return Some(s);
             }
         }
+
         None
     }
 

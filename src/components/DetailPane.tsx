@@ -8,6 +8,7 @@ import { DialogueTab } from "./dialogue/DialogueTab";
 import type { DialogueTree } from "./dialogue/types";
 import { PuzzleTab } from "./event/PuzzleTab";
 import { hasTreeView, type PuzzleEvent } from "./event/types";
+import { QuestDetail } from "./quest/QuestDetail";
 import { WorldBibleView } from "./WorldBibleView";
 
 type Json = Record<string, unknown>;
@@ -22,7 +23,9 @@ export function DetailPane() {
   useEffect(() => {
     setPayload(null);
     setLocalErr(null);
-    setActiveTab("overview");
+    setActiveTab(
+      selection.kind === "entity" && selection.tab ? selection.tab : "overview",
+    );
     if (!worldPath || selection.kind === "none") return;
     setLoading(true);
     (async () => {
@@ -45,25 +48,32 @@ export function DetailPane() {
   const entityTabs = useMemo(() => {
     if (selection.kind !== "entity" || !payload) return null;
     const data = payload as Json;
+    const overviewContent =
+      selection.typeId === "quests" ? (
+        <QuestDetail data={data as Parameters<typeof QuestDetail>[0]["data"]} entityId={selection.id} />
+      ) : (
+        <EntityOverview data={data} typeId={selection.typeId} entityId={selection.id} />
+      );
     const tabs = [
       {
         id: "overview",
         label: "Overview",
-        content: <EntityOverview data={data} typeId={selection.typeId} entityId={selection.id} />,
+        content: overviewContent,
       },
     ];
-    const dialogueTree = (data as { dialogue_tree?: DialogueTree }).dialogue_tree;
-    if (
-      selection.typeId === "npcs" &&
-      dialogueTree &&
-      dialogueTree.nodes &&
-      Object.keys(dialogueTree.nodes).length > 0
-    ) {
-      tabs.push({
-        id: "dialogue",
-        label: "Dialogue",
-        content: <DialogueTab tree={dialogueTree} />,
-      });
+    if (selection.typeId === "npcs") {
+      const asNpc = data as { dialogue_tree?: DialogueTree; opening_greeting?: string; exhausted_dialogue?: string; quest_id?: number | string | null; max_exchanges?: number };
+      const hasAny =
+        !!(asNpc.dialogue_tree && asNpc.dialogue_tree.nodes && Object.keys(asNpc.dialogue_tree.nodes).length > 0) ||
+        typeof asNpc.opening_greeting === "string" ||
+        typeof asNpc.exhausted_dialogue === "string";
+      if (hasAny) {
+        tabs.push({
+          id: "dialogue",
+          label: "Dialogue",
+          content: <DialogueTab npc={asNpc} />,
+        });
+      }
     }
     if (selection.typeId === "events" && hasTreeView(data as PuzzleEvent)) {
       const label = (data as PuzzleEvent).type === "puzzle" ? "Puzzle" : "Choices";
@@ -80,6 +90,30 @@ export function DetailPane() {
     });
     return tabs;
   }, [selection, payload]);
+
+  // Tab / Shift+Tab cycles tabs on the focused entity.
+  useEffect(() => {
+    if (selection.kind !== "entity") return;
+    if (!entityTabs || entityTabs.length < 2) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable) return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const ids = entityTabs.map((t) => t.id);
+      const currentIdx = ids.indexOf(activeTab);
+      if (currentIdx < 0) return;
+      const delta = e.shiftKey ? -1 : 1;
+      const nextIdx = (currentIdx + delta + ids.length) % ids.length;
+      e.preventDefault();
+      setActiveTab(ids[nextIdx]);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selection, entityTabs, activeTab]);
 
   if (error) return <main className="detail detail-error">Error: {error}</main>;
   if (!world) {
@@ -108,12 +142,19 @@ export function DetailPane() {
 
   if (selection.kind === "type") {
     const rows = (payload as EntityRow[]) ?? [];
+    const partition = selection.partition ?? null;
+    const headerLabel = partition ? `${selection.typeId} · ${partition}` : selection.typeId;
     return (
       <main className="detail">
         <div className="detail-header">
-          <h2>{selection.typeId}</h2>
+          <h2>{headerLabel}</h2>
         </div>
-        <EntityTable key={selection.typeId} typeId={selection.typeId} rows={rows} />
+        <EntityTable
+          key={`${selection.typeId}:${partition ?? ""}`}
+          typeId={selection.typeId}
+          rows={rows}
+          initialPartition={partition}
+        />
       </main>
     );
   }

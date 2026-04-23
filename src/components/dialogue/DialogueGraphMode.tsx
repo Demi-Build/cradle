@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Background,
   Controls,
@@ -12,40 +12,20 @@ import {
 import dagre from "@dagrejs/dagre";
 import "@xyflow/react/dist/style.css";
 import { DialogueCard } from "./DialogueCard";
-import {
-  entryNodeId,
-  isTerminal,
-  type DialogueNode,
-  type DialogueTree,
-} from "./types";
+import type { Beat, BeatEdge } from "./types";
 
-type CardData = {
-  nodeId: string;
-  node: DialogueNode;
-  isEntry: boolean;
-  isTerminal: boolean;
-  expanded: boolean;
-  onToggle: () => void;
-};
+type CardData = { beat: Beat };
 
 type CardNode = Node<CardData, "card">;
 
-const NODE_W = 260;
-const NODE_COMPACT_H = 120;
-const NODE_FULL_H = 260;
+const NODE_W = 280;
+const NODE_H = 120;
 
 function CardFlowNode({ data }: NodeProps<CardNode>) {
   return (
     <>
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <DialogueCard
-        nodeId={data.nodeId}
-        node={data.node}
-        mode={data.expanded ? "full" : "compact"}
-        isEntry={data.isEntry}
-        isTerminal={data.isTerminal}
-        onCardClick={data.onToggle}
-      />
+      <DialogueCard beat={data.beat} mode="compact" />
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
     </>
   );
@@ -53,61 +33,60 @@ function CardFlowNode({ data }: NodeProps<CardNode>) {
 
 const nodeTypes = { card: CardFlowNode };
 
+const EDGE_STYLE: Record<string, { stroke: string; labelFill: string; dashed?: boolean }> = {
+  tree: { stroke: "#555", labelFill: "#999" },
+  gate: { stroke: "#d4a942", labelFill: "#e0b85a" },
+  success: { stroke: "#4a8a4a", labelFill: "#8abb8a" },
+  failure: { stroke: "#7a3d3d", labelFill: "#c38a8a" },
+  exhausted: { stroke: "#b48442", labelFill: "#d4a942", dashed: true },
+};
+
 function layout(nodes: CardNode[], edges: Edge[]): CardNode[] {
   const g = new dagre.graphlib.Graph();
   g.setGraph({ rankdir: "TB", nodesep: 32, ranksep: 60 });
   g.setDefaultEdgeLabel(() => ({}));
-  for (const n of nodes) {
-    const h = n.data.expanded ? NODE_FULL_H : NODE_COMPACT_H;
-    g.setNode(n.id, { width: NODE_W, height: h });
-  }
+  for (const n of nodes) g.setNode(n.id, { width: NODE_W, height: NODE_H });
   for (const e of edges) g.setEdge(e.source, e.target);
   dagre.layout(g);
   return nodes.map((n) => {
     const gn = g.node(n.id);
-    const h = n.data.expanded ? NODE_FULL_H : NODE_COMPACT_H;
-    return { ...n, position: { x: gn.x - NODE_W / 2, y: gn.y - h / 2 } };
+    return { ...n, position: { x: gn.x - NODE_W / 2, y: gn.y - NODE_H / 2 } };
   });
 }
 
-export function DialogueGraphMode({ tree }: { tree: DialogueTree }) {
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const entry = entryNodeId(tree);
-
+export function DialogueGraphMode({
+  beats,
+  beatEdges,
+}: {
+  beats: Beat[];
+  beatEdges: BeatEdge[];
+}) {
   const { nodes, edges } = useMemo(() => {
-    const ids = Object.keys(tree.nodes ?? {});
-    const rawEdges: Edge[] = [];
-    for (const id of ids) {
-      const n = tree.nodes[id];
-      (n.choices ?? []).forEach((c, i) => {
-        if (!tree.nodes[c.next_node_id]) return;
-        rawEdges.push({
-          id: `${id}->${c.next_node_id}#${i}`,
-          source: id,
-          target: c.next_node_id,
-          animated: false,
-          style: { stroke: "#555", strokeWidth: 1.5 },
-        });
-      });
-    }
-    const rawNodes: CardNode[] = ids.map((id) => ({
-      id,
+    const rawEdges: Edge[] = beatEdges.map((e, i) => {
+      const style = EDGE_STYLE[e.kind ?? "tree"] ?? EDGE_STYLE.tree;
+      return {
+        id: `${e.from}->${e.to}#${i}`,
+        source: e.from,
+        target: e.to,
+        label: e.label,
+        style: {
+          stroke: style.stroke,
+          strokeWidth: e.kind === "gate" || e.kind === "success" || e.kind === "failure" ? 2 : 1.5,
+          strokeDasharray: style.dashed ? "4 4" : undefined,
+        },
+        labelStyle: { fill: style.labelFill, fontSize: 10 },
+      };
+    });
+    const rawNodes: CardNode[] = beats.map((beat) => ({
+      id: beat.id,
       type: "card" as const,
       position: { x: 0, y: 0 },
-      data: {
-        nodeId: id,
-        node: tree.nodes[id],
-        isEntry: id === entry,
-        isTerminal: isTerminal(tree.nodes[id]),
-        expanded: !!expanded[id],
-        onToggle: () => setExpanded((s) => ({ ...s, [id]: !s[id] })),
-      },
+      data: { beat },
       draggable: true,
       selectable: true,
     }));
-    const laid = layout(rawNodes, rawEdges);
-    return { nodes: laid, edges: rawEdges };
-  }, [tree, expanded, entry]);
+    return { nodes: layout(rawNodes, rawEdges), edges: rawEdges };
+  }, [beats, beatEdges]);
 
   return (
     <div className="dialogue-graph-mode">

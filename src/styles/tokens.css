@@ -42,3 +42,16 @@
   --shadow-1: 0 1px 2px rgba(20,16,8,.06), 0 0 0 1px rgba(20,16,8,.03);
   --shadow-2: 0 12px 32px rgba(20,16,8,.12), 0 0 0 1px rgba(20,16,8,.04);
 }
+
+/* ============ SCROLLBARS: FULLY HIDDEN ============ */
+/* No gutter, no thumb, no track. Scrolling still works via wheel / trackpad /
+   keyboard. Revisit via an overlay-scrollbar lib if we need a drag affordance. */
+* {
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* legacy Edge */
+}
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}

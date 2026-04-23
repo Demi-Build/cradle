@@ -12,11 +12,6 @@ export function TopBar() {
   return (
     <header className="titlebar">
       <IconSymbols />
-      <div className="traffic">
-        <i className="tl-close" />
-        <i className="tl-min" />
-        <i className="tl-max" />
-      </div>
       <div className="crumbs">
         <button className="crumb-link" onClick={closeWorld}>cradle</button>
         <span className="sep">/</span>

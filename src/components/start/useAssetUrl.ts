@@ -11,6 +11,7 @@ export function useAssetUrl(worldPath: string, hint: string | null | undefined):
     (async () => {
       try {
         const resolved = await api.resolveAsset(worldPath, hint);
+        if (import.meta.env.DEV) console.log("[cradle:asset]", { worldPath, hint, resolved });
         if (cancelled) return;
         if (resolved) setUrl(convertFileSrc(resolved));
       } catch {

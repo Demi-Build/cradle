@@ -65,7 +65,14 @@ export function RecentsRail({
 
       <div className="recents-scroller" ref={scrollerRef}>
         {recents.map((r) => (
-          <RecentTile key={r.path} recent={r} onClick={() => onOpenRecent(r.path)} />
+          <RecentTile
+            key={r.path}
+            recent={r}
+            onClick={() => {
+              if (import.meta.env.DEV) console.log("[cradle] tile clicked:", { title: r.storyTitle ?? r.name, path: r.path });
+              onOpenRecent(r.path);
+            }}
+          />
         ))}
         <button className="recent-tile add" onClick={onAddNew}>
           <div className="add-stack">

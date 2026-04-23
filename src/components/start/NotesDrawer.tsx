@@ -9,17 +9,35 @@ import { Icon } from "./Icons";
 // ============================================================
 const CHANGELOG = [
   {
-    ver: "v0.0.5",
-    title: "Dialogue graph mode",
+    ver: "v0.1.0",
+    title: "First read-only release",
     tag: "new" as const,
-    body: "Card view + graph view toggle on any NPC with a dialogue_tree. Dagre layout under the hood.",
+    body: "Start screen with recent projects, four-lane NPC dialogue (default / complete / incomplete / failed) with quest-gate routing, monster stat blocks, NPC combat forms, quest contract cards with type-driven objectives, room hero (entry portrait + maze map), events with puzzle tab, items with per-category stats tables, classes with ability and spell pools, bible hero with clickable beats, float layouts for NPC / monster / event / class / quest.",
   },
   {
-    ver: "v0.0.1",
-    title: "First run",
-    tag: null,
-    body: "Three-pane read-only shell: load a world, expand a type, click an entity, read JSON. Foundations for v0.2 editing.",
-  }
+    ver: "v0.1.0",
+    title: "Keyboard navigation",
+    tag: "new" as const,
+    body: "↑ / ↓ cycle within a type and spill across boundaries, ⌥↑ / ⌥↓ jump between types, ← / → step between list and entity, Tab cycles tabs inside an entity.",
+  },
+  {
+    ver: "v0.1.0",
+    title: "Design system",
+    tag: "new" as const,
+    body: "Dark + light theme tokens (Inter + JetBrains Mono, warm-neutral palette, oklch amber accent). Arc-style hidden scrollbars. Click-to-enlarge lightbox on every image, portrait prompt as hover tooltip.",
+  },
+  {
+    ver: "v0.2",
+    title: "Editing",
+    tag: "next" as const,
+    body: "Walk the generated world, change a line, regenerate a beat, re-run validation against canon. VS Code-style nav (activity bar + collapsible sidebar + breadcrumb). Canon schema types as a dependency.",
+  },
+  {
+    ver: "v0.3",
+    title: "Live dialogue",
+    tag: "next" as const,
+    body: "Talk to loaded NPCs via their dialogue tree at runtime, with the full state machine running against the LLM.",
+  },
 ];
 
 export function NotesDrawer() {
@@ -49,8 +67,8 @@ export function NotesDrawer() {
           </button>
         </div>
         <div className="drawer-body">
-          {CHANGELOG.map((row) => (
-            <div key={row.ver} className="cl-row">
+          {CHANGELOG.map((row, i) => (
+            <div key={`${row.ver}-${i}`} className="cl-row">
               <span className="cl-ver">{row.ver}</span>
               <div className="cl-body">
                 <h4>

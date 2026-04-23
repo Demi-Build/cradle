@@ -13,8 +13,8 @@ import {
 export type Selection =
   | { kind: "none" }
   | { kind: "bible" }
-  | { kind: "type"; typeId: string }
-  | { kind: "entity"; typeId: string; id: string };
+  | { kind: "type"; typeId: string; partition?: string }
+  | { kind: "entity"; typeId: string; id: string; tab?: string };
 
 type EntitiesByType = Record<string, EntityRef[]>;
 
@@ -22,9 +22,20 @@ export type LightboxImage = { src: string; alt: string };
 export type Route = "start" | "recents";
 export type Theme = "dark" | "light";
 
+export type BibleBeat = {
+  room_id?: string;
+  summary?: string;
+  faction_presence?: string;
+  escalation?: number;
+  boss_name?: string;
+  boss_lore?: string;
+};
+
 type Store = {
   worldPath: string;
   world: WorldSummary | null;
+  worldStoryTitle: string | null;
+  worldBeats: BibleBeat[];
   entities: EntitiesByType;
   selection: Selection;
   error: string | null;
@@ -63,6 +74,8 @@ function initialTheme(): Theme {
 export const useStore = create<Store>((set, get) => ({
   worldPath: "",
   world: null,
+  worldStoryTitle: null,
+  worldBeats: [],
   entities: {},
   selection: { kind: "none" },
   error: null,
@@ -86,13 +99,14 @@ export const useStore = create<Store>((set, get) => ({
     set({ theme: t });
   },
   setDrawerOpen: (open) => set({ drawerOpen: open }),
-  closeWorld: () => set({ world: null, worldPath: "", entities: {}, selection: { kind: "none" }, route: "start" }),
+  closeWorld: () => set({ world: null, worldPath: "", worldStoryTitle: null, worldBeats: [], entities: {}, selection: { kind: "none" }, route: "start" }),
   togglePin: (path: string) => set((s) => ({ recents: togglePinFn(s.recents, path) })),
   removeRecent: (path) => set((s) => ({ recents: removeRecentFn(s.recents, path) })),
-  enrichRecent: async (path: string) => {
+  enrichRecent: async (inputPath: string) => {
     try {
-      const summary = await api.loadWorld(path);
-      const existing = get().recents.find((r) => r.path === path);
+      const summary = await api.loadWorld(inputPath);
+      const path = summary.path;
+      const existing = get().recents.find((r) => r.path === inputPath || r.path === path);
       const next: RecentProject = {
         path,
         name: summary.name,
@@ -135,16 +149,27 @@ export const useStore = create<Store>((set, get) => ({
       if (!next.npcs) next.npcs = summary.entity_counts.find((c) => c.type_id === "npcs")?.count;
       if (!next.events) next.events = summary.entity_counts.find((c) => c.type_id === "events")?.count;
       if (!next.quests) next.quests = summary.entity_counts.find((c) => c.type_id === "quests")?.count;
-      set((s) => ({ recents: upsertRecent(s.recents.filter((r) => r.path !== path), { ...next, lastOpenedAt: existing?.lastOpenedAt ?? Date.now() }) }));
+      set((s) => ({
+        recents: upsertRecent(
+          s.recents.filter((r) => r.path !== inputPath && r.path !== path),
+          { ...next, lastOpenedAt: existing?.lastOpenedAt ?? Date.now() },
+        ),
+      }));
     } catch {
       // silent — stale entries are preserved
     }
   },
-  loadWorldByPath: async (path: string) => {
+  loadWorldByPath: async (inputPath: string) => {
+    if (import.meta.env.DEV) console.log("[cradle] loadWorldByPath called with:", inputPath);
     set({ loading: true, error: null });
     try {
-      const summary = await api.loadWorld(path);
-      set({ worldPath: path, world: summary, selection: { kind: "bible" }, entities: {}, route: "start" });
+      const summary = await api.loadWorld(inputPath);
+      // Backend returns the canonical world root (walks up from `/data` if needed).
+      // Use that for all downstream reads + recents storage so keys stay canonical.
+      const path = summary.path;
+      if (import.meta.env.DEV) console.log("[cradle] backend returned summary:", { requested: inputPath, summaryPath: path, name: summary.name, counts: summary.entity_counts });
+      const prevRecents = get().recents.filter((r) => r.path !== inputPath && r.path !== path);
+      set({ worldPath: path, world: summary, worldStoryTitle: null, worldBeats: [], selection: { kind: "bible" }, entities: {}, route: "start", recents: prevRecents });
 
       // Best-effort enrichment of the recent entry.
       let recent: RecentProject = {
@@ -154,10 +179,12 @@ export const useStore = create<Store>((set, get) => ({
       };
       try {
         const bible = (await api.getWorldBible(path)) as {
-          story?: { title?: string; synopsis?: string };
+          story?: { title?: string; synopsis?: string; beats?: BibleBeat[] };
         };
         recent.storyTitle = bible.story?.title ?? summary.name;
         recent.synopsis = bible.story?.synopsis;
+        if (bible.story?.title) set({ worldStoryTitle: bible.story.title });
+        if (Array.isArray(bible.story?.beats)) set({ worldBeats: bible.story.beats });
       } catch {}
       try {
         const manifest = (await api.readWorldJson(path, "manifest")) as {
@@ -198,6 +225,10 @@ export const useStore = create<Store>((set, get) => ({
     }
   },
 }));
+
+if (typeof window !== "undefined") {
+  (window as unknown as { __cradleStore?: typeof useStore }).__cradleStore = useStore;
+}
 
 function validationFrom(report: unknown): ValidationStatus | undefined {
   if (!report) return undefined;

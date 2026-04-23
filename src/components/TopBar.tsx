@@ -3,6 +3,7 @@ import { Icon, IconSymbols } from "./start/Icons";
 
 export function TopBar() {
   const world = useStore((s) => s.world);
+  const worldStoryTitle = useStore((s) => s.worldStoryTitle);
   const theme = useStore((s) => s.theme);
   const setTheme = useStore((s) => s.setTheme);
   const drawerOpen = useStore((s) => s.drawerOpen);
@@ -15,7 +16,7 @@ export function TopBar() {
       <div className="crumbs">
         <button className="crumb-link" onClick={closeWorld}>cradle</button>
         <span className="sep">/</span>
-        <span className="cur">{world?.name ?? "world"}</span>
+        <span className="cur">{worldStoryTitle ?? world?.name ?? "world"}</span>
       </div>
       <div className="spacer" />
       <div className="right">

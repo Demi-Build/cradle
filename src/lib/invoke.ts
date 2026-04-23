@@ -29,4 +29,5 @@ export const api = {
     invoke<unknown>("get_entity", { path, typeId, id }),
   resolveAsset: (path: string, hint: string) =>
     invoke<string | null>("resolve_asset", { path, hint }),
+  getBundledDemoPath: () => invoke<string>("get_bundled_demo_path"),
 };

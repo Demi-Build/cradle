@@ -27,6 +27,7 @@ export function Portrait({
     (async () => {
       try {
         const resolved = await api.resolveAsset(worldPath, hint);
+        if (import.meta.env.DEV) console.log("[cradle:asset:Portrait]", { worldPath, hint, resolved });
         if (cancelled) return;
         if (resolved) setSrc(convertFileSrc(resolved));
         else setFailed(true);

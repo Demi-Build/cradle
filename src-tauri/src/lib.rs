@@ -1,6 +1,6 @@
 mod data;
 
-use data::{DataSource, EntityRef, EntityRow, LocalFsDataSource, WorldSummary};
+use data::{canon_world_root, DataSource, EntityRef, EntityRow, LocalFsDataSource, WorldSummary};
 use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -10,39 +10,46 @@ struct AppState {
     source: Arc<dyn DataSource>,
 }
 
+fn canon(path: String) -> PathBuf {
+    canon_world_root(&PathBuf::from(path))
+}
+
 #[tauri::command]
 fn load_world(path: String, state: State<'_, AppState>) -> Result<WorldSummary, String> {
-    state.source.load_world(&PathBuf::from(path))
+    let root = canon(path);
+    let mut summary = state.source.load_world(&root)?;
+    summary.path = root.to_string_lossy().to_string();
+    Ok(summary)
 }
 
 #[tauri::command]
 fn get_world_bible(path: String, state: State<'_, AppState>) -> Result<Value, String> {
-    state.source.get_world_bible(&PathBuf::from(path))
+    state.source.get_world_bible(&canon(path))
 }
 
 #[tauri::command]
 fn read_world_json(path: String, name: String, state: State<'_, AppState>) -> Result<Value, String> {
-    state.source.read_world_json(&PathBuf::from(path), &name)
+    state.source.read_world_json(&canon(path), &name)
 }
 
 #[tauri::command]
 fn list_entities(path: String, type_id: String, state: State<'_, AppState>) -> Result<Vec<EntityRef>, String> {
-    state.source.list_entities(&PathBuf::from(path), &type_id)
+    state.source.list_entities(&canon(path), &type_id)
 }
 
 #[tauri::command]
 fn list_entity_rows(path: String, type_id: String, state: State<'_, AppState>) -> Result<Vec<EntityRow>, String> {
-    state.source.list_entity_rows(&PathBuf::from(path), &type_id)
+    state.source.list_entity_rows(&canon(path), &type_id)
 }
 
 #[tauri::command]
 fn get_entity(path: String, type_id: String, id: String, state: State<'_, AppState>) -> Result<Value, String> {
-    state.source.get_entity(&PathBuf::from(path), &type_id, &id)
+    state.source.get_entity(&canon(path), &type_id, &id)
 }
 
 #[tauri::command]
 fn resolve_asset(path: String, hint: String, state: State<'_, AppState>) -> Option<String> {
-    state.source.resolve_asset(&PathBuf::from(path), &hint)
+    state.source.resolve_asset(&canon(path), &hint)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

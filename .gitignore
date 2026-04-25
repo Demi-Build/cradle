@@ -29,5 +29,5 @@ dist-ssr
 bibles/
 .vite/
 .claude
-.DS_Store
+**/.DS_Store
 .vscode

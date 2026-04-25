@@ -172,7 +172,7 @@ export const useStore = create<Store>((set, get) => ({
       set({ worldPath: path, world: summary, worldStoryTitle: null, worldBeats: [], selection: { kind: "bible" }, entities: {}, route: "start", recents: prevRecents });
 
       // Best-effort enrichment of the recent entry.
-      let recent: RecentProject = {
+      const recent: RecentProject = {
         path,
         name: summary.name,
         lastOpenedAt: Date.now(),

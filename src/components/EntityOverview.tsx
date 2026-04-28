@@ -28,12 +28,15 @@ function useAssetUrlInline(worldPath: string, hint: string | null | undefined): 
     (async () => {
       try {
         const resolved = await api.resolveAsset(worldPath, hint);
-        if (import.meta.env.DEV) console.log("[cradle:asset:EntityOverview]", { worldPath, hint, resolved });
+        if (import.meta.env.DEV)
+          console.log("[cradle:asset:EntityOverview]", { worldPath, hint, resolved });
         if (cancelled) return;
         if (resolved) setUrl(convertFileSrc(resolved));
       } catch {}
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [worldPath, hint]);
   return url;
 }
@@ -59,13 +62,7 @@ const PROSE_FIELDS = new Set([
 ]);
 
 // Fields we never want in the overview (handled by other tabs, or noise).
-const HIDE_FIELDS = new Set([
-  "dialogue_tree",
-  "profile_image",
-  "portrait_path",
-  "name",
-  "id",
-]);
+const HIDE_FIELDS = new Set(["dialogue_tree", "profile_image", "portrait_path", "name", "id"]);
 
 const NPC_PROSE_ORDER = [
   "hobby",
@@ -90,7 +87,15 @@ function labelFor(key: string): string {
   return key.replace(/_/g, " ");
 }
 
-export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId: string; entityId: string }) {
+export function EntityOverview({
+  data,
+  typeId,
+  entityId,
+}: {
+  data: Json;
+  typeId: string;
+  entityId: string;
+}) {
   const name =
     (data.name as string | undefined) ??
     (data.environment_name as string | undefined) ??
@@ -130,15 +135,34 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
   }
 
   const typeSkip = new Set<string>();
-  if (isClass) ["abilities", "ability_pool", "spells", "spell_pool", "stats", "starting_weapon"].forEach((k) => typeSkip.add(k));
+  if (isClass)
+    ["abilities", "ability_pool", "spells", "spell_pool", "stats", "starting_weapon"].forEach((k) =>
+      typeSkip.add(k),
+    );
   if (isItem) typeSkip.add("item_stats");
   if (isRoom)
-    ["grid", "npc_positions", "item_placements", "event_positions", "quest_ids",
-      "gate_encounter_id", "door_position", "door_revealed", "player_start",
+    [
+      "grid",
+      "npc_positions",
+      "item_placements",
+      "event_positions",
+      "quest_ids",
+      "gate_encounter_id",
+      "door_position",
+      "door_revealed",
+      "player_start",
     ].forEach((k) => typeSkip.add(k));
   if (isMonster)
-    ["abilities", "hp_range", "ac_range", "damage_type", "physical_type",
-      "elemental_affinity", "weakness", "is_boss", "time_availability",
+    [
+      "abilities",
+      "hp_range",
+      "ac_range",
+      "damage_type",
+      "physical_type",
+      "elemental_affinity",
+      "weakness",
+      "is_boss",
+      "time_availability",
     ].forEach((k) => typeSkip.add(k));
 
   const prose: Array<[string, string]> = [];
@@ -148,14 +172,14 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
   const noteLists: Array<[string, string[]]> = [];
 
   const npcQuestHide = new Set([
-    "quest_id",          // shown in Quest badge
-    "quest_type",        // shown in Quest badge
+    "quest_id", // shown in Quest badge
+    "quest_type", // shown in Quest badge
     "quest_target_tile", // belongs on the quest, not the NPC
-    "dialogue_tree",           // rendered in the Dialogue tab
+    "dialogue_tree", // rendered in the Dialogue tab
     "dialogue_tree_complete",
     "dialogue_tree_failed",
     "dialogue_tree_incomplete",
-    "npc_monster",       // rendered in the combat-form section
+    "npc_monster", // rendered in the combat-form section
   ]);
 
   for (const [key, value] of Object.entries(data)) {
@@ -242,24 +266,29 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
   const spells = (data.spells as unknown[] | undefined) ?? [];
   const spellPool = (data.spell_pool as unknown[] | undefined) ?? [];
   const isBoss = isMonster && data.is_boss === true;
-  const classStats = isClass && typeof data.stats === "object" && data.stats !== null
-    ? (data.stats as Record<string, number>)
-    : null;
-  const itemStats = isItem && typeof data.item_stats === "object" && data.item_stats !== null
-    ? (data.item_stats as Record<string, string | number>)
-    : null;
+  const classStats =
+    isClass && typeof data.stats === "object" && data.stats !== null
+      ? (data.stats as Record<string, number>)
+      : null;
+  const itemStats =
+    isItem && typeof data.item_stats === "object" && data.item_stats !== null
+      ? (data.item_stats as Record<string, string | number>)
+      : null;
 
   const npcHasQuest = isNpc && data.quest_id !== null && data.quest_id !== undefined;
   const npcIsStory = isNpc && data.is_story_npc === true;
   const npcBackstory = isNpc && typeof data.backstory === "string" ? data.backstory : null;
-  const portraitPrompt = typeof data.portrait_prompt === "string" ? data.portrait_prompt : undefined;
+  const portraitPrompt =
+    typeof data.portrait_prompt === "string" ? data.portrait_prompt : undefined;
 
   return (
     <div className="overview">
       {isRoom ? (
         <RoomHero data={data} entityId={entityId} />
       ) : (
-        <header className={`overview-header ${isNpc ? "overview-header--npc" : ""} ${isMonster ? "overview-header--monster" : ""} ${isEvent ? "overview-header--event" : ""} ${isClass ? "overview-header--class" : ""}`}>
+        <header
+          className={`overview-header ${isNpc ? "overview-header--npc" : ""} ${isMonster ? "overview-header--monster" : ""} ${isEvent ? "overview-header--event" : ""} ${isClass ? "overview-header--class" : ""}`}
+        >
           <div className="overview-portrait-col">
             <Portrait hint={portraitHint} alt={name} size={480} tooltip={portraitPrompt} />
             {npcIsStory && (
@@ -279,8 +308,12 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
             <h2 className="overview-name">{name}</h2>
             <div className="overview-sub">
               <span className="chip">{typeId}</span>
-              {typeof data.id !== "undefined" && <span className="chip chip-muted">id {String(data.id)}</span>}
-              {typeof data.type === "string" && <span className="chip chip-muted">{data.type}</span>}
+              {typeof data.id !== "undefined" && (
+                <span className="chip chip-muted">id {String(data.id)}</span>
+              )}
+              {typeof data.type === "string" && (
+                <span className="chip chip-muted">{data.type}</span>
+              )}
               {isBoss && <span className="ability-badge starting">boss</span>}
             </div>
             {scalars.length > 0 && (
@@ -298,10 +331,16 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
               <StartingWeaponField name={data.starting_weapon} />
             )}
             {classStats && <ClassStatsTable stats={classStats} />}
-            {isMonster && <MonsterStatBlock data={data as Parameters<typeof MonsterStatBlock>[0]["data"]} />}
-            {isMonster && Array.isArray(data.abilities) && (data.abilities as unknown[]).length > 0 && (
-              <MonsterAbilities abilities={data.abilities as Parameters<typeof MonsterAbilities>[0]["abilities"]} />
+            {isMonster && (
+              <MonsterStatBlock data={data as Parameters<typeof MonsterStatBlock>[0]["data"]} />
             )}
+            {isMonster &&
+              Array.isArray(data.abilities) &&
+              (data.abilities as unknown[]).length > 0 && (
+                <MonsterAbilities
+                  abilities={data.abilities as Parameters<typeof MonsterAbilities>[0]["abilities"]}
+                />
+              )}
             {isNpc && npcBackstory && (
               <div className="overview-backstory">
                 <div className="prose-label">backstory</div>
@@ -324,7 +363,9 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
                   <div key={k} className="notes-block">
                     <div className="prose-label">{labelFor(k)}</div>
                     <ul className="notes-list">
-                      {items.map((s, i) => <li key={i}>{s}</li>)}
+                      {items.map((s, i) => (
+                        <li key={i}>{s}</li>
+                      ))}
                     </ul>
                   </div>
                 ))}
@@ -351,7 +392,9 @@ export function EntityOverview({ data, typeId, entityId }: { data: Json; typeId:
             <div key={k} className="notes-block">
               <div className="prose-label">{labelFor(k)}</div>
               <ul className="notes-list">
-                {items.map((s, i) => <li key={i}>{s}</li>)}
+                {items.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
               </ul>
             </div>
           ))}
@@ -471,11 +514,17 @@ function CombatForm({ monster }: { monster: CombatFormMonster }) {
   return (
     <section className="combat-form">
       <header className="combat-form-head">
-        <span className="cf-icon" aria-hidden>⚔</span>
+        <span className="cf-icon" aria-hidden>
+          ⚔
+        </span>
         <span className="cf-label">Combat form</span>
         <span className="cf-spacer" />
         {monster.id !== undefined && (
-          <EntityLink typeId="monsters" id={String(monster.id)} fallbackLabel="open monster entry" />
+          <EntityLink
+            typeId="monsters"
+            id={String(monster.id)}
+            fallbackLabel="open monster entry"
+          />
         )}
       </header>
       <div className="combat-form-body">
@@ -633,9 +682,7 @@ function ItemStatsTable({ stats }: { stats: Record<string, string | number> }) {
           {entries.map(([k, v]) => (
             <tr key={k}>
               <td className="is-key">{k.replace(/_/g, " ")}</td>
-              <td className={`is-val ${typeof v === "number" ? "is-val-num" : ""}`}>
-                {String(v)}
-              </td>
+              <td className={`is-val ${typeof v === "number" ? "is-val-num" : ""}`}>{String(v)}</td>
             </tr>
           ))}
         </tbody>
@@ -712,16 +759,8 @@ function ClassStatsTable({ stats }: { stats: Record<string, number> }) {
   );
 }
 
-function RoomHero({
-  data,
-  entityId,
-}: {
-  data: Record<string, unknown>;
-  entityId: string;
-}) {
-  const name =
-    (typeof data.environment_name === "string" && data.environment_name) ||
-    entityId;
+function RoomHero({ data, entityId }: { data: Record<string, unknown>; entityId: string }) {
+  const name = (typeof data.environment_name === "string" && data.environment_name) || entityId;
   const env = typeof data.environment === "string" ? data.environment : undefined;
   const level = typeof data.level === "number" ? data.level : undefined;
 

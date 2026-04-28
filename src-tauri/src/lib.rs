@@ -28,22 +28,39 @@ fn get_world_bible(path: String, state: State<'_, AppState>) -> Result<Value, St
 }
 
 #[tauri::command]
-fn read_world_json(path: String, name: String, state: State<'_, AppState>) -> Result<Value, String> {
+fn read_world_json(
+    path: String,
+    name: String,
+    state: State<'_, AppState>,
+) -> Result<Value, String> {
     state.source.read_world_json(&canon(path), &name)
 }
 
 #[tauri::command]
-fn list_entities(path: String, type_id: String, state: State<'_, AppState>) -> Result<Vec<EntityRef>, String> {
+fn list_entities(
+    path: String,
+    type_id: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<EntityRef>, String> {
     state.source.list_entities(&canon(path), &type_id)
 }
 
 #[tauri::command]
-fn list_entity_rows(path: String, type_id: String, state: State<'_, AppState>) -> Result<Vec<EntityRow>, String> {
+fn list_entity_rows(
+    path: String,
+    type_id: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<EntityRow>, String> {
     state.source.list_entity_rows(&canon(path), &type_id)
 }
 
 #[tauri::command]
-fn get_entity(path: String, type_id: String, id: String, state: State<'_, AppState>) -> Result<Value, String> {
+fn get_entity(
+    path: String,
+    type_id: String,
+    id: String,
+    state: State<'_, AppState>,
+) -> Result<Value, String> {
     state.source.get_entity(&canon(path), &type_id, &id)
 }
 
@@ -66,9 +83,10 @@ fn get_bundled_demo_path(app: AppHandle) -> Result<String, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(AppState { source: Arc::new(LocalFsDataSource) })
+        .manage(AppState {
+            source: Arc::new(LocalFsDataSource),
+        })
         .invoke_handler(tauri::generate_handler![
             load_world,
             get_world_bible,

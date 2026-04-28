@@ -26,13 +26,7 @@ const SECTION_LABEL: Record<BeatKind, string> = {
   exhausted: "Exhausted",
 };
 
-export function DialogueCardMode({
-  beats,
-  edges,
-}: {
-  beats: Beat[];
-  edges: BeatEdge[];
-}) {
+export function DialogueCardMode({ beats, edges }: { beats: Beat[]; edges: BeatEdge[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const scrollTo = useCallback((beatId: string) => {

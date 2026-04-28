@@ -105,10 +105,7 @@ function QuestLinks({ quest }: { quest: Quest }) {
     rows.push(["in room", <EntityLink typeId="rooms" id={String(quest.room_id)} />]);
   }
   if (quest.prerequisite_quest_id !== undefined && quest.prerequisite_quest_id !== null) {
-    rows.push([
-      "prereq",
-      <EntityLink typeId="quests" id={String(quest.prerequisite_quest_id)} />,
-    ]);
+    rows.push(["prereq", <EntityLink typeId="quests" id={String(quest.prerequisite_quest_id)} />]);
   }
   if (rows.length === 0) return null;
   return (
@@ -136,7 +133,10 @@ function QuestObjective({ quest }: { quest: Quest }) {
     }
   } else if (type === "solve") {
     if (quest.target_event_id !== undefined && quest.target_event_id !== null) {
-      rows.push(["target event", <EntityLink typeId="events" id={String(quest.target_event_id)} />]);
+      rows.push([
+        "target event",
+        <EntityLink typeId="events" id={String(quest.target_event_id)} />,
+      ]);
     }
   } else if (type === "combat") {
     if (quest.target_npc_id !== undefined && quest.target_npc_id !== null) {
@@ -185,9 +185,7 @@ function QuestContract({ quest }: { quest: Quest }) {
   const itemId = quest.reward?.item_id;
   const hp = quest.failure_penalty?.hp_damage;
   const hasAny =
-    typeof xp === "number" ||
-    (itemId !== null && itemId !== undefined) ||
-    typeof hp === "number";
+    typeof xp === "number" || (itemId !== null && itemId !== undefined) || typeof hp === "number";
   if (!hasAny) return null;
   return (
     <div className="quest-box">
@@ -197,7 +195,13 @@ function QuestContract({ quest }: { quest: Quest }) {
           <div className="qc-col-head">on success</div>
           <QuestRow
             label="xp"
-            value={typeof xp === "number" ? <span className="quest-val-num">+{xp}</span> : <span className="quest-val-dim">—</span>}
+            value={
+              typeof xp === "number" ? (
+                <span className="quest-val-num">+{xp}</span>
+              ) : (
+                <span className="quest-val-dim">—</span>
+              )
+            }
           />
           <QuestRow
             label="item"
@@ -214,7 +218,13 @@ function QuestContract({ quest }: { quest: Quest }) {
           <div className="qc-col-head">on failure</div>
           <QuestRow
             label="hp"
-            value={typeof hp === "number" ? <span className="quest-val-num">−{hp}</span> : <span className="quest-val-dim">—</span>}
+            value={
+              typeof hp === "number" ? (
+                <span className="quest-val-num">−{hp}</span>
+              ) : (
+                <span className="quest-val-dim">—</span>
+              )
+            }
           />
         </div>
       </div>

@@ -41,9 +41,7 @@ export function ReturningHero({
 
           <p className="last-world-label">{factionLabel}</p>
           <h1 className="last-world-title">{last.storyTitle ?? last.name}</h1>
-          {last.synopsis && (
-            <p className="last-world-synopsis">{last.synopsis}</p>
-          )}
+          {last.synopsis && <p className="last-world-synopsis">{last.synopsis}</p>}
           <div className="last-world-meta">
             {counts.map((c, i) => (
               <span key={c.k}>

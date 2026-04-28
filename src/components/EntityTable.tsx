@@ -48,7 +48,12 @@ type SortOption = {
 const SORT_CONFIG: Record<string, SortOption[]> = {
   npcs: [
     { id: "name", label: "Name", keys: ["name"] },
-    { id: "env-name", label: "Environment → Name", keys: ["environment_name", "name"], groupKey: "environment_name" },
+    {
+      id: "env-name",
+      label: "Environment → Name",
+      keys: ["environment_name", "name"],
+      groupKey: "environment_name",
+    },
     { id: "type-name", label: "Type → Name", keys: ["type", "name"], groupKey: "type" },
     { id: "story-first", label: "Story NPCs first", keys: ["-is_story_npc", "name"] },
     { id: "job-name", label: "Job → Name", keys: ["job", "name"] },
@@ -56,20 +61,40 @@ const SORT_CONFIG: Record<string, SortOption[]> = {
   items: [
     { id: "name", label: "Name", keys: ["name"] },
     { id: "cat-name", label: "Category → Name", keys: ["category", "name"], groupKey: "category" },
-    { id: "level-name", label: "Room level → Name", keys: ["room_level", "name"], groupKey: "room_level" },
+    {
+      id: "level-name",
+      label: "Room level → Name",
+      keys: ["room_level", "name"],
+      groupKey: "room_level",
+    },
   ],
   monsters: [
     { id: "name", label: "Name", keys: ["name"] },
     { id: "boss-first", label: "Bosses first", keys: ["-is_boss", "name"] },
     { id: "species-name", label: "Species → Name", keys: ["species", "name"], groupKey: "species" },
     { id: "level-name", label: "Level → Name", keys: ["level", "name"], groupKey: "level" },
-    { id: "element-name", label: "Element → Name", keys: ["elemental_affinity", "name"], groupKey: "elemental_affinity" },
+    {
+      id: "element-name",
+      label: "Element → Name",
+      keys: ["elemental_affinity", "name"],
+      groupKey: "elemental_affinity",
+    },
   ],
   events: [
     { id: "name", label: "Name", keys: ["name"] },
     { id: "type-name", label: "Type → Name", keys: ["type", "name"], groupKey: "type" },
-    { id: "diff-name", label: "Difficulty → Name", keys: ["difficulty", "name"], groupKey: "difficulty" },
-    { id: "level-name", label: "Room level → Name", keys: ["room_level", "name"], groupKey: "room_level" },
+    {
+      id: "diff-name",
+      label: "Difficulty → Name",
+      keys: ["difficulty", "name"],
+      groupKey: "difficulty",
+    },
+    {
+      id: "level-name",
+      label: "Room level → Name",
+      keys: ["room_level", "name"],
+      groupKey: "room_level",
+    },
   ],
   quests: [
     { id: "title", label: "Title", keys: ["title"] },
@@ -79,19 +104,25 @@ const SORT_CONFIG: Record<string, SortOption[]> = {
   ],
   classes: [
     { id: "name", label: "Name", keys: ["name"] },
-    { id: "archetype-name", label: "Archetype → Name", keys: ["archetype", "name"], groupKey: "archetype" },
+    {
+      id: "archetype-name",
+      label: "Archetype → Name",
+      keys: ["archetype", "name"],
+      groupKey: "archetype",
+    },
   ],
   rooms: [
     { id: "id", label: "Room id", keys: ["id"] },
     { id: "env-name", label: "Environment name", keys: ["environment_name"] },
-    { id: "env-group", label: "Environment → Id", keys: ["environment", "id"], groupKey: "environment" },
+    {
+      id: "env-group",
+      label: "Environment → Id",
+      keys: ["environment", "id"],
+      groupKey: "environment",
+    },
   ],
-  music: [
-    { id: "name", label: "Name", keys: ["name"] },
-  ],
-  sfx: [
-    { id: "name", label: "Name", keys: ["name"] },
-  ],
+  music: [{ id: "name", label: "Name", keys: ["name"] }],
+  sfx: [{ id: "name", label: "Name", keys: ["name"] }],
 };
 
 function labelFor(key: string): string {
@@ -106,7 +137,9 @@ function cellValue(row: Row, key: string): string {
 }
 
 function portraitHintFor(typeId: string, row: Row): string | null {
-  const p = (row.data?.profile_image as string | undefined) ?? (row.data?.portrait_path as string | undefined);
+  const p =
+    (row.data?.profile_image as string | undefined) ??
+    (row.data?.portrait_path as string | undefined);
   if (p) return p;
   if (typeId === "rooms") {
     const m = /(\d+)$/.exec(row.id);
@@ -213,7 +246,10 @@ export function EntityTable({
   }, [rows, partition, partitionKey, typeId]);
 
   const activeSort = sortOptions.find((s) => s.id === sortId) ?? sortOptions[0];
-  const sortedRows = useMemo(() => sortRows(filteredRows, activeSort?.keys ?? []), [filteredRows, activeSort]);
+  const sortedRows = useMemo(
+    () => sortRows(filteredRows, activeSort?.keys ?? []),
+    [filteredRows, activeSort],
+  );
 
   const columns = useMemo<ColumnDef<Row>[]>(() => {
     const configured = COLUMN_CONFIG[typeId] ?? [];
@@ -293,7 +329,8 @@ export function EntityTable({
     return Array.from(map.entries());
   }, [filteredForCards, activeSort]);
 
-  const visibleCount = view === "cards" ? filteredForCards.length : table.getFilteredRowModel().rows.length;
+  const visibleCount =
+    view === "cards" ? filteredForCards.length : table.getFilteredRowModel().rows.length;
 
   return (
     <div className="entity-table-wrap">
@@ -337,7 +374,9 @@ export function EntityTable({
               onChange={(e) => setSortId(e.target.value)}
             >
               {sortOptions.map((o) => (
-                <option key={o.id} value={o.id}>{o.label}</option>
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
               ))}
             </select>
           </label>
@@ -370,7 +409,11 @@ export function EntityTable({
                   return (
                     <th
                       key={header.id}
-                      onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                      onClick={
+                        header.column.getCanSort()
+                          ? header.column.getToggleSortingHandler()
+                          : undefined
+                      }
                       className={header.column.getCanSort() ? "th-sortable" : ""}
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
@@ -431,7 +474,12 @@ function CardGrid({
             </h3>
             <div className="entity-cards-grid">
               {group.map((r) => (
-                <EntityPortraitCard key={r.id} row={r} typeId={typeId} onClick={() => onSelect(r.id)} />
+                <EntityPortraitCard
+                  key={r.id}
+                  row={r}
+                  typeId={typeId}
+                  onClick={() => onSelect(r.id)}
+                />
               ))}
             </div>
           </section>

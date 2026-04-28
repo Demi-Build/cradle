@@ -1,6 +1,7 @@
 :root {
-  --ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ui: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono:
+    "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius: 6px;
   --radius-sm: 4px;
   --radius-lg: 10px;
@@ -12,43 +13,43 @@
 }
 
 [data-theme="dark"] {
-  --bg: #0E0F12;
-  --bg-raised: #15171C;
-  --bg-sunken: #0A0B0E;
-  --bg-hover: #1B1E24;
-  --border: #23262D;
-  --border-hi: #2E323B;
-  --fg: #E8E6DF;
-  --fg-muted: #9A988E;
-  --fg-dim: #5E5D55;
-  --cta-bg: #F3EFE3;
-  --cta-fg: #15171C;
-  --shadow-1: 0 1px 2px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.02);
-  --shadow-2: 0 12px 32px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.03);
+  --bg: #0e0f12;
+  --bg-raised: #15171c;
+  --bg-sunken: #0a0b0e;
+  --bg-hover: #1b1e24;
+  --border: #23262d;
+  --border-hi: #2e323b;
+  --fg: #e8e6df;
+  --fg-muted: #9a988e;
+  --fg-dim: #5e5d55;
+  --cta-bg: #f3efe3;
+  --cta-fg: #15171c;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.02);
+  --shadow-2: 0 12px 32px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
 [data-theme="light"] {
-  --bg: #F7F6F2;
-  --bg-raised: #FFFFFF;
-  --bg-sunken: #EFEDE6;
-  --bg-hover: #EDEBE2;
-  --border: #E0DCCF;
-  --border-hi: #C9C2AF;
-  --fg: #1A1916;
-  --fg-muted: #6A6860;
-  --fg-dim: #95928A;
-  --cta-bg: #1A1916;
-  --cta-fg: #F7F6F2;
-  --shadow-1: 0 1px 2px rgba(20,16,8,.06), 0 0 0 1px rgba(20,16,8,.03);
-  --shadow-2: 0 12px 32px rgba(20,16,8,.12), 0 0 0 1px rgba(20,16,8,.04);
+  --bg: #f7f6f2;
+  --bg-raised: #ffffff;
+  --bg-sunken: #efede6;
+  --bg-hover: #edebe2;
+  --border: #e0dccf;
+  --border-hi: #c9c2af;
+  --fg: #1a1916;
+  --fg-muted: #6a6860;
+  --fg-dim: #95928a;
+  --cta-bg: #1a1916;
+  --cta-fg: #f7f6f2;
+  --shadow-1: 0 1px 2px rgba(20, 16, 8, 0.06), 0 0 0 1px rgba(20, 16, 8, 0.03);
+  --shadow-2: 0 12px 32px rgba(20, 16, 8, 0.12), 0 0 0 1px rgba(20, 16, 8, 0.04);
 }
 
 /* ============ SCROLLBARS: FULLY HIDDEN ============ */
 /* No gutter, no thumb, no track. Scrolling still works via wheel / trackpad /
    keyboard. Revisit via an overlay-scrollbar lib if we need a drag affordance. */
 * {
-  scrollbar-width: none;       /* Firefox */
-  -ms-overflow-style: none;    /* legacy Edge */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
 }
 *::-webkit-scrollbar {
   width: 0;

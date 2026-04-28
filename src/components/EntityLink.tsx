@@ -27,7 +27,15 @@ function fetchEntitiesOnce(
   inflight.set(key, p);
 }
 
-export function EntityLink({ typeId, id, fallbackLabel }: { typeId: string; id: string; fallbackLabel?: string }) {
+export function EntityLink({
+  typeId,
+  id,
+  fallbackLabel,
+}: {
+  typeId: string;
+  id: string;
+  fallbackLabel?: string;
+}) {
   const entities = useStore((s) => s.entities);
   const worldPath = useStore((s) => s.worldPath);
   const setEntities = useStore((s) => s.setEntities);

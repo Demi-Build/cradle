@@ -11,12 +11,7 @@ import {
 } from "@xyflow/react";
 import dagre from "@dagrejs/dagre";
 import "@xyflow/react/dist/style.css";
-import {
-  correctMatch,
-  formatCheck,
-  type PuzzleChoice,
-  type PuzzleEvent,
-} from "./types";
+import { correctMatch, formatCheck, type PuzzleChoice, type PuzzleEvent } from "./types";
 
 type PromptData = { text: string };
 type ChoiceData = { choice: PuzzleChoice; index: number; isCorrect: boolean };

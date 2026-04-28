@@ -86,20 +86,31 @@ export const useStore = create<Store>((set, get) => ({
   drawerOpen: false,
   loading: false,
   setWorldPath: (p) => set({ worldPath: p }),
-  setWorld: (w) => set({ world: w, entities: {}, selection: w ? { kind: "bible" } : { kind: "none" } }),
-  setEntities: (typeId, refs) =>
-    set((s) => ({ entities: { ...s.entities, [typeId]: refs } })),
+  setWorld: (w) =>
+    set({ world: w, entities: {}, selection: w ? { kind: "bible" } : { kind: "none" } }),
+  setEntities: (typeId, refs) => set((s) => ({ entities: { ...s.entities, [typeId]: refs } })),
   select: (s) => set({ selection: s }),
   setError: (e) => set({ error: e }),
   openLightbox: (img) => set({ lightbox: img }),
   closeLightbox: () => set({ lightbox: null }),
   setRoute: (r) => set({ route: r }),
   setTheme: (t) => {
-    try { localStorage.setItem(THEME_KEY, t); } catch {}
+    try {
+      localStorage.setItem(THEME_KEY, t);
+    } catch {}
     set({ theme: t });
   },
   setDrawerOpen: (open) => set({ drawerOpen: open }),
-  closeWorld: () => set({ world: null, worldPath: "", worldStoryTitle: null, worldBeats: [], entities: {}, selection: { kind: "none" }, route: "start" }),
+  closeWorld: () =>
+    set({
+      world: null,
+      worldPath: "",
+      worldStoryTitle: null,
+      worldBeats: [],
+      entities: {},
+      selection: { kind: "none" },
+      route: "start",
+    }),
   togglePin: (path: string) => set((s) => ({ recents: togglePinFn(s.recents, path) })),
   removeRecent: (path) => set((s) => ({ recents: removeRecentFn(s.recents, path) })),
   enrichRecent: async (inputPath: string) => {
@@ -147,8 +158,10 @@ export const useStore = create<Store>((set, get) => ({
       } catch {}
       if (!next.rooms) next.rooms = summary.entity_counts.find((c) => c.type_id === "rooms")?.count;
       if (!next.npcs) next.npcs = summary.entity_counts.find((c) => c.type_id === "npcs")?.count;
-      if (!next.events) next.events = summary.entity_counts.find((c) => c.type_id === "events")?.count;
-      if (!next.quests) next.quests = summary.entity_counts.find((c) => c.type_id === "quests")?.count;
+      if (!next.events)
+        next.events = summary.entity_counts.find((c) => c.type_id === "events")?.count;
+      if (!next.quests)
+        next.quests = summary.entity_counts.find((c) => c.type_id === "quests")?.count;
       set((s) => ({
         recents: upsertRecent(
           s.recents.filter((r) => r.path !== inputPath && r.path !== path),
@@ -167,12 +180,27 @@ export const useStore = create<Store>((set, get) => ({
       // Backend returns the canonical world root (walks up from `/data` if needed).
       // Use that for all downstream reads + recents storage so keys stay canonical.
       const path = summary.path;
-      if (import.meta.env.DEV) console.log("[cradle] backend returned summary:", { requested: inputPath, summaryPath: path, name: summary.name, counts: summary.entity_counts });
+      if (import.meta.env.DEV)
+        console.log("[cradle] backend returned summary:", {
+          requested: inputPath,
+          summaryPath: path,
+          name: summary.name,
+          counts: summary.entity_counts,
+        });
       const prevRecents = get().recents.filter((r) => r.path !== inputPath && r.path !== path);
-      set({ worldPath: path, world: summary, worldStoryTitle: null, worldBeats: [], selection: { kind: "bible" }, entities: {}, route: "start", recents: prevRecents });
+      set({
+        worldPath: path,
+        world: summary,
+        worldStoryTitle: null,
+        worldBeats: [],
+        selection: { kind: "bible" },
+        entities: {},
+        route: "start",
+        recents: prevRecents,
+      });
 
       // Best-effort enrichment of the recent entry.
-      let recent: RecentProject = {
+      const recent: RecentProject = {
         path,
         name: summary.name,
         lastOpenedAt: Date.now(),
@@ -211,10 +239,14 @@ export const useStore = create<Store>((set, get) => ({
         }
         recent.validation = validationFrom(manifest.validation_report);
       } catch {}
-      if (!recent.rooms) recent.rooms = summary.entity_counts.find((c) => c.type_id === "rooms")?.count;
-      if (!recent.npcs) recent.npcs = summary.entity_counts.find((c) => c.type_id === "npcs")?.count;
-      if (!recent.events) recent.events = summary.entity_counts.find((c) => c.type_id === "events")?.count;
-      if (!recent.quests) recent.quests = summary.entity_counts.find((c) => c.type_id === "quests")?.count;
+      if (!recent.rooms)
+        recent.rooms = summary.entity_counts.find((c) => c.type_id === "rooms")?.count;
+      if (!recent.npcs)
+        recent.npcs = summary.entity_counts.find((c) => c.type_id === "npcs")?.count;
+      if (!recent.events)
+        recent.events = summary.entity_counts.find((c) => c.type_id === "events")?.count;
+      if (!recent.quests)
+        recent.quests = summary.entity_counts.find((c) => c.type_id === "quests")?.count;
 
       set((s) => ({ recents: upsertRecent(s.recents, recent) }));
     } catch (e) {

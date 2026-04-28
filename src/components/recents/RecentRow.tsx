@@ -18,7 +18,8 @@ export function RecentRow({
   const thumbUrl = resolved ?? envImageFor(env);
   const validation = recent.validation ?? "validated";
   const valClass = validation === "warn" ? "warn" : validation === "failed" ? "err" : "ok";
-  const valLabel = validation === "warn" ? "2 warnings" : validation === "failed" ? "failed" : "validated";
+  const valLabel =
+    validation === "warn" ? "2 warnings" : validation === "failed" ? "failed" : "validated";
 
   return (
     <button className="list-row" onClick={onClick} title={recent.path}>
@@ -40,10 +41,19 @@ export function RecentRow({
             : recent.synopsis
           : recent.path}
       </div>
-      <div className="lr-num" style={{ textAlign: "right" }}>{recent.rooms ?? "—"}</div>
-      <div className="lr-num" style={{ textAlign: "right" }}>{recent.npcs ?? "—"}</div>
-      <div className="lr-num" style={{ textAlign: "right" }}>{recent.events ?? "—"}</div>
-      <div className={`lr-status ${valClass}`}><i />{valLabel}</div>
+      <div className="lr-num" style={{ textAlign: "right" }}>
+        {recent.rooms ?? "—"}
+      </div>
+      <div className="lr-num" style={{ textAlign: "right" }}>
+        {recent.npcs ?? "—"}
+      </div>
+      <div className="lr-num" style={{ textAlign: "right" }}>
+        {recent.events ?? "—"}
+      </div>
+      <div className={`lr-status ${valClass}`}>
+        <i />
+        {valLabel}
+      </div>
       <div className="lr-time">{relativeTimeFrom(recent.lastOpenedAt)}</div>
       <div>
         <span

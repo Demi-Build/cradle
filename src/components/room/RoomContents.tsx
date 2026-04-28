@@ -82,7 +82,8 @@ export function RoomContents({ data }: { data: RoomData }) {
       <summary className="room-contents-heading">
         Contents{" "}
         <span className="ability-count">
-          {npcEntries.length} npcs · {items.length} items · {events.length} events · {quests.length} quests
+          {npcEntries.length} npcs · {items.length} items · {events.length} events · {quests.length}{" "}
+          quests
         </span>
       </summary>
 
@@ -107,7 +108,9 @@ export function RoomContents({ data }: { data: RoomData }) {
             {items.map((it, i) => (
               <span key={`${it.item_id}-${i}`} className="placed-entity">
                 <EntityLink typeId="items" id={String(it.item_id)} fallbackLabel={it.name} />
-                <span className="placed-coord">@ {it.x}, {it.y}</span>
+                <span className="placed-coord">
+                  @ {it.x}, {it.y}
+                </span>
               </span>
             ))}
           </div>
@@ -121,7 +124,9 @@ export function RoomContents({ data }: { data: RoomData }) {
             {events.map((ev, i) => (
               <span key={`${ev.event_id}-${i}`} className="placed-entity">
                 <EntityLink typeId="events" id={String(ev.event_id)} />
-                <span className="placed-coord">@ {ev.x}, {ev.y}</span>
+                <span className="placed-coord">
+                  @ {ev.x}, {ev.y}
+                </span>
               </span>
             ))}
           </div>

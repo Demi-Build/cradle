@@ -6,7 +6,10 @@ export function RoomStory({ roomId }: { roomId: string }) {
   const beat = beats.find((b) => b.room_id === roomId);
   if (!beat) return null;
   const hasAny =
-    beat.summary || beat.faction_presence || beat.boss_name || beat.boss_lore ||
+    beat.summary ||
+    beat.faction_presence ||
+    beat.boss_name ||
+    beat.boss_lore ||
     typeof beat.escalation === "number";
   if (!hasAny) return null;
 
@@ -29,14 +32,18 @@ export function RoomStory({ roomId }: { roomId: string }) {
       {beat.faction_presence && (
         <details className="room-story-detail">
           <summary>Faction presence</summary>
-          <p><ExpandableText text={beat.faction_presence} limit={500} /></p>
+          <p>
+            <ExpandableText text={beat.faction_presence} limit={500} />
+          </p>
         </details>
       )}
 
       {beat.boss_lore && (
         <details className="room-story-detail">
           <summary>Boss lore</summary>
-          <p><ExpandableText text={beat.boss_lore} limit={500} /></p>
+          <p>
+            <ExpandableText text={beat.boss_lore} limit={500} />
+          </p>
         </details>
       )}
     </section>

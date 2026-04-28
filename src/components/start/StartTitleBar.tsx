@@ -11,7 +11,9 @@ export function StartTitleBar({ here = "start" }: { here?: string }) {
   return (
     <header className="titlebar">
       <div className="crumbs">
-        <button className="crumb-link" onClick={() => setRoute("start")}>cradle</button>
+        <button className="crumb-link" onClick={() => setRoute("start")}>
+          cradle
+        </button>
         <span className="sep">/</span>
         <span className="cur">{here}</span>
       </div>

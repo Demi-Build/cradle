@@ -48,12 +48,16 @@ export function DialogueTab({ npc }: { npc: NpcLike }) {
             Graph
           </button>
         </div>
-        <span className="dialogue-meta">{beats.length} beats · {edges.length} edges</span>
+        <span className="dialogue-meta">
+          {beats.length} beats · {edges.length} edges
+        </span>
       </div>
       <div className="dialogue-body">
-        {mode === "card"
-          ? <DialogueCardMode beats={beats} edges={edges} />
-          : <DialogueGraphMode beats={beats} beatEdges={edges} />}
+        {mode === "card" ? (
+          <DialogueCardMode beats={beats} edges={edges} />
+        ) : (
+          <DialogueGraphMode beats={beats} beatEdges={edges} />
+        )}
       </div>
     </div>
   );

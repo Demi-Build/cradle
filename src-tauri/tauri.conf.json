@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "cradle",
+  "productName": "Cradle",
   "version": "0.1.0",
-  "identifier": "com.cradle.app",
+  "identifier": "build.demi.cradle",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -39,6 +39,9 @@
     ],
     "resources": {
       "../bibles/mazeworld_5_room_demo": "demo"
+    },
+    "macOS": {
+      "signingIdentity": "Developer ID Application: WOLFGANG JUSTICE BLACK (VRM57L6S3D)"
     }
   }
 }

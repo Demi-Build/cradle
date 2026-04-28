@@ -23,7 +23,13 @@ function sectionFor(ms: number, now: number): string {
   return "Older";
 }
 
-const SECTION_ORDER = ["Today", "Yesterday", "Earlier this week", "Earlier this month", "Older"] as const;
+const SECTION_ORDER = [
+  "Today",
+  "Yesterday",
+  "Earlier this week",
+  "Earlier this month",
+  "Older",
+] as const;
 
 export function RecentProjectsPage() {
   const recents = useStore((s) => s.recents);
@@ -38,8 +44,12 @@ export function RecentProjectsPage() {
 
   const filtered = useMemo(() => {
     let rows = recents;
-    if (filter === "validated") rows = rows.filter((r) => r.validation === "validated" || r.validation === "bundled" || !r.validation);
-    if (filter === "issues") rows = rows.filter((r) => r.validation === "warn" || r.validation === "failed");
+    if (filter === "validated")
+      rows = rows.filter(
+        (r) => r.validation === "validated" || r.validation === "bundled" || !r.validation,
+      );
+    if (filter === "issues")
+      rows = rows.filter((r) => r.validation === "warn" || r.validation === "failed");
     if (filter === "pinned") rows = rows.filter((r) => r.pinned);
     const q = query.trim().toLowerCase();
     if (q) {
@@ -49,7 +59,10 @@ export function RecentProjectsPage() {
       });
     }
     if (sort === "recent") rows = [...rows].sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
-    if (sort === "name") rows = [...rows].sort((a, b) => (a.storyTitle ?? a.name).localeCompare(b.storyTitle ?? b.name));
+    if (sort === "name")
+      rows = [...rows].sort((a, b) =>
+        (a.storyTitle ?? a.name).localeCompare(b.storyTitle ?? b.name),
+      );
     if (sort === "rooms") rows = [...rows].sort((a, b) => (b.rooms ?? 0) - (a.rooms ?? 0));
     return rows;
   }, [recents, filter, sort, query]);
@@ -63,9 +76,9 @@ export function RecentProjectsPage() {
       if (!map.has(sec)) map.set(sec, []);
       map.get(sec)!.push(r);
     }
-    return SECTION_ORDER
-      .map((sec) => [sec, map.get(sec) ?? []] as const)
-      .filter(([, rows]) => rows.length > 0);
+    return SECTION_ORDER.map((sec) => [sec, map.get(sec) ?? []] as const).filter(
+      ([, rows]) => rows.length > 0,
+    );
   }, [filtered, sort]);
 
   const openFromDisk = async () => {
@@ -102,7 +115,9 @@ export function RecentProjectsPage() {
 
         <div className="toolbar">
           <div className="search">
-            <span className="s-icon"><Icon id="g-search" size={14} /></span>
+            <span className="s-icon">
+              <Icon id="g-search" size={14} />
+            </span>
             <input
               placeholder="Filter by name, path, seed, or story title…"
               value={query}
@@ -111,17 +126,33 @@ export function RecentProjectsPage() {
             <span className="s-kbd">/</span>
           </div>
           <div className="filter">
-            <FilterBtn active={filter === "all"} onClick={() => setFilter("all")}>All</FilterBtn>
-            <FilterBtn active={filter === "validated"} onClick={() => setFilter("validated")}>Validated</FilterBtn>
-            <FilterBtn active={filter === "issues"} onClick={() => setFilter("issues")}>Has issues</FilterBtn>
-            <FilterBtn active={filter === "pinned"} onClick={() => setFilter("pinned")}>Pinned</FilterBtn>
+            <FilterBtn active={filter === "all"} onClick={() => setFilter("all")}>
+              All
+            </FilterBtn>
+            <FilterBtn active={filter === "validated"} onClick={() => setFilter("validated")}>
+              Validated
+            </FilterBtn>
+            <FilterBtn active={filter === "issues"} onClick={() => setFilter("issues")}>
+              Has issues
+            </FilterBtn>
+            <FilterBtn active={filter === "pinned"} onClick={() => setFilter("pinned")}>
+              Pinned
+            </FilterBtn>
           </div>
           <SortDropdown sort={sort} onChange={setSort} />
           <div className="view-toggle">
-            <button className={view === "grid" ? "on" : ""} onClick={() => setView("grid")} title="Grid">
+            <button
+              className={view === "grid" ? "on" : ""}
+              onClick={() => setView("grid")}
+              title="Grid"
+            >
               <Icon id="g-grid" size={14} />
             </button>
-            <button className={view === "list" ? "on" : ""} onClick={() => setView("list")} title="List">
+            <button
+              className={view === "list" ? "on" : ""}
+              onClick={() => setView("list")}
+              title="List"
+            >
               <Icon id="g-rows" size={14} />
             </button>
           </div>
@@ -133,21 +164,25 @@ export function RecentProjectsPage() {
           </div>
         )}
 
-        {view === "grid" && grouped && grouped.map(([sec, rows]) => (
-          <div key={sec}>
-            <div className="section-label">{sec} <span className="count">· {rows.length}</span></div>
-            <div className="grid">
-              {rows.map((r) => (
-                <RecentCard
-                  key={r.path}
-                  recent={r}
-                  onClick={() => loadWorldByPath(r.path)}
-                  onTogglePin={() => togglePinAction(r.path)}
-                />
-              ))}
+        {view === "grid" &&
+          grouped &&
+          grouped.map(([sec, rows]) => (
+            <div key={sec}>
+              <div className="section-label">
+                {sec} <span className="count">· {rows.length}</span>
+              </div>
+              <div className="grid">
+                {rows.map((r) => (
+                  <RecentCard
+                    key={r.path}
+                    recent={r}
+                    onClick={() => loadWorldByPath(r.path)}
+                    onTogglePin={() => togglePinAction(r.path)}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
         {view === "grid" && !grouped && filtered.length > 0 && (
           <div className="grid">
             {filtered.map((r) => (
@@ -186,8 +221,12 @@ export function RecentProjectsPage() {
         )}
 
         <div className="foot-stats">
-          <span>Showing {filtered.length} of {recents.length}</span>
-          <span>Cradle stores this list in <code>localStorage</code> (v0.1; disk persistence in v0.2)</span>
+          <span>
+            Showing {filtered.length} of {recents.length}
+          </span>
+          <span>
+            Cradle stores this list in <code>localStorage</code> (v0.1; disk persistence in v0.2)
+          </span>
         </div>
       </main>
 
@@ -197,7 +236,15 @@ export function RecentProjectsPage() {
   );
 }
 
-function FilterBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function FilterBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button className={active ? "on" : ""} onClick={onClick}>
       {children}

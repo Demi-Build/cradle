@@ -14,7 +14,9 @@ export function TopBar() {
     <header className="titlebar">
       <IconSymbols />
       <div className="crumbs">
-        <button className="crumb-link" onClick={closeWorld}>cradle</button>
+        <button className="crumb-link" onClick={closeWorld}>
+          cradle
+        </button>
         <span className="sep">/</span>
         <span className="cur">{worldStoryTitle ?? world?.name ?? "world"}</span>
       </div>

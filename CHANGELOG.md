@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## [0.1.0] - <TODO: release date>
+## [0.1.0] - 2026-04-30
 
 Initial public release. Read-only desktop inspector for canon-emitted worlds.
 

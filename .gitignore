@@ -26,7 +26,7 @@ dist-ssr
 *.sln
 *.sw?
 
-bibles/mazeworld_5_room_demo/data/
+bibles/
 .vite/
 .claude
 **/.DS_Store

@@ -35,9 +35,7 @@ export function AudioPlayer({ hint, name, kind }: { hint: string; name: string; 
         <span className="audio-name">{name}</span>
       </header>
       {err && <p className="detail-error">{err}</p>}
-      {src && (
-        <audio controls src={src} preload="metadata" className="audio-el" />
-      )}
+      {src && <audio controls src={src} preload="metadata" className="audio-el" />}
       {!src && !err && <p className="audio-loading">Loading…</p>}
     </section>
   );

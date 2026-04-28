@@ -54,10 +54,7 @@ describe("upsertRecent", () => {
   });
 
   it("replaces an entry with the same path and moves it to the front", () => {
-    const existing = [
-      mkRecent({ path: "/a", name: "old" }),
-      mkRecent({ path: "/b" }),
-    ];
+    const existing = [mkRecent({ path: "/a", name: "old" }), mkRecent({ path: "/b" })];
     const next = upsertRecent(existing, mkRecent({ path: "/a", name: "new" }));
     expect(next).toHaveLength(2);
     expect(next[0]).toMatchObject({ path: "/a", name: "new" });

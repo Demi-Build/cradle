@@ -24,13 +24,16 @@ export function PuzzleCardMode({ event }: { event: PuzzleEvent }) {
             <span className="chip chip-muted">reward chance {(reward * 100).toFixed(0)}%</span>
           )}
           {money && (
-            <span className="chip chip-muted">money {money[0]}–{money[1]}</span>
+            <span className="chip chip-muted">
+              money {money[0]}–{money[1]}
+            </span>
           )}
           {hasFail && (
             <span className="chip puzzle-prompt-failure">
-              failure:{" "}
-              {typeof failType === "string" ? failType : "damage"}
-              {Array.isArray(failRange) && failRange.length >= 2 && ` ${failRange[0]}–${failRange[1]}`}
+              failure: {typeof failType === "string" ? failType : "damage"}
+              {Array.isArray(failRange) &&
+                failRange.length >= 2 &&
+                ` ${failRange[0]}–${failRange[1]}`}
             </span>
           )}
         </div>

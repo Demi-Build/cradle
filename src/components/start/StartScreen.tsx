@@ -22,20 +22,26 @@ export function StartScreen() {
 
   useEffect(() => {
     for (const r of recents) {
-      if (r.startPortrait === undefined || r.primaryEnv === undefined || typeof r.seed !== "number") {
+      if (
+        r.startPortrait === undefined ||
+        r.primaryEnv === undefined ||
+        typeof r.seed !== "number"
+      ) {
         enrichRecent(r.path);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const statusNote =
-    mode === "firstrun"
-      ? "no world loaded"
-      : `last opened ${relativeTimeFrom(last.lastOpenedAt)}`;
+    mode === "firstrun" ? "no world loaded" : `last opened ${relativeTimeFrom(last.lastOpenedAt)}`;
 
   const openFromDisk = useCallback(async () => {
     try {
-      const selected = await openDialog({ directory: true, multiple: false, title: "Select a world directory" });
+      const selected = await openDialog({
+        directory: true,
+        multiple: false,
+        title: "Select a world directory",
+      });
       if (typeof selected === "string") {
         await loadWorldByPath(selected);
       }
@@ -78,7 +84,11 @@ export function StartScreen() {
         </section>
 
         {mode === "returning" && (
-          <RecentsRail recents={recents} onOpenRecent={(p) => loadWorldByPath(p)} onAddNew={openFromDisk} />
+          <RecentsRail
+            recents={recents}
+            onOpenRecent={(p) => loadWorldByPath(p)}
+            onAddNew={openFromDisk}
+          />
         )}
       </main>
 

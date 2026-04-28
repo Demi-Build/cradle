@@ -22,17 +22,13 @@ describe("DialogueCard", () => {
 
   it("renders the prompt verbatim in full mode", () => {
     const long = "x".repeat(200);
-    const { container } = render(
-      <DialogueCard beat={mkBeat({ prompt: long })} mode="full" />,
-    );
+    const { container } = render(<DialogueCard beat={mkBeat({ prompt: long })} mode="full" />);
     expect(container.querySelector(".dc-prompt")?.textContent).toBe(long);
   });
 
   it("compact mode truncates prompts longer than 140 chars with ellipsis", () => {
     const long = "x".repeat(200);
-    const { container } = render(
-      <DialogueCard beat={mkBeat({ prompt: long })} mode="compact" />,
-    );
+    const { container } = render(<DialogueCard beat={mkBeat({ prompt: long })} mode="compact" />);
     const text = container.querySelector(".dc-prompt")!.textContent!;
     expect(text.length).toBe(141);
     expect(text.endsWith("…")).toBe(true);
@@ -47,12 +43,8 @@ describe("DialogueCard", () => {
 
   it("compact mode shows '1 choice' (singular) when there is one choice", () => {
     const choices: BeatChoice[] = [{ text: "go", toBeatId: "tree:b" }];
-    const { container } = render(
-      <DialogueCard beat={mkBeat({ choices })} mode="compact" />,
-    );
-    expect(container.querySelector(".dc-choice-count")?.textContent).toBe(
-      "1 choice",
-    );
+    const { container } = render(<DialogueCard beat={mkBeat({ choices })} mode="compact" />);
+    expect(container.querySelector(".dc-choice-count")?.textContent).toBe("1 choice");
   });
 
   it("compact mode pluralizes the choice count when N > 1", () => {
@@ -60,26 +52,18 @@ describe("DialogueCard", () => {
       { text: "a", toBeatId: "tree:a" },
       { text: "b", toBeatId: "tree:b" },
     ];
-    const { container } = render(
-      <DialogueCard beat={mkBeat({ choices })} mode="compact" />,
-    );
-    expect(container.querySelector(".dc-choice-count")?.textContent).toBe(
-      "2 choices",
-    );
+    const { container } = render(<DialogueCard beat={mkBeat({ choices })} mode="compact" />);
+    expect(container.querySelector(".dc-choice-count")?.textContent).toBe("2 choices");
   });
 
   it("compact mode does NOT render the choice list", () => {
     const choices: BeatChoice[] = [{ text: "go", toBeatId: "tree:b" }];
-    const { container } = render(
-      <DialogueCard beat={mkBeat({ choices })} mode="compact" />,
-    );
+    const { container } = render(<DialogueCard beat={mkBeat({ choices })} mode="compact" />);
     expect(container.querySelector(".dc-choices")).toBeNull();
   });
 
   it("compact mode hides the footer when there are no choices", () => {
-    const { container } = render(
-      <DialogueCard beat={mkBeat()} mode="compact" />,
-    );
+    const { container } = render(<DialogueCard beat={mkBeat()} mode="compact" />);
     expect(container.querySelector(".dc-footer")).toBeNull();
   });
 
@@ -95,34 +79,20 @@ describe("DialogueCard", () => {
 
   it("full mode strips the 'tree:' prefix in the choice arrow", () => {
     const choices: BeatChoice[] = [{ text: "go", toBeatId: "tree:room_3" }];
-    const { container } = render(
-      <DialogueCard beat={mkBeat({ choices })} mode="full" />,
-    );
-    expect(
-      container.querySelector(".dc-choice-arrow")?.textContent,
-    ).toBe("→ room_3");
+    const { container } = render(<DialogueCard beat={mkBeat({ choices })} mode="full" />);
+    expect(container.querySelector(".dc-choice-arrow")?.textContent).toBe("→ room_3");
   });
 
   it("full mode preserves non-tree-prefixed toBeatIds in the arrow", () => {
     const choices: BeatChoice[] = [{ text: "to gate", toBeatId: "quest-gate" }];
-    const { container } = render(
-      <DialogueCard beat={mkBeat({ choices })} mode="full" />,
-    );
-    expect(
-      container.querySelector(".dc-choice-arrow")?.textContent,
-    ).toBe("→ quest-gate");
+    const { container } = render(<DialogueCard beat={mkBeat({ choices })} mode="full" />);
+    expect(container.querySelector(".dc-choice-arrow")?.textContent).toBe("→ quest-gate");
   });
 
   it("clicking a choice fires onChoiceClick with toBeatId", () => {
     const choices: BeatChoice[] = [{ text: "go", toBeatId: "tree:b" }];
     const onChoiceClick = vi.fn();
-    render(
-      <DialogueCard
-        beat={mkBeat({ choices })}
-        mode="full"
-        onChoiceClick={onChoiceClick}
-      />,
-    );
+    render(<DialogueCard beat={mkBeat({ choices })} mode="full" onChoiceClick={onChoiceClick} />);
     fireEvent.click(screen.getByRole("button", { name: /go/ }));
     expect(onChoiceClick).toHaveBeenCalledWith("tree:b");
   });
@@ -167,20 +137,16 @@ describe("DialogueCard", () => {
   });
 
   it("omits entry / terminal classes when flags are unset", () => {
-    const { container } = render(
-      <DialogueCard beat={mkBeat()} mode="full" />,
-    );
+    const { container } = render(<DialogueCard beat={mkBeat()} mode="full" />);
     const root = container.querySelector(".dialogue-card")!;
     expect(root.className).not.toContain(" entry");
     expect(root.className).not.toContain(" terminal");
   });
 
   it("exposes data-beat-id on the root", () => {
-    const { container } = render(
-      <DialogueCard beat={mkBeat({ id: "tree:abc" })} mode="full" />,
+    const { container } = render(<DialogueCard beat={mkBeat({ id: "tree:abc" })} mode="full" />);
+    expect(container.querySelector(".dialogue-card")?.getAttribute("data-beat-id")).toBe(
+      "tree:abc",
     );
-    expect(
-      container.querySelector(".dialogue-card")?.getAttribute("data-beat-id"),
-    ).toBe("tree:abc");
   });
 });

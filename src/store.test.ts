@@ -259,9 +259,7 @@ describe("store: enrichRecent", () => {
 
   it("preserves existing lastOpenedAt and pinned state", async () => {
     useStore.setState({
-      recents: [
-        { path: "/w", name: "stale", lastOpenedAt: 1234, pinned: true },
-      ],
+      recents: [{ path: "/w", name: "stale", lastOpenedAt: 1234, pinned: true }],
     });
     invokeMock.mockImplementation((cmd: string) => {
       switch (cmd) {

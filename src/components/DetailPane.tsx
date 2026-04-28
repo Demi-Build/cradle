@@ -23,9 +23,7 @@ export function DetailPane() {
   useEffect(() => {
     setPayload(null);
     setLocalErr(null);
-    setActiveTab(
-      selection.kind === "entity" && selection.tab ? selection.tab : "overview",
-    );
+    setActiveTab(selection.kind === "entity" && selection.tab ? selection.tab : "overview");
     if (!worldPath || selection.kind === "none") return;
     setLoading(true);
     (async () => {
@@ -50,7 +48,10 @@ export function DetailPane() {
     const data = payload as Json;
     const overviewContent =
       selection.typeId === "quests" ? (
-        <QuestDetail data={data as Parameters<typeof QuestDetail>[0]["data"]} entityId={selection.id} />
+        <QuestDetail
+          data={data as Parameters<typeof QuestDetail>[0]["data"]}
+          entityId={selection.id}
+        />
       ) : (
         <EntityOverview data={data} typeId={selection.typeId} entityId={selection.id} />
       );
@@ -62,9 +63,19 @@ export function DetailPane() {
       },
     ];
     if (selection.typeId === "npcs") {
-      const asNpc = data as { dialogue_tree?: DialogueTree; opening_greeting?: string; exhausted_dialogue?: string; quest_id?: number | string | null; max_exchanges?: number };
+      const asNpc = data as {
+        dialogue_tree?: DialogueTree;
+        opening_greeting?: string;
+        exhausted_dialogue?: string;
+        quest_id?: number | string | null;
+        max_exchanges?: number;
+      };
       const hasAny =
-        !!(asNpc.dialogue_tree && asNpc.dialogue_tree.nodes && Object.keys(asNpc.dialogue_tree.nodes).length > 0) ||
+        !!(
+          asNpc.dialogue_tree &&
+          asNpc.dialogue_tree.nodes &&
+          Object.keys(asNpc.dialogue_tree.nodes).length > 0
+        ) ||
         typeof asNpc.opening_greeting === "string" ||
         typeof asNpc.exhausted_dialogue === "string";
       if (hasAny) {
@@ -128,8 +139,18 @@ export function DetailPane() {
   if (selection.kind === "none") {
     return <main className="detail detail-empty">Select something in the nav.</main>;
   }
-  if (loading) return <main className="detail"><p>Loading…</p></main>;
-  if (localErr) return <main className="detail"><p className="detail-error">{localErr}</p></main>;
+  if (loading)
+    return (
+      <main className="detail">
+        <p>Loading…</p>
+      </main>
+    );
+  if (localErr)
+    return (
+      <main className="detail">
+        <p className="detail-error">{localErr}</p>
+      </main>
+    );
   if (payload === null) return <main className="detail" />;
 
   if (selection.kind === "entity" && entityTabs) {

@@ -19,7 +19,11 @@ The reference world is **MazeWorld**, an AI-orchestrated 2D RPG where every NPC,
 
 ## Download
 
-Pre-built signed binaries live on the [Releases page](https://github.com/Demi-Build/cradle/releases/latest). v0.1 ships **macOS (Apple Silicon / arm64) only** — Intel/universal and Windows land in a follow-up. Every release `.dmg` is signed and notarized; double-click to install, no Gatekeeper bypass needed.
+Pre-built binaries live on the [Releases page](https://github.com/Demi-Build/cradle/releases/latest). v0.1 ships:
+
+- **macOS (universal: Intel + Apple Silicon)** — `.dmg`, signed with a Developer ID and notarized by Apple. Double-click to install, no Gatekeeper bypass needed.
+- **Windows (.msi)** — unsigned for v0.1; SmartScreen will warn on first run ("More info" → "Run anyway"). Code signing lands in v0.1.x.
+- **Linux (.AppImage)** — unsigned, which is the norm for AppImages. `chmod +x` and run.
 
 To run from source on any platform, see [Development](#development) below.
 
@@ -70,8 +74,9 @@ Cradle is local-first and makes no network calls at runtime — see [PRIVACY.md]
 
 **Explicitly deferred to v0.2+ (not in v0.1 scope):**
 
-- **Auto-updater.** Tauri ships one, but it depends on signed builds across every target. Wires up alongside the Windows + Linux release pipelines.
-- **Linux signed builds.** v0.1 focuses signing on macOS (Windows follows in v0.1.x). Linux distribution will be an unsigned `.AppImage` when it lands.
+- **Auto-updater.** Tauri ships one, but it depends on signed builds across every target. Wires up alongside Windows code signing.
+- **Windows code signing.** v0.1 ships an unsigned `.msi` (SmartScreen warning on first run). A code-signing cert lands in v0.1.x; CI is already wired with `WINDOWS_CERTIFICATE` env-var TODOs.
+- **Linux signed builds.** Linux distribution is an unsigned `.AppImage`, which is the norm.
 - **Internationalization (i18n).** Single locale (en) for v0.1.
 - **Plugin / extension API.** The `DataSource` trait is the only extension point right now; a richer plugin surface (custom views, custom validators) is post-v1.
 - **Schema-typed canon dependency.** Lands in v0.2 once canon stabilizes its public schema.
@@ -153,7 +158,10 @@ The Tauri asset protocol resolves absolute portrait paths emitted by canon (incl
 
 ```
 npm install
+npm run fetch-demo
 ```
+
+`npm run fetch-demo` downloads the bundled MazeWorld 5-room demo (~1 GB, mostly portraits) from the [`demo-v0.1.0` GitHub Release](https://github.com/Demi-Build/cradle/releases/tag/demo-v0.1.0) into `bibles/mazeworld_5_room_demo/`. It's a separate step (not a `postinstall` hook) so first-time `npm install` doesn't surprise you with a 1 GB download. The script is idempotent — re-running is a no-op once the demo is in place.
 
 ### Run
 
@@ -161,7 +169,7 @@ npm install
 npm run tauri dev
 ```
 
-On first launch you'll see the first-run card. Click **Open world from disk** to pick a directory (native folder picker), or **Try the bundled demo** to load `bibles/mazeworld_5_room_demo`. After that, the start screen's returning-user hero shows your last world and a recent-projects rail.
+On first launch you'll see the first-run card. Click **Open world from disk** to pick a directory (native folder picker), or **Try the bundled demo** to load the world fetched in the setup step above. After that, the start screen's returning-user hero shows your last world and a recent-projects rail.
 
 ### Build
 

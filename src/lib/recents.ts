@@ -56,9 +56,7 @@ export function removeRecent(recents: RecentProject[], path: string): RecentProj
 }
 
 export function togglePin(recents: RecentProject[], path: string): RecentProject[] {
-  const next = recents.map((r) =>
-    r.path === path ? { ...r, pinned: !r.pinned } : r,
-  );
+  const next = recents.map((r) => (r.path === path ? { ...r, pinned: !r.pinned } : r));
   saveRecents(next);
   return next;
 }

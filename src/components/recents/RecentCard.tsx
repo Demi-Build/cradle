@@ -18,7 +18,13 @@ export function RecentCard({
   const thumbUrl = resolved ?? envImageFor(env);
   const validation = recent.validation ?? "validated";
   const validationLabel =
-    validation === "warn" ? "warnings" : validation === "failed" ? "failed" : validation === "bundled" ? "bundled" : "validated";
+    validation === "warn"
+      ? "warnings"
+      : validation === "failed"
+        ? "failed"
+        : validation === "bundled"
+          ? "bundled"
+          : "validated";
   const valClass = validation === "warn" ? "warn" : validation === "failed" ? "err" : "";
   const ago = relativeTimeFrom(recent.lastOpenedAt);
   const synopsis = recent.synopsis

@@ -20,12 +20,12 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
       return (
         <main className="detail detail-error">
           <h2>Something broke in this view</h2>
-          <p><code>{this.state.error.message}</code></p>
+          <p>
+            <code>{this.state.error.message}</code>
+          </p>
           <details>
             <summary>stack</summary>
-            <pre style={{ whiteSpace: "pre-wrap", fontSize: 11 }}>
-              {this.state.error.stack}
-            </pre>
+            <pre style={{ whiteSpace: "pre-wrap", fontSize: 11 }}>{this.state.error.stack}</pre>
           </details>
           <button className="topbar-btn-secondary" onClick={this.reset}>
             reset view

@@ -30,9 +30,7 @@ export function ChoiceCard({
         <div className="cc-outcomes">
           <div className="outcome outcome-success">
             <div className="outcome-label">success</div>
-            <div className="outcome-body">
-              {choice.success_text ?? "(no text)"}
-            </div>
+            <div className="outcome-body">{choice.success_text ?? "(no text)"}</div>
           </div>
           {!choice.auto_success && failRange && (
             <div className="outcome outcome-failure">

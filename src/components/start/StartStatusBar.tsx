@@ -1,7 +1,10 @@
 export function StartStatusBar({ note }: { note: string }) {
   return (
     <footer className="statusbar">
-      <span><span className="ok-dot" />idle</span>
+      <span>
+        <span className="ok-dot" />
+        idle
+      </span>
       <span>{note}</span>
       <div className="spacer" />
       <span>cradle v0.1</span>

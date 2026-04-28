@@ -6,19 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Changed
-
-- Inter and JetBrains Mono now ship bundled in the app via `@fontsource-variable` (SIL OFL-1.1) instead of being fetched from Google Fonts at runtime. The app now makes zero network calls during normal use. See [PRIVACY.md](./PRIVACY.md).
-
-### Added
-
-- `PRIVACY.md` documenting the local-first / no-telemetry posture.
-- `CHANGELOG.md` (this file).
-- `.github/CODEOWNERS`, issue templates, and PR template.
-- Expanded `SECURITY.md` with private-reporting-first policy, safe-harbor language, disclosure timeline, and a what-to-include checklist.
-- `CODE_OF_CONDUCT.md` now ships the canonical Contributor Covenant 2.1 Enforcement Guidelines ladder and a conflict-of-interest fallback to GitHub Trust & Safety.
-
-## [0.1.0] - 2026-04-24
+## [0.1.0] - <TODO: release date>
 
 Initial public release. Read-only desktop inspector for canon-emitted worlds.
 
@@ -41,6 +29,23 @@ Initial public release. Read-only desktop inspector for canon-emitted worlds.
 - **Design system** — token-based dark + light themes (Inter + JetBrains Mono, warm-neutral palette, oklch accent amber). Arc-style overlay scrollbars (hidden at rest, fade in on pane hover). Float layout for NPC/monster/event/class/quest so text wraps around the portrait.
 - **Notes drawer** — slides in from the right; Changelog content editable at `src/components/start/NotesDrawer.tsx`.
 - **Keyboard navigation** — arrow keys for entity cycling, `⌥↑/↓` for type-jumps, `Tab` for in-pane tabs, `Esc` to dismiss overlays. Held `⌘` / `Ctrl` releases control to the native shortcut.
+- `PRIVACY.md` documenting the local-first / no-telemetry posture.
+- `CHANGELOG.md` (this file).
+- `.github/CODEOWNERS`, issue templates, and PR template.
+- Expanded `SECURITY.md` with private-reporting-first policy, safe-harbor language, disclosure timeline, a what-to-include checklist, and a threat-model section explaining the `assetProtocol.scope = "**"` containment guarantee.
+- `CODE_OF_CONDUCT.md` ships the canonical Contributor Covenant 2.1 Enforcement Guidelines ladder and a conflict-of-interest fallback to GitHub Trust & Safety.
+- `src-tauri/capabilities/README.md` documenting the Tauri permission inventory and explicit deny-list.
+- GitHub Actions release workflow ([.github/workflows/release.yml](.github/workflows/release.yml)) — tag-triggered builds for macOS universal (signed + notarized via tauri-action), Windows .msi (unsigned, signing in v0.1.x), and Linux .AppImage (unsigned).
+- `scripts/fetch-demo.sh` + `npm run fetch-demo` — fetches the bundled MazeWorld 5-room demo from a dedicated `demo-v*` GitHub Release on demand. CI release builds run the same script before bundling.
+- PR CI now runs `cargo build --release` and `npm run format:check` to catch release-mode breakage and formatting drift on PRs instead of at release time.
+
+### Changed
+
+- Inter and JetBrains Mono now ship bundled in the app via `@fontsource-variable` (SIL OFL-1.1) instead of being fetched from Google Fonts at runtime. The app makes zero network calls during normal use. See [PRIVACY.md](./PRIVACY.md).
+
+### Removed
+
+- `tauri-plugin-opener` — was unused. Audited out as part of the permission inventory in [src-tauri/capabilities/README.md](src-tauri/capabilities/README.md).
 
 ### Pending (blocked on canon emissions)
 

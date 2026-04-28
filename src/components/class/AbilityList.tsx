@@ -18,7 +18,12 @@ type Spell = Ability & {
 };
 
 function isDamageSpell(s: Spell): boolean {
-  if (typeof s.num_dice === "number" && s.num_dice > 0 && typeof s.die_sides === "number" && s.die_sides > 0) {
+  if (
+    typeof s.num_dice === "number" &&
+    s.num_dice > 0 &&
+    typeof s.die_sides === "number" &&
+    s.die_sides > 0
+  ) {
     return true;
   }
   return !!s.spell_type && s.spell_type.startsWith("damage");
@@ -112,14 +117,18 @@ function AbilityCard({ entry }: { entry: Entry<Ability> }) {
 
 function SpellCard({ entry }: { entry: Entry<Spell> }) {
   const dice =
-    typeof entry.num_dice === "number" && entry.num_dice > 0 &&
-    typeof entry.die_sides === "number" && entry.die_sides > 0
+    typeof entry.num_dice === "number" &&
+    entry.num_dice > 0 &&
+    typeof entry.die_sides === "number" &&
+    entry.die_sides > 0
       ? `${entry.num_dice}d${entry.die_sides}`
       : null;
   const damage = isDamageSpell(entry);
 
   return (
-    <article className={`ability-card spell-card ${damage ? "weapon-like" : ""} ${entry.isStarting ? "starting" : ""}`}>
+    <article
+      className={`ability-card spell-card ${damage ? "weapon-like" : ""} ${entry.isStarting ? "starting" : ""}`}
+    >
       <header>
         <span className="ability-name">{entry.name}</span>
         {entry.isStarting && <span className="ability-badge starting">starting</span>}
@@ -129,7 +138,9 @@ function SpellCard({ entry }: { entry: Entry<Spell> }) {
         <div className="weapon-block">
           <div className="weapon-dice">{dice}</div>
           <div className="weapon-meta">
-            {entry.element && <span className={`element-chip el-${entry.element}`}>{entry.element}</span>}
+            {entry.element && (
+              <span className={`element-chip el-${entry.element}`}>{entry.element}</span>
+            )}
             {entry.stat && <span className="chip chip-muted">{entry.stat}</span>}
             {entry.targets && <span className="chip chip-muted">{entry.targets}</span>}
             {typeof entry.stamina_cost === "number" && (
@@ -141,7 +152,9 @@ function SpellCard({ entry }: { entry: Entry<Spell> }) {
 
       {!damage && (
         <div className="ability-chips">
-          {entry.element && <span className={`element-chip el-${entry.element}`}>{entry.element}</span>}
+          {entry.element && (
+            <span className={`element-chip el-${entry.element}`}>{entry.element}</span>
+          )}
           {entry.spell_type && <span className="chip chip-muted">{entry.spell_type}</span>}
           {entry.targets && <span className="chip chip-muted">{entry.targets}</span>}
           {entry.stat && <span className="chip chip-muted">{entry.stat}</span>}

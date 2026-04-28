@@ -35,13 +35,13 @@ export type QuestLike = {
 
 export type BeatKind =
   | "greeting"
-  | "tree"              // default tree — before quest resolution
-  | "tree-complete"     // tree played when quest has resolved successfully
-  | "tree-failed"       // tree played after quest failed
-  | "tree-incomplete"   // tree played while quest is still in progress
-  | "gate"              // quest-gate marker (single node)
-  | "success"           // fallback single card when tree-complete is absent
-  | "failure"           // fallback single card when tree-failed is absent
+  | "tree" // default tree — before quest resolution
+  | "tree-complete" // tree played when quest has resolved successfully
+  | "tree-failed" // tree played after quest failed
+  | "tree-incomplete" // tree played while quest is still in progress
+  | "gate" // quest-gate marker (single node)
+  | "success" // fallback single card when tree-complete is absent
+  | "failure" // fallback single card when tree-failed is absent
   | "exhausted";
 
 export type BeatChoice = {
@@ -69,7 +69,7 @@ export type BeatEdge = {
 export type DialogueBuild = { beats: Beat[]; edges: BeatEdge[] };
 
 const LANE_PREFIX: Record<string, string> = {
-  "tree": "tree:",
+  tree: "tree:",
   "tree-complete": "complete:",
   "tree-failed": "failed:",
   "tree-incomplete": "incomplete:",
@@ -125,7 +125,8 @@ export function buildDialogue(npc: NpcLike, quest?: QuestLike | null): DialogueB
   const edges: BeatEdge[] = [];
 
   const hasGreeting = typeof npc.opening_greeting === "string" && npc.opening_greeting.length > 0;
-  const hasExhausted = typeof npc.exhausted_dialogue === "string" && npc.exhausted_dialogue.length > 0;
+  const hasExhausted =
+    typeof npc.exhausted_dialogue === "string" && npc.exhausted_dialogue.length > 0;
 
   if (hasGreeting) {
     beats.push({
@@ -140,7 +141,13 @@ export function buildDialogue(npc: NpcLike, quest?: QuestLike | null): DialogueB
   const defaultLane = ingestTree("tree", npc.dialogue_tree, beats, edges, true);
   const completeLane = ingestTree("tree-complete", npc.dialogue_tree_complete, beats, edges, false);
   const failedLane = ingestTree("tree-failed", npc.dialogue_tree_failed, beats, edges, false);
-  const incompleteLane = ingestTree("tree-incomplete", npc.dialogue_tree_incomplete, beats, edges, false);
+  const incompleteLane = ingestTree(
+    "tree-incomplete",
+    npc.dialogue_tree_incomplete,
+    beats,
+    edges,
+    false,
+  );
 
   // Greeting → default tree entry
   if (hasGreeting && defaultLane.entryId) {
@@ -152,8 +159,16 @@ export function buildDialogue(npc: NpcLike, quest?: QuestLike | null): DialogueB
   const hasFailureTree = !!failedLane.entryId;
   const hasIncompleteTree = !!incompleteLane.entryId;
 
-  const hasSuccess = !hasSuccessTree && !!quest && typeof quest.success_dialogue === "string" && quest.success_dialogue.length > 0;
-  const hasFailure = !hasFailureTree && !!quest && typeof quest.failure_dialogue === "string" && quest.failure_dialogue.length > 0;
+  const hasSuccess =
+    !hasSuccessTree &&
+    !!quest &&
+    typeof quest.success_dialogue === "string" &&
+    quest.success_dialogue.length > 0;
+  const hasFailure =
+    !hasFailureTree &&
+    !!quest &&
+    typeof quest.failure_dialogue === "string" &&
+    quest.failure_dialogue.length > 0;
 
   // Quest gate — the resolution point that branches based on quest outcome
   // (not dialogue choice). Acts as a visual "gate" that separates conversation
@@ -173,11 +188,23 @@ export function buildDialogue(npc: NpcLike, quest?: QuestLike | null): DialogueB
       ? `Outcome decided by quest resolution (${gateParts.join(" · ")}).`
       : "Outcome decided by quest resolution.";
     const gateChoices: BeatChoice[] = [];
-    if (hasSuccessTree)    gateChoices.push({ text: "on complete → tree", toBeatId: LANE_PREFIX["tree-complete"] + completeLane.entryId });
-    else if (hasSuccess)   gateChoices.push({ text: "on complete",         toBeatId: "success" });
-    if (hasIncompleteTree) gateChoices.push({ text: "while in progress → tree", toBeatId: LANE_PREFIX["tree-incomplete"] + incompleteLane.entryId });
-    if (hasFailureTree)    gateChoices.push({ text: "on failure → tree",  toBeatId: LANE_PREFIX["tree-failed"] + failedLane.entryId });
-    else if (hasFailure)   gateChoices.push({ text: "on failure",         toBeatId: "failure" });
+    if (hasSuccessTree)
+      gateChoices.push({
+        text: "on complete → tree",
+        toBeatId: LANE_PREFIX["tree-complete"] + completeLane.entryId,
+      });
+    else if (hasSuccess) gateChoices.push({ text: "on complete", toBeatId: "success" });
+    if (hasIncompleteTree)
+      gateChoices.push({
+        text: "while in progress → tree",
+        toBeatId: LANE_PREFIX["tree-incomplete"] + incompleteLane.entryId,
+      });
+    if (hasFailureTree)
+      gateChoices.push({
+        text: "on failure → tree",
+        toBeatId: LANE_PREFIX["tree-failed"] + failedLane.entryId,
+      });
+    else if (hasFailure) gateChoices.push({ text: "on failure", toBeatId: "failure" });
     beats.push({
       id: "quest-gate",
       kind: "gate",
@@ -210,9 +237,10 @@ export function buildDialogue(npc: NpcLike, quest?: QuestLike | null): DialogueB
     beats.push({
       id: "exhausted",
       kind: "exhausted",
-      label: typeof npc.max_exchanges === "number"
-        ? `Exhausted · after ${npc.max_exchanges} exchanges`
-        : "Exhausted",
+      label:
+        typeof npc.max_exchanges === "number"
+          ? `Exhausted · after ${npc.max_exchanges} exchanges`
+          : "Exhausted",
       prompt: npc.exhausted_dialogue!,
       isTerminal: true,
     });
@@ -223,22 +251,39 @@ export function buildDialogue(npc: NpcLike, quest?: QuestLike | null): DialogueB
   //   terminal → exhausted (dashed — not quest-gated)
   for (const tid of defaultLane.terminals) {
     const fromId = LANE_PREFIX["tree"] + tid;
-    if (hasGate) edges.push({ from: fromId, to: "quest-gate", kind: "gate", label: "quest offered" });
-    if (hasExhausted) edges.push({ from: fromId, to: "exhausted", kind: "exhausted", label: "exhausted" });
+    if (hasGate)
+      edges.push({ from: fromId, to: "quest-gate", kind: "gate", label: "quest offered" });
+    if (hasExhausted)
+      edges.push({ from: fromId, to: "exhausted", kind: "exhausted", label: "exhausted" });
   }
 
   // Wire the gate → quest-state lane entries (or fallback single cards).
   if (hasGate) {
     if (hasSuccessTree) {
-      edges.push({ from: "quest-gate", to: LANE_PREFIX["tree-complete"] + completeLane.entryId, kind: "success", label: "on complete" });
+      edges.push({
+        from: "quest-gate",
+        to: LANE_PREFIX["tree-complete"] + completeLane.entryId,
+        kind: "success",
+        label: "on complete",
+      });
     } else if (hasSuccess) {
       edges.push({ from: "quest-gate", to: "success", kind: "success", label: "on complete" });
     }
     if (hasIncompleteTree) {
-      edges.push({ from: "quest-gate", to: LANE_PREFIX["tree-incomplete"] + incompleteLane.entryId, kind: "exhausted", label: "in progress" });
+      edges.push({
+        from: "quest-gate",
+        to: LANE_PREFIX["tree-incomplete"] + incompleteLane.entryId,
+        kind: "exhausted",
+        label: "in progress",
+      });
     }
     if (hasFailureTree) {
-      edges.push({ from: "quest-gate", to: LANE_PREFIX["tree-failed"] + failedLane.entryId, kind: "failure", label: "on failure" });
+      edges.push({
+        from: "quest-gate",
+        to: LANE_PREFIX["tree-failed"] + failedLane.entryId,
+        kind: "failure",
+        label: "on failure",
+      });
     } else if (hasFailure) {
       edges.push({ from: "quest-gate", to: "failure", kind: "failure", label: "on failure" });
     }
@@ -248,13 +293,28 @@ export function buildDialogue(npc: NpcLike, quest?: QuestLike | null): DialogueB
   // run out of exchanges regardless of quest state.
   if (hasExhausted) {
     for (const tid of completeLane.terminals) {
-      edges.push({ from: LANE_PREFIX["tree-complete"] + tid, to: "exhausted", kind: "exhausted", label: "exhausted" });
+      edges.push({
+        from: LANE_PREFIX["tree-complete"] + tid,
+        to: "exhausted",
+        kind: "exhausted",
+        label: "exhausted",
+      });
     }
     for (const tid of failedLane.terminals) {
-      edges.push({ from: LANE_PREFIX["tree-failed"] + tid, to: "exhausted", kind: "exhausted", label: "exhausted" });
+      edges.push({
+        from: LANE_PREFIX["tree-failed"] + tid,
+        to: "exhausted",
+        kind: "exhausted",
+        label: "exhausted",
+      });
     }
     for (const tid of incompleteLane.terminals) {
-      edges.push({ from: LANE_PREFIX["tree-incomplete"] + tid, to: "exhausted", kind: "exhausted", label: "exhausted" });
+      edges.push({
+        from: LANE_PREFIX["tree-incomplete"] + tid,
+        to: "exhausted",
+        kind: "exhausted",
+        label: "exhausted",
+      });
     }
   }
 

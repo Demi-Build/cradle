@@ -82,9 +82,7 @@ describe("EntityLink", () => {
   });
 
   it("fetches the type list when missing and worldPath is set", async () => {
-    invokeMock.mockResolvedValue([
-      { type_id: "npcs", id: "npc_a", name: "Alice" },
-    ]);
+    invokeMock.mockResolvedValue([{ type_id: "npcs", id: "npc_a", name: "Alice" }]);
     useStore.setState({ worldPath: "/world", entities: {} });
     render(<EntityLink typeId="npcs" id="npc_a" />);
     await waitFor(() => {

@@ -41,9 +41,7 @@ describe("RecentCard", () => {
   });
 
   it("falls back to name when storyTitle is absent", () => {
-    render(
-      <RecentCard recent={mkRecent({ name: "raw_name" })} onClick={() => {}} />,
-    );
+    render(<RecentCard recent={mkRecent({ name: "raw_name" })} onClick={() => {}} />);
     expect(screen.getByText("raw_name")).toBeInTheDocument();
   });
 
@@ -73,9 +71,7 @@ describe("RecentCard", () => {
   });
 
   it("validation pill defaults to 'validated' when status is undefined", () => {
-    const { container } = render(
-      <RecentCard recent={mkRecent()} onClick={() => {}} />,
-    );
+    const { container } = render(<RecentCard recent={mkRecent()} onClick={() => {}} />);
     const pill = container.querySelector(".validation")!;
     expect(pill.textContent).toContain("validated");
     expect(pill.className).toBe("validation ");
@@ -92,10 +88,7 @@ describe("RecentCard", () => {
 
   it("validation pill renders 'failed' with class 'err'", () => {
     const { container } = render(
-      <RecentCard
-        recent={mkRecent({ validation: "failed" })}
-        onClick={() => {}}
-      />,
+      <RecentCard recent={mkRecent({ validation: "failed" })} onClick={() => {}} />,
     );
     const pill = container.querySelector(".validation")!;
     expect(pill.textContent).toContain("failed");
@@ -104,10 +97,7 @@ describe("RecentCard", () => {
 
   it("validation pill renders 'bundled' with default class", () => {
     const { container } = render(
-      <RecentCard
-        recent={mkRecent({ validation: "bundled" })}
-        onClick={() => {}}
-      />,
+      <RecentCard recent={mkRecent({ validation: "bundled" })} onClick={() => {}} />,
     );
     const pill = container.querySelector(".validation")!;
     expect(pill.textContent).toContain("bundled");
@@ -115,9 +105,7 @@ describe("RecentCard", () => {
   });
 
   it("renders em-dash for undefined stat counts", () => {
-    const { container } = render(
-      <RecentCard recent={mkRecent()} onClick={() => {}} />,
-    );
+    const { container } = render(<RecentCard recent={mkRecent()} onClick={() => {}} />);
     const stats = container.querySelectorAll(".stats .s b");
     expect(stats).toHaveLength(4);
     for (const b of stats) expect(b.textContent).toBe("—");
@@ -130,9 +118,7 @@ describe("RecentCard", () => {
         onClick={() => {}}
       />,
     );
-    const stats = Array.from(container.querySelectorAll(".stats .s b")).map(
-      (b) => b.textContent,
-    );
+    const stats = Array.from(container.querySelectorAll(".stats .s b")).map((b) => b.textContent);
     expect(stats).toEqual(["5", "3", "2", "1"]);
   });
 
@@ -153,25 +139,19 @@ describe("RecentCard", () => {
   });
 
   it("cost line absent when cost is undefined", () => {
-    const { container } = render(
-      <RecentCard recent={mkRecent()} onClick={() => {}} />,
-    );
+    const { container } = render(<RecentCard recent={mkRecent()} onClick={() => {}} />);
     expect(container.querySelector(".foot")?.textContent).not.toContain("$");
   });
 
   it("onClick fires when the card is clicked", () => {
     const onClick = vi.fn();
-    const { container } = render(
-      <RecentCard recent={mkRecent()} onClick={onClick} />,
-    );
+    const { container } = render(<RecentCard recent={mkRecent()} onClick={onClick} />);
     fireEvent.click(container.querySelector(".card")!);
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it("pin button is absent when onTogglePin is not provided", () => {
-    const { container } = render(
-      <RecentCard recent={mkRecent()} onClick={() => {}} />,
-    );
+    const { container } = render(<RecentCard recent={mkRecent()} onClick={() => {}} />);
     expect(container.querySelector(".card-pin")).toBeNull();
   });
 
@@ -188,29 +168,20 @@ describe("RecentCard", () => {
 
   it("pin gets the 'on' class when recent.pinned is true", () => {
     const { container } = render(
-      <RecentCard
-        recent={mkRecent({ pinned: true })}
-        onClick={() => {}}
-        onTogglePin={() => {}}
-      />,
+      <RecentCard recent={mkRecent({ pinned: true })} onClick={() => {}} onTogglePin={() => {}} />,
     );
     expect(container.querySelector(".card-pin")?.className).toContain("on");
   });
 
   it("env chip uses envChipLabel of primaryEnv", () => {
     const { container } = render(
-      <RecentCard
-        recent={mkRecent({ primaryEnv: "village" })}
-        onClick={() => {}}
-      />,
+      <RecentCard recent={mkRecent({ primaryEnv: "village" })} onClick={() => {}} />,
     );
     expect(container.querySelector(".env-chip")?.textContent).toBe("village");
   });
 
   it("env chip falls back to 'world' when primaryEnv is missing", () => {
-    const { container } = render(
-      <RecentCard recent={mkRecent()} onClick={() => {}} />,
-    );
+    const { container } = render(<RecentCard recent={mkRecent()} onClick={() => {}} />);
     expect(container.querySelector(".env-chip")?.textContent).toBe("world");
   });
 });

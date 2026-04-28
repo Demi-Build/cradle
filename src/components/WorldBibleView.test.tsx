@@ -127,9 +127,7 @@ describe("WorldBibleView", () => {
     });
     setupInvoke({ bible: { story: {} }, manifest: null, stats: null });
     render(<WorldBibleView />);
-    expect(
-      await screen.findByRole("heading", { name: "(untitled)" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "(untitled)" })).toBeInTheDocument();
   });
 
   it("renders entity-count chips and clicking one selects that type", async () => {
@@ -202,11 +200,7 @@ describe("WorldBibleView", () => {
     const { container } = render(<WorldBibleView />);
     await screen.findByRole("heading", { name: "Escalation Arc" });
     const items = container.querySelectorAll(".arc-list li");
-    expect(Array.from(items).map((i) => i.textContent)).toEqual([
-      "one",
-      "two",
-      "three",
-    ]);
+    expect(Array.from(items).map((i) => i.textContent)).toEqual(["one", "two", "three"]);
   });
 
   it("renders beats; clicking a beat-room button selects that room entity", async () => {
@@ -279,9 +273,7 @@ describe("WorldBibleView", () => {
       stats: { total_cost_usd: 1.234, llm_calls: 42 },
     });
     render(<WorldBibleView />);
-    expect(
-      await screen.findByRole("heading", { name: "Generation" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Generation" })).toBeInTheDocument();
     expect(screen.getByText("$1.2340")).toBeInTheDocument();
     expect(screen.getByText("42")).toBeInTheDocument();
   });
@@ -366,9 +358,7 @@ describe("WorldBibleView", () => {
       stats: null,
     });
     render(<WorldBibleView />);
-    expect(
-      await screen.findByRole("heading", { name: "Key NPCs" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Key NPCs" })).toBeInTheDocument();
     expect(screen.getByText("Alice")).toBeInTheDocument();
     expect(screen.getByText("Bob")).toBeInTheDocument();
   });

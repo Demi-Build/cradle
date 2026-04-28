@@ -54,13 +54,7 @@ function layout(nodes: CardNode[], edges: Edge[]): CardNode[] {
   });
 }
 
-export function DialogueGraphMode({
-  beats,
-  beatEdges,
-}: {
-  beats: Beat[];
-  beatEdges: BeatEdge[];
-}) {
+export function DialogueGraphMode({ beats, beatEdges }: { beats: Beat[]; beatEdges: BeatEdge[] }) {
   const { nodes, edges } = useMemo(() => {
     const rawEdges: Edge[] = beatEdges.map((e, i) => {
       const style = EDGE_STYLE[e.kind ?? "tree"] ?? EDGE_STYLE.tree;

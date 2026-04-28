@@ -25,6 +25,7 @@ jobs:
       - run: npm ci
 
       - run: npm run lint
+      - run: npm run format:check
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
@@ -61,6 +62,11 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test --lib
 
+      # Catch release-mode Rust breakage on PRs instead of waiting until a
+      # tag push fires the release workflow. No signing, no bundling — just
+      # `cargo build --release` on the crate.
+      - run: cargo build --release
+
   tauri-build:
     name: Tauri end-to-end build (debug)
     runs-on: ubuntu-latest
@@ -91,11 +97,13 @@ jobs:
 
       - run: npm ci
 
-      # Demo content lives outside the repo (gitignored) but the bundle
-      # config references it as a resource. An empty dir is enough to
-      # satisfy the path during a --no-bundle build.
-      - name: Stub demo resource path
-        run: mkdir -p bibles/mazeworld_5_room_demo
+      # Demo content lives outside the repo (~1 GB, gitignored) and is
+      # distributed as a tarball asset on a dedicated demo-v* GitHub Release.
+      # Same step in release.yml.
+      - name: Fetch bundled demo
+        env:
+          DEMO_TAG: demo-v0.1.0
+        run: bash scripts/fetch-demo.sh
 
       # Full Tauri integration build: frontend -> tsc -> vite build,
       # then cargo build on src-tauri. --debug skips release opts;

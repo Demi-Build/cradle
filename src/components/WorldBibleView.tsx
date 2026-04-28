@@ -166,17 +166,19 @@ export function WorldBibleView() {
               {typeof faction.threat_level === "number" && (
                 <span className="chip chip-muted">threat {faction.threat_level}</span>
               )}
-              {faction.leader && (
-                <span className="chip chip-muted">led by {faction.leader}</span>
-              )}
+              {faction.leader && <span className="chip chip-muted">led by {faction.leader}</span>}
             </header>
             {faction.description && (
-              <p><ExpandableText text={faction.description} limit={400} /></p>
+              <p>
+                <ExpandableText text={faction.description} limit={400} />
+              </p>
             )}
             {faction.history && (
               <details>
                 <summary>History</summary>
-                <p><ExpandableText text={faction.history} limit={600} /></p>
+                <p>
+                  <ExpandableText text={faction.history} limit={600} />
+                </p>
               </details>
             )}
           </div>
@@ -224,13 +226,17 @@ export function WorldBibleView() {
                 {b.faction_presence && (
                   <details>
                     <summary>Faction presence</summary>
-                    <p><ExpandableText text={b.faction_presence} limit={500} /></p>
+                    <p>
+                      <ExpandableText text={b.faction_presence} limit={500} />
+                    </p>
                   </details>
                 )}
                 {b.boss_lore && (
                   <details>
                     <summary>Boss lore</summary>
-                    <p><ExpandableText text={b.boss_lore} limit={500} /></p>
+                    <p>
+                      <ExpandableText text={b.boss_lore} limit={500} />
+                    </p>
                   </details>
                 )}
               </article>
@@ -242,7 +248,11 @@ export function WorldBibleView() {
       {(story.climax || story.final_boss_name || story.final_boss_lore) && (
         <section className="bible-section">
           <h2>Climax</h2>
-          {story.climax && <p><ExpandableText text={story.climax} limit={500} /></p>}
+          {story.climax && (
+            <p>
+              <ExpandableText text={story.climax} limit={500} />
+            </p>
+          )}
           {story.final_boss_name && (
             <div className="final-boss">
               <div className="meta-k">final boss</div>
@@ -262,7 +272,9 @@ export function WorldBibleView() {
           <h2>Key NPCs</h2>
           <div className="npc-chips">
             {story.key_npc_names.map((n) => (
-              <span key={n} className="chip chip-muted">{n}</span>
+              <span key={n} className="chip chip-muted">
+                {n}
+              </span>
             ))}
           </div>
         </section>
@@ -274,12 +286,24 @@ export function WorldBibleView() {
           <div className="stats-grid">
             {stats.llm_backend && <StatCell k="llm" v={stats.llm_backend} />}
             {stats.image_backend && <StatCell k="images" v={stats.image_backend} />}
-            {typeof stats.llm_calls === "number" && <StatCell k="llm calls" v={String(stats.llm_calls)} />}
-            {typeof stats.total_tokens === "number" && <StatCell k="tokens" v={stats.total_tokens.toLocaleString()} />}
-            {typeof stats.llm_cost_usd === "number" && <StatCell k="llm cost" v={formatUSD(stats.llm_cost_usd)} />}
-            {typeof stats.image_cost_usd === "number" && <StatCell k="image cost" v={formatUSD(stats.image_cost_usd)} />}
-            {typeof stats.audio_cost_usd === "number" && <StatCell k="audio cost" v={formatUSD(stats.audio_cost_usd)} />}
-            {typeof stats.total_cost_usd === "number" && <StatCell k="total cost" v={formatUSD(stats.total_cost_usd)} />}
+            {typeof stats.llm_calls === "number" && (
+              <StatCell k="llm calls" v={String(stats.llm_calls)} />
+            )}
+            {typeof stats.total_tokens === "number" && (
+              <StatCell k="tokens" v={stats.total_tokens.toLocaleString()} />
+            )}
+            {typeof stats.llm_cost_usd === "number" && (
+              <StatCell k="llm cost" v={formatUSD(stats.llm_cost_usd)} />
+            )}
+            {typeof stats.image_cost_usd === "number" && (
+              <StatCell k="image cost" v={formatUSD(stats.image_cost_usd)} />
+            )}
+            {typeof stats.audio_cost_usd === "number" && (
+              <StatCell k="audio cost" v={formatUSD(stats.audio_cost_usd)} />
+            )}
+            {typeof stats.total_cost_usd === "number" && (
+              <StatCell k="total cost" v={formatUSD(stats.total_cost_usd)} />
+            )}
             {stats.generation_time_human && <StatCell k="time" v={stats.generation_time_human} />}
           </div>
         </section>

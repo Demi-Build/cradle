@@ -41,9 +41,12 @@ export default function App() {
       }
       if (e.metaKey || e.ctrlKey) return;
       if (
-        e.key !== "ArrowUp" && e.key !== "ArrowDown" &&
-        e.key !== "ArrowLeft" && e.key !== "ArrowRight"
-      ) return;
+        e.key !== "ArrowUp" &&
+        e.key !== "ArrowDown" &&
+        e.key !== "ArrowLeft" &&
+        e.key !== "ArrowRight"
+      )
+        return;
 
       const types = (world?.entity_counts ?? []).map((c) => c.type_id);
       if (!types.length) return;
@@ -82,7 +85,11 @@ export default function App() {
       }
 
       // ↑ / ↓ — cycle within type, spill at boundary
-      if (!e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && selection.kind === "entity") {
+      if (
+        !e.altKey &&
+        (e.key === "ArrowUp" || e.key === "ArrowDown") &&
+        selection.kind === "entity"
+      ) {
         const typeIdx = types.indexOf(selection.typeId);
         if (typeIdx < 0) return;
         const list = await loadList(selection.typeId);

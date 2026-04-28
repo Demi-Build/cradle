@@ -69,7 +69,11 @@ export function RecentsRail({
             key={r.path}
             recent={r}
             onClick={() => {
-              if (import.meta.env.DEV) console.log("[cradle] tile clicked:", { title: r.storyTitle ?? r.name, path: r.path });
+              if (import.meta.env.DEV)
+                console.log("[cradle] tile clicked:", {
+                  title: r.storyTitle ?? r.name,
+                  path: r.path,
+                });
               onOpenRecent(r.path);
             }}
           />

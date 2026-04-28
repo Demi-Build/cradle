@@ -1,0 +1,5 @@
+# Code owners for cradle.
+# Solo maintainership for now -- swap to @Demi-Build/maintainers once that team exists.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @wolfgangjblack

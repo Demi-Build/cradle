@@ -58,6 +58,16 @@ jobs:
         with:
           workspaces: src-tauri
 
+      # tauri-build's build.rs validates `bundle.resources` paths in
+      # tauri.conf.json on every cargo invocation. The rust job doesn't
+      # bundle anything, but clippy/test/build all trigger build.rs — so
+      # the resource path needs to exist as at least an empty dir.
+      # Real demo content is fetched only by the `tauri-build` job and
+      # the release workflow.
+      - name: Stub demo resource path
+        working-directory: ${{ github.workspace }}
+        run: mkdir -p bibles/mazeworld_5_room_demo
+
       - run: cargo fmt --all -- --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test --lib

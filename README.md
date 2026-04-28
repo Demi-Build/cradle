@@ -4,18 +4,18 @@
 
 # Cradle
 
-> The agentic atelier for game developement.
+> The agentic atelier for game development.
 
-By **Demi** ([github.com/Demi-Build](https://github.com/Demi-Build)) —  Agentic atelier for game developers.
+By **Demi** ([github.com/Demi-Build](https://github.com/Demi-Build)) — agentic atelier for game developers.
 
 [![CI](https://github.com/Demi-Build/cradle/actions/workflows/ci.yml/badge.svg)](https://github.com/Demi-Build/cradle/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 ![Cradle inspecting a MazeWorld-generated world](docs/screenshots/cradle_tour.gif)
 
-Cradle reads worlds emitted by [canon](https://github.com/Demi-Build/canon-ai) (early development; public release coming soon) and renders them as a structured, navigable inspector. canon is a Python library that brings coherence tooling to AI-generated game content — generating a World Bible, 3-stage validation pipeline, retry-with-feedback. Cradle lets you walk that output without running the game, adding a taste making layer for game developers, story tellers, and world builders. 
+Cradle reads worlds emitted by [canon](https://github.com/Demi-Build/canon-ai) (early development; public release coming soon) and renders them as a structured, navigable inspector. canon is a Python library that brings coherence tooling to AI-generated game content — generating a World Bible, 3-stage validation pipeline, retry-with-feedback. Cradle lets you walk that output without running the game, adding a taste-making layer for game developers, storytellers, and world builders.
 
-The reference world is **MazeWorld**, an AI-orchestrated 2D RPG where every NPC, item, quest, portrait, music cue, and SFX is generated from a single `STORY_SEED` via a skeleton-driven pattern. Cradle's primary test target is a MazeWorld-generated world - in the coming weeks this will be replaced with canon generated worlds and eventually the ability to develope within cradle and plug into various game engines.
+The reference world is **MazeWorld**, an AI-orchestrated 2D RPG where every NPC, item, quest, portrait, music cue, and SFX is generated from a single `STORY_SEED` via a skeleton-driven pattern. Cradle's primary test target is a MazeWorld-generated world — in the coming weeks this will be replaced with canon-generated worlds and eventually the ability to develop within cradle and plug into various game engines.
 
 ## Download
 
@@ -76,9 +76,9 @@ Cradle is local-first and makes no network calls at runtime — see [PRIVACY.md]
 
 - **Auto-updater.** Tauri ships one, but it depends on signed builds across every target. Wires up alongside Windows code signing.
 - **Windows code signing.** v0.1 ships an unsigned `.msi` (SmartScreen warning on first run). A code-signing cert lands in v0.1.x; CI is already wired with `WINDOWS_CERTIFICATE` env-var TODOs.
-- **Interactive mode.** Edit data live, changing dialogue, flavor text, add characters and puzzles/events.  
-- **Plugin / extension API.** Utilize Generative Model API endpoints as well as scaffold on prem models for custom generation to extend/ideal within worlds
--- **Chat interface.** Whats a modern dev tool without a friend?
+- **Interactive mode.** Edit data live — change dialogue, flavor text, add characters, puzzles, and events.
+- **Plugin / extension API.** Utilize Generative Model API endpoints as well as scaffold on-prem models for custom generation to extend / ideate within worlds.
+- **Chat interface.** What's a modern dev tool without a friend?
 - **Schema-typed canon dependency.** Lands in v0.2 once canon stabilizes its public schema.
 
 ## Keyboard navigation
@@ -230,5 +230,5 @@ cradle/
 - **v0.2** — editing, regeneration, canon schema types as a dependency; VS Code-style nav (activity bar + collapsible sidebar + breadcrumb trail); validation bar wiring once canon emits it; generation trail tab.
 - **v0.2.5** — live LLM dialogue against loaded NPCs.
 - **v0.3** — simulation adapters (combat, environment) via pluggable backends.
-- **v0.4** - game engine implementation across open source game engines
+- **v0.4** — game engine implementation across open source game engines.
 - **Later** — collaborative mode (`RemoteDataSource`), multi-world diffing.

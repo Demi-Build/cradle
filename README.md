@@ -4,18 +4,18 @@
 
 # Cradle
 
-> A desktop inspector for AI-generated game worlds.
+> The agentic atelier for game developement.
 
-By **Demi** ([github.com/Demi-Build](https://github.com/Demi-Build)) — the agentic atelier for game dev.
+By **Demi** ([github.com/Demi-Build](https://github.com/Demi-Build)) —  Agentic atelier for game developers.
 
 [![CI](https://github.com/Demi-Build/cradle/actions/workflows/ci.yml/badge.svg)](https://github.com/Demi-Build/cradle/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-![Cradle inspecting a MazeWorld-generated world](docs/screenshots/cradle-hero.gif)
+![Cradle inspecting a MazeWorld-generated world](docs/screenshots/cradle_tour.gif)
 
-Cradle reads worlds emitted by [canon](https://github.com/Demi-Build/canon-ai) (early development; public release coming soon) and renders them as a structured, navigable inspector. canon is a Python library that brings coherence tooling to AI-generated game content — World Bible, 3-stage validation pipeline, retry-with-feedback. Cradle lets you walk that output without running the game.
+Cradle reads worlds emitted by [canon](https://github.com/Demi-Build/canon-ai) (early development; public release coming soon) and renders them as a structured, navigable inspector. canon is a Python library that brings coherence tooling to AI-generated game content — generating a World Bible, 3-stage validation pipeline, retry-with-feedback. Cradle lets you walk that output without running the game, adding a taste making layer for game developers, story tellers, and world builders. 
 
-The reference world is **MazeWorld**, an AI-orchestrated 2D RPG where every NPC, item, quest, portrait, music cue, and SFX is generated from a single `STORY_SEED` via a skeleton-driven pattern. Cradle's primary test target is a MazeWorld-generated world.
+The reference world is **MazeWorld**, an AI-orchestrated 2D RPG where every NPC, item, quest, portrait, music cue, and SFX is generated from a single `STORY_SEED` via a skeleton-driven pattern. Cradle's primary test target is a MazeWorld-generated world - in the coming weeks this will be replaced with canon generated worlds and eventually the ability to develope within cradle and plug into various game engines.
 
 ## Download
 
@@ -27,19 +27,19 @@ Pre-built binaries live on the [Releases page](https://github.com/Demi-Build/cra
 
 To run from source on any platform, see [Development](#development) below.
 
-## What it's for
+## Cradle Use Case
 
 If you're an **indie developer** evaluating AI-content tooling, cradle lets you inspect the artifact before you commit to a content protocol. Open a world, click through every NPC, walk the dialogue graph, see how a generation actually hangs together end-to-end — without booting an engine.
 
 If you're a **researcher** working on coherence in generative game content, cradle is a structured viewer for the primitives canon emits: World Bible, four-tree NPC dialogue with quest gates, validation reports, generation stats. The data layer is a single Rust trait (`DataSource`) so the viewer can sit on top of any source you can implement — filesystem today, server or blob store tomorrow.
 
-## Where this is going
+## Development Goals
 
 AI-generated game content needs a coherence protocol. canon defines it; cradle is the first tool built on it. Together these two surfaces will keep developing: live LLM dialogue against loaded NPCs, a data surface for fast iteration, and simulation adapters for environments, NPC AI, agentic-game testing, and game-engine co-development. v0.1 is the read-only core — see the [roadmap](#roadmap) at the bottom for the milestones in between.
 
 ## Privacy
 
-Cradle is currently for local development and consumes finished worlds emitted by canon (with MazeWorld as the reference). No telemetry, no network calls, no analytics — every world you load stays on your machine.
+Cradle is currently for local development and consumes finished worlds emitted by canon. No telemetry, no network calls, no analytics — every world you load stays on your machine.
 
 ## Status: v0.1
 
@@ -76,9 +76,9 @@ Cradle is local-first and makes no network calls at runtime — see [PRIVACY.md]
 
 - **Auto-updater.** Tauri ships one, but it depends on signed builds across every target. Wires up alongside Windows code signing.
 - **Windows code signing.** v0.1 ships an unsigned `.msi` (SmartScreen warning on first run). A code-signing cert lands in v0.1.x; CI is already wired with `WINDOWS_CERTIFICATE` env-var TODOs.
-- **Linux signed builds.** Linux distribution is an unsigned `.AppImage`, which is the norm.
-- **Internationalization (i18n).** Single locale (en) for v0.1.
-- **Plugin / extension API.** The `DataSource` trait is the only extension point right now; a richer plugin surface (custom views, custom validators) is post-v1.
+- **Interactive mode.** Edit data live, changing dialogue, flavor text, add characters and puzzles/events.  
+- **Plugin / extension API.** Utilize Generative Model API endpoints as well as scaffold on prem models for custom generation to extend/ideal within worlds
+-- **Chat interface.** Whats a modern dev tool without a friend?
 - **Schema-typed canon dependency.** Lands in v0.2 once canon stabilizes its public schema.
 
 ## Keyboard navigation
@@ -228,6 +228,7 @@ cradle/
 ## Roadmap
 
 - **v0.2** — editing, regeneration, canon schema types as a dependency; VS Code-style nav (activity bar + collapsible sidebar + breadcrumb trail); validation bar wiring once canon emits it; generation trail tab.
-- **v0.3** — live LLM dialogue against loaded NPCs.
-- **v0.4+** — simulation adapters (combat, environment) via pluggable backends.
+- **v0.2.5** — live LLM dialogue against loaded NPCs.
+- **v0.3** — simulation adapters (combat, environment) via pluggable backends.
+- **v0.4** - game engine implementation across open source game engines
 - **Later** — collaborative mode (`RemoteDataSource`), multi-world diffing.

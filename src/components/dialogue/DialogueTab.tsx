@@ -21,7 +21,12 @@ const LANE_TO_TREE: Record<string, TreeKey> = {
 
 // Beat IDs are either "<lane>:<nodeId>" for tree beats or a single token for
 // special beats (greeting, exhausted, quest-gate, success, failure).
-function parseBeatId(beatId: string): { kind: "scalar"; field: keyof NpcLike } | { kind: "tree"; tree: TreeKey; nodeId: string } | null {
+function parseBeatId(
+  beatId: string,
+):
+  | { kind: "scalar"; field: keyof NpcLike }
+  | { kind: "tree"; tree: TreeKey; nodeId: string }
+  | null {
   if (beatId === "greeting") return { kind: "scalar", field: "opening_greeting" };
   if (beatId === "exhausted") return { kind: "scalar", field: "exhausted_dialogue" };
   const sep = beatId.indexOf(":");
@@ -101,11 +106,12 @@ export function DialogueTab({
 
   const { beats, edges } = useMemo(() => buildDialogue(npc, quest), [npc, quest]);
 
-  const onEdit = editMode && typeId && entityId
-    ? (beatId: string, change: BeatEdit) => {
-        setEntityDraft(typeId, entityId, applyEdit(npc, beatId, change));
-      }
-    : undefined;
+  const onEdit =
+    editMode && typeId && entityId
+      ? (beatId: string, change: BeatEdit) => {
+          setEntityDraft(typeId, entityId, applyEdit(npc, beatId, change));
+        }
+      : undefined;
 
   if (beats.length === 0) {
     return <div className="dialogue-empty">No dialogue content.</div>;

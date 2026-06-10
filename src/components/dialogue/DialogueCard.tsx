@@ -99,7 +99,11 @@ export function DialogueCard({
                           className="ghost-input"
                           value={c.text}
                           onChange={(e) =>
-                            onEdit!(beat.id, { kind: "choice", choiceIdx: i, value: e.target.value })
+                            onEdit!(beat.id, {
+                              kind: "choice",
+                              choiceIdx: i,
+                              value: e.target.value,
+                            })
                           }
                           onClick={(e) => e.stopPropagation()}
                         />

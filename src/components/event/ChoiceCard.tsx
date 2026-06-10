@@ -1,8 +1,6 @@
 import { correctMatch, formatCheck, type PuzzleChoice, type PuzzleEvent } from "./types";
 
-export type ChoiceEdit =
-  | { kind: "text"; value: string }
-  | { kind: "success_text"; value: string };
+export type ChoiceEdit = { kind: "text"; value: string } | { kind: "success_text"; value: string };
 
 export function ChoiceCard({
   choice,
@@ -55,10 +53,11 @@ export function ChoiceCard({
                 <textarea
                   className="ghost-textarea"
                   value={choice.success_text ?? ""}
-                  onChange={(e) =>
-                    onEdit!(index, { kind: "success_text", value: e.target.value })
-                  }
-                  rows={Math.min(6, Math.max(2, Math.ceil(((choice.success_text ?? "").length || 1) / 60)))}
+                  onChange={(e) => onEdit!(index, { kind: "success_text", value: e.target.value })}
+                  rows={Math.min(
+                    6,
+                    Math.max(2, Math.ceil(((choice.success_text ?? "").length || 1) / 60)),
+                  )}
                 />
               ) : (
                 (choice.success_text ?? "(no text)")

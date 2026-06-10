@@ -282,13 +282,7 @@ export function MonsterStatBlock({
       </div>
       <div className="stat-block-chips">
         {CHIP_SLOTS.map((slot, i) => (
-          <ChipSlotRenderer
-            key={i}
-            slot={slot}
-            data={data}
-            editable={editable}
-            update={update}
-          />
+          <ChipSlotRenderer key={i} slot={slot} data={data} editable={editable} update={update} />
         ))}
       </div>
     </section>
@@ -438,7 +432,9 @@ function ChanceChip({
 }) {
   const hasValue = typeof chance === "number";
   return (
-    <span className={`chip chip-muted ${hasValue ? "" : "is-empty"} ${editable ? "is-editable" : ""}`}>
+    <span
+      className={`chip chip-muted ${hasValue ? "" : "is-empty"} ${editable ? "is-editable" : ""}`}
+    >
       {editable ? (
         <>
           <ScalarInput

@@ -12,13 +12,7 @@ import { AudioPlayer } from "./AudioPlayer";
 import { useStore } from "../store";
 import { api } from "../lib/invoke";
 import { Icon } from "./start/Icons";
-import {
-  ScalarInput,
-  ProseInput,
-  inferType,
-  setField,
-  useDraftUpdater,
-} from "./edit/inputs";
+import { ScalarInput, ProseInput, inferType, setField, useDraftUpdater } from "./edit/inputs";
 
 function useStoreWorldPath() {
   return useStore((s) => s.worldPath);
@@ -116,7 +110,12 @@ export function EntityOverview({
     entityId ??
     "(unnamed)";
   // Decides which underlying field the editable title binds to.
-  const nameField = typeof data.name === "string" ? "name" : typeof data.environment_name === "string" ? "environment_name" : null;
+  const nameField =
+    typeof data.name === "string"
+      ? "name"
+      : typeof data.environment_name === "string"
+        ? "environment_name"
+        : null;
   const portraitHint =
     (data[PORTRAIT_FIELDS[0]] as string | undefined) ??
     (data[PORTRAIT_FIELDS[1]] as string | undefined) ??
@@ -318,11 +317,7 @@ export function EntityOverview({
     <div key={k} className="prose-block">
       <div className="prose-label">{labelFor(k)}</div>
       <div className="prose-body">
-        {editMode ? (
-          <ProseInput value={v} onChange={(next) => setScalar(k, next)} />
-        ) : (
-          v
-        )}
+        {editMode ? <ProseInput value={v} onChange={(next) => setScalar(k, next)} /> : v}
       </div>
     </div>
   );
@@ -330,7 +325,12 @@ export function EntityOverview({
   return (
     <div className="overview">
       {isRoom ? (
-        <RoomHero data={data} entityId={entityId} editMode={editMode} onNameChange={nameField ? (v) => setScalar(nameField, v) : undefined} />
+        <RoomHero
+          data={data}
+          entityId={entityId}
+          editMode={editMode}
+          onNameChange={nameField ? (v) => setScalar(nameField, v) : undefined}
+        />
       ) : (
         <header
           className={`overview-header ${isNpc ? "overview-header--npc" : ""} ${isMonster ? "overview-header--monster" : ""} ${isEvent ? "overview-header--event" : ""} ${isClass ? "overview-header--class" : ""}`}
@@ -388,11 +388,25 @@ export function EntityOverview({
             {scalars.length > 0 && (
               <div className="overview-fields-inline">{scalars.map(renderScalarRow)}</div>
             )}
-            {itemStats && <ItemStatsTable stats={itemStats} editMode={editMode} onChange={(k, v) => updateDraft(setField(data, "item_stats", { ...itemStats, [k]: v }))} />}
+            {itemStats && (
+              <ItemStatsTable
+                stats={itemStats}
+                editMode={editMode}
+                onChange={(k, v) =>
+                  updateDraft(setField(data, "item_stats", { ...itemStats, [k]: v }))
+                }
+              />
+            )}
             {isClass && typeof data.starting_weapon === "string" && (
               <StartingWeaponField name={data.starting_weapon} />
             )}
-            {classStats && <ClassStatsTable stats={classStats} editMode={editMode} onChange={(k, v) => updateDraft(setField(data, "stats", { ...classStats, [k]: v }))} />}
+            {classStats && (
+              <ClassStatsTable
+                stats={classStats}
+                editMode={editMode}
+                onChange={(k, v) => updateDraft(setField(data, "stats", { ...classStats, [k]: v }))}
+              />
+            )}
             {isMonster && (
               <MonsterStatBlock
                 data={data as Parameters<typeof MonsterStatBlock>[0]["data"]}

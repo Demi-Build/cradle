@@ -327,7 +327,8 @@ export function buildDialogue(npc: NpcLike, quest?: QuestLike | null): DialogueB
     if (beat.kind !== "tree" || !beat.isTerminal) continue;
     const extras: BeatChoice[] = [];
     if (hasGate) extras.push({ text: "→ quest gate", toBeatId: "quest-gate", synthesized: true });
-    if (hasExhausted) extras.push({ text: "→ exhausted", toBeatId: "exhausted", synthesized: true });
+    if (hasExhausted)
+      extras.push({ text: "→ exhausted", toBeatId: "exhausted", synthesized: true });
     beat.choices = [...(beat.choices ?? []), ...extras];
   }
 

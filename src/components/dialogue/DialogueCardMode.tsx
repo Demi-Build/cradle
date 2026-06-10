@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef } from "react";
 import type { Beat, BeatEdge, BeatKind } from "./types";
 import { bfsOrderBeats } from "./types";
-import { DialogueCard } from "./DialogueCard";
+import { DialogueCard, type BeatEdit } from "./DialogueCard";
 
 const SECTION_ORDER: BeatKind[] = [
   "greeting",
@@ -26,7 +26,17 @@ const SECTION_LABEL: Record<BeatKind, string> = {
   exhausted: "Exhausted",
 };
 
-export function DialogueCardMode({ beats, edges }: { beats: Beat[]; edges: BeatEdge[] }) {
+export function DialogueCardMode({
+  beats,
+  edges,
+  editMode = false,
+  onEdit,
+}: {
+  beats: Beat[];
+  edges: BeatEdge[];
+  editMode?: boolean;
+  onEdit?: (beatId: string, change: BeatEdit) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const scrollTo = useCallback((beatId: string) => {
@@ -83,7 +93,14 @@ export function DialogueCardMode({ beats, edges }: { beats: Beat[]; edges: BeatE
             </div>
             <div className="dialogue-section-body">
               {section.map((b) => (
-                <DialogueCard key={b.id} beat={b} mode="full" onChoiceClick={scrollTo} />
+                <DialogueCard
+                  key={b.id}
+                  beat={b}
+                  mode="full"
+                  onChoiceClick={scrollTo}
+                  editMode={editMode}
+                  onEdit={onEdit}
+                />
               ))}
             </div>
           </section>

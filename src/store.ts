@@ -18,6 +18,14 @@ export type Selection =
 
 type EntitiesByType = Record<string, EntityRef[]>;
 
+export type EntityCacheEntry = {
+  pristine: unknown;
+  draft: unknown;
+  dirty: boolean;
+};
+
+export const entityKey = (typeId: string, id: string) => `${typeId}:${id}`;
+
 export type LightboxImage = { src: string; alt: string };
 export type Route = "start" | "recents";
 export type Theme = "dark" | "light";
@@ -37,7 +45,11 @@ type Store = {
   worldStoryTitle: string | null;
   worldBeats: BibleBeat[];
   entities: EntitiesByType;
+  entityCache: Record<string, EntityCacheEntry>;
+  saving: Record<string, boolean>;
+  saveError: Record<string, string | null>;
   selection: Selection;
+  editMode: boolean;
   error: string | null;
   lightbox: LightboxImage | null;
   recents: RecentProject[];
@@ -49,6 +61,8 @@ type Store = {
   setWorld: (w: WorldSummary | null) => void;
   setEntities: (typeId: string, refs: EntityRef[]) => void;
   select: (s: Selection) => void;
+  setEditMode: (on: boolean) => void;
+  toggleEditMode: () => void;
   setError: (e: string | null) => void;
   openLightbox: (img: LightboxImage) => void;
   closeLightbox: () => void;
@@ -60,6 +74,11 @@ type Store = {
   togglePin: (path: string) => void;
   removeRecent: (path: string) => void;
   enrichRecent: (path: string) => Promise<void>;
+  loadEntityIntoCache: (typeId: string, id: string) => Promise<unknown>;
+  setEntityDraft: (typeId: string, id: string, draft: unknown) => void;
+  revertEntity: (typeId: string, id: string) => void;
+  saveEntity: (typeId: string, id: string) => Promise<void>;
+  isEntityDirty: (typeId: string, id: string) => boolean;
 };
 
 const THEME_KEY = "cradle.theme.v1";
@@ -77,7 +96,11 @@ export const useStore = create<Store>((set, get) => ({
   worldStoryTitle: null,
   worldBeats: [],
   entities: {},
+  entityCache: {},
+  saving: {},
+  saveError: {},
   selection: { kind: "none" },
+  editMode: false,
   error: null,
   lightbox: null,
   recents: loadRecents(),
@@ -87,9 +110,19 @@ export const useStore = create<Store>((set, get) => ({
   loading: false,
   setWorldPath: (p) => set({ worldPath: p }),
   setWorld: (w) =>
-    set({ world: w, entities: {}, selection: w ? { kind: "bible" } : { kind: "none" } }),
+    set({
+      world: w,
+      entities: {},
+      entityCache: {},
+      saving: {},
+      saveError: {},
+      selection: w ? { kind: "bible" } : { kind: "none" },
+      editMode: false,
+    }),
   setEntities: (typeId, refs) => set((s) => ({ entities: { ...s.entities, [typeId]: refs } })),
-  select: (s) => set({ selection: s }),
+  select: (s) => set({ selection: s, editMode: false }),
+  setEditMode: (on) => set({ editMode: on }),
+  toggleEditMode: () => set((s) => ({ editMode: !s.editMode })),
   setError: (e) => set({ error: e }),
   openLightbox: (img) => set({ lightbox: img }),
   closeLightbox: () => set({ lightbox: null }),
@@ -108,7 +141,11 @@ export const useStore = create<Store>((set, get) => ({
       worldStoryTitle: null,
       worldBeats: [],
       entities: {},
+      entityCache: {},
+      saving: {},
+      saveError: {},
       selection: { kind: "none" },
+      editMode: false,
       route: "start",
     }),
   togglePin: (path: string) => set((s) => ({ recents: togglePinFn(s.recents, path) })),
@@ -194,7 +231,11 @@ export const useStore = create<Store>((set, get) => ({
         worldStoryTitle: null,
         worldBeats: [],
         selection: { kind: "bible" },
+        editMode: false,
         entities: {},
+        entityCache: {},
+        saving: {},
+        saveError: {},
         route: "start",
         recents: prevRecents,
       });
@@ -256,6 +297,86 @@ export const useStore = create<Store>((set, get) => ({
       set({ loading: false });
     }
   },
+  loadEntityIntoCache: async (typeId, id) => {
+    const key = entityKey(typeId, id);
+    const cached = get().entityCache[key];
+    if (cached) return cached.draft;
+    const path = get().worldPath;
+    if (!path) throw new Error("no world loaded");
+    const data = await api.getEntity(path, typeId, id);
+    set((s) => ({
+      entityCache: {
+        ...s.entityCache,
+        [key]: { pristine: data, draft: data, dirty: false },
+      },
+    }));
+    return data;
+  },
+  setEntityDraft: (typeId, id, draft) => {
+    const key = entityKey(typeId, id);
+    set((s) => {
+      const entry = s.entityCache[key];
+      // Editors call this only after the cache is populated. If it isn't,
+      // we'd be writing a draft with no pristine to revert to — silently no-op.
+      if (!entry) return s;
+      return {
+        entityCache: {
+          ...s.entityCache,
+          [key]: { ...entry, draft, dirty: draft !== entry.pristine },
+        },
+      };
+    });
+  },
+  revertEntity: (typeId, id) => {
+    const key = entityKey(typeId, id);
+    set((s) => {
+      const entry = s.entityCache[key];
+      if (!entry) return s;
+      const { [key]: _err, ...restErr } = s.saveError;
+      void _err;
+      return {
+        entityCache: {
+          ...s.entityCache,
+          [key]: { ...entry, draft: entry.pristine, dirty: false },
+        },
+        saveError: restErr,
+      };
+    });
+  },
+  saveEntity: async (typeId, id) => {
+    const key = entityKey(typeId, id);
+    const entry = get().entityCache[key];
+    if (!entry) return;
+    const path = get().worldPath;
+    if (!path) throw new Error("no world loaded");
+    set((s) => ({ saving: { ...s.saving, [key]: true } }));
+    try {
+      await api.updateEntity(path, typeId, id, entry.draft);
+      set((s) => {
+        const current = s.entityCache[key];
+        if (!current) return s;
+        const { [key]: _err, ...restErr } = s.saveError;
+        void _err;
+        return {
+          entityCache: {
+            ...s.entityCache,
+            [key]: { pristine: current.draft, draft: current.draft, dirty: false },
+          },
+          saveError: restErr,
+        };
+      });
+    } catch (e) {
+      set((s) => ({ saveError: { ...s.saveError, [key]: String(e) } }));
+      throw e;
+    } finally {
+      set((s) => {
+        const { [key]: _busy, ...rest } = s.saving;
+        void _busy;
+        return { saving: rest };
+      });
+    }
+  },
+  isEntityDirty: (typeId, id) => !!get().entityCache[entityKey(typeId, id)]?.dirty,
 }));
 
 if (typeof window !== "undefined") {

@@ -10,19 +10,41 @@ import { PuzzleTab } from "./event/PuzzleTab";
 import { hasTreeView, type PuzzleEvent } from "./event/types";
 import { QuestDetail } from "./quest/QuestDetail";
 import { WorldBibleView } from "./WorldBibleView";
+import { EditorFooter } from "./edit/EditorFooter";
+import { RawJsonTab } from "./edit/RawJsonTab";
 
 type Json = Record<string, unknown>;
 
+const UNEDITABLE_TYPES = new Set(["music", "sfx"]);
+
 export function DetailPane() {
   const { selection, worldPath, world, error } = useStore();
+  const editMode = useStore((s) => s.editMode);
+  const toggleEditMode = useStore((s) => s.toggleEditMode);
+  const setEditMode = useStore((s) => s.setEditMode);
+  const entityCache = useStore((s) => s.entityCache);
+  const loadEntityIntoCache = useStore((s) => s.loadEntityIntoCache);
   const [payload, setPayload] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
   const [localErr, setLocalErr] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [rawJsonError, setRawJsonError] = useState<string | null>(null);
+
+  // For entity selections, the live payload is the draft in the entity cache —
+  // re-render whenever an editor mutates it via setEntityDraft.
+  const cachedDraft =
+    selection.kind === "entity"
+      ? entityCache[`${selection.typeId}:${selection.id}`]?.draft
+      : undefined;
+  const entityDirty =
+    selection.kind === "entity"
+      ? !!entityCache[`${selection.typeId}:${selection.id}`]?.dirty
+      : false;
 
   useEffect(() => {
     setPayload(null);
     setLocalErr(null);
+    setRawJsonError(null);
     setActiveTab(selection.kind === "entity" && selection.tab ? selection.tab : "overview");
     if (!worldPath || selection.kind === "none") return;
     setLoading(true);
@@ -33,7 +55,7 @@ export function DetailPane() {
         } else if (selection.kind === "type") {
           setPayload(await api.listEntityRows(worldPath, selection.typeId));
         } else if (selection.kind === "entity") {
-          setPayload(await api.getEntity(worldPath, selection.typeId, selection.id));
+          setPayload(await loadEntityIntoCache(selection.typeId, selection.id));
         }
       } catch (e) {
         setLocalErr(String(e));
@@ -41,7 +63,33 @@ export function DetailPane() {
         setLoading(false);
       }
     })();
-  }, [selection, worldPath]);
+  }, [selection, worldPath, loadEntityIntoCache]);
+
+  // Editors mutate the cache directly; reflect those changes in the rendered payload.
+  useEffect(() => {
+    if (selection.kind !== "entity") return;
+    if (cachedDraft === undefined) return;
+    setPayload(cachedDraft);
+  }, [cachedDraft, selection]);
+
+  // Cmd/Ctrl+E toggles edit mode for the focused entity. Audio types stay read-only.
+  useEffect(() => {
+    if (selection.kind !== "entity") return;
+    if (UNEDITABLE_TYPES.has(selection.typeId)) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "e") return;
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable) return;
+      }
+      e.preventDefault();
+      toggleEditMode();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selection, toggleEditMode]);
 
   const entityTabs = useMemo(() => {
     if (selection.kind !== "entity" || !payload) return null;
@@ -53,7 +101,12 @@ export function DetailPane() {
           entityId={selection.id}
         />
       ) : (
-        <EntityOverview data={data} typeId={selection.typeId} entityId={selection.id} />
+        <EntityOverview
+          data={data}
+          typeId={selection.typeId}
+          entityId={selection.id}
+          editMode={editMode}
+        />
       );
     const tabs = [
       {
@@ -82,7 +135,14 @@ export function DetailPane() {
         tabs.push({
           id: "dialogue",
           label: "Dialogue",
-          content: <DialogueTab npc={asNpc} />,
+          content: (
+            <DialogueTab
+              npc={asNpc}
+              editMode={editMode}
+              typeId={selection.typeId}
+              entityId={selection.id}
+            />
+          ),
         });
       }
     }
@@ -91,16 +151,31 @@ export function DetailPane() {
       tabs.push({
         id: "puzzle",
         label,
-        content: <PuzzleTab event={data as PuzzleEvent} />,
+        content: (
+          <PuzzleTab
+            event={data as PuzzleEvent}
+            editMode={editMode}
+            typeId={selection.typeId}
+            entityId={selection.id}
+          />
+        ),
       });
     }
     tabs.push({
       id: "raw",
       label: "Raw JSON",
-      content: <pre className="detail-json">{JSON.stringify(data, null, 2)}</pre>,
+      content: (
+        <RawJsonTab
+          typeId={selection.typeId}
+          entityId={selection.id}
+          data={data}
+          editMode={editMode && !UNEDITABLE_TYPES.has(selection.typeId)}
+          onParseError={setRawJsonError}
+        />
+      ),
     });
     return tabs;
-  }, [selection, payload]);
+  }, [selection, payload, editMode]);
 
   // Tab / Shift+Tab cycles tabs on the focused entity.
   useEffect(() => {
@@ -125,6 +200,11 @@ export function DetailPane() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [selection, entityTabs, activeTab]);
+
+  // When the focused entity changes, the Raw JSON parse error is stale.
+  useEffect(() => {
+    setRawJsonError(null);
+  }, [selection]);
 
   if (error) return <main className="detail detail-error">Error: {error}</main>;
   if (!world) {
@@ -154,9 +234,32 @@ export function DetailPane() {
   if (payload === null) return <main className="detail" />;
 
   if (selection.kind === "entity" && entityTabs) {
+    const audioOnly = UNEDITABLE_TYPES.has(selection.typeId);
+    const showFooter = !audioOnly && (editMode || entityDirty);
+    const editToggle = audioOnly ? null : (
+      <button
+        type="button"
+        className={`pane-edit-toggle ${editMode ? "is-on" : ""}`}
+        onClick={() => setEditMode(!editMode)}
+        title="Toggle edit mode (⌘E)"
+      >
+        {editMode ? "Done" : "Edit"}
+      </button>
+    );
+    // Parse errors only block Save while the Raw JSON tab is active; the cached
+    // draft is whatever was last successfully parsed, so other tabs are fine.
+    const saveDisabledReason =
+      activeTab === "raw" && rawJsonError ? `Invalid JSON: ${rawJsonError}` : null;
     return (
       <main className="detail">
-        <Tabs tabs={entityTabs} active={activeTab} onChange={setActiveTab} />
+        <Tabs tabs={entityTabs} active={activeTab} onChange={setActiveTab} trailing={editToggle} />
+        {showFooter && (
+          <EditorFooter
+            typeId={selection.typeId}
+            entityId={selection.id}
+            saveDisabledReason={saveDisabledReason}
+          />
+        )}
       </main>
     );
   }

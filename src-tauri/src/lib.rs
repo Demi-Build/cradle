@@ -65,6 +65,19 @@ fn get_entity(
 }
 
 #[tauri::command]
+fn update_entity(
+    path: String,
+    type_id: String,
+    id: String,
+    data: Value,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    state
+        .source
+        .update_entity(&canon(path), &type_id, &id, &data)
+}
+
+#[tauri::command]
 fn resolve_asset(path: String, hint: String, state: State<'_, AppState>) -> Option<String> {
     state.source.resolve_asset(&canon(path), &hint)
 }
@@ -94,6 +107,7 @@ pub fn run() {
             list_entities,
             list_entity_rows,
             get_entity,
+            update_entity,
             resolve_asset,
             get_bundled_demo_path,
         ])

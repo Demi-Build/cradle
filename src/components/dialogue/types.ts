@@ -47,6 +47,10 @@ export type BeatKind =
 export type BeatChoice = {
   text: string;
   toBeatId: string;
+  // True for choices buildDialogue adds for card-mode navigation only (e.g.
+  // "→ quest gate" or "→ exhausted" injected on default-tree terminals). The
+  // edit UI hides these — they don't correspond to fields on the NPC.
+  synthesized?: boolean;
 };
 
 export type Beat = {
@@ -322,8 +326,8 @@ export function buildDialogue(npc: NpcLike, quest?: QuestLike | null): DialogueB
   for (const beat of beats) {
     if (beat.kind !== "tree" || !beat.isTerminal) continue;
     const extras: BeatChoice[] = [];
-    if (hasGate) extras.push({ text: "→ quest gate", toBeatId: "quest-gate" });
-    if (hasExhausted) extras.push({ text: "→ exhausted", toBeatId: "exhausted" });
+    if (hasGate) extras.push({ text: "→ quest gate", toBeatId: "quest-gate", synthesized: true });
+    if (hasExhausted) extras.push({ text: "→ exhausted", toBeatId: "exhausted", synthesized: true });
     beat.choices = [...(beat.choices ?? []), ...extras];
   }
 

@@ -26,6 +26,8 @@ export const api = {
     invoke<EntityRow[]>("list_entity_rows", { path, typeId }),
   getEntity: (path: string, typeId: string, id: string) =>
     invoke<unknown>("get_entity", { path, typeId, id }),
+  updateEntity: (path: string, typeId: string, id: string, data: unknown) =>
+    invoke<void>("update_entity", { path, typeId, id, data }),
   resolveAsset: (path: string, hint: string) =>
     invoke<string | null>("resolve_asset", { path, hint }),
   getBundledDemoPath: () => invoke<string>("get_bundled_demo_path"),

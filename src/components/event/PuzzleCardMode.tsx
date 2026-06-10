@@ -1,7 +1,15 @@
-import { ChoiceCard } from "./ChoiceCard";
+import { ChoiceCard, type ChoiceEdit } from "./ChoiceCard";
 import type { PuzzleEvent } from "./types";
 
-export function PuzzleCardMode({ event }: { event: PuzzleEvent }) {
+export function PuzzleCardMode({
+  event,
+  editMode = false,
+  onChoiceEdit,
+}: {
+  event: PuzzleEvent;
+  editMode?: boolean;
+  onChoiceEdit?: (index: number, change: ChoiceEdit) => void;
+}) {
   const choices = event.choices ?? [];
   const reward = event.reward_chance;
   const money = event.money_drop;
@@ -40,7 +48,15 @@ export function PuzzleCardMode({ event }: { event: PuzzleEvent }) {
       </section>
       <div className="choices-list">
         {choices.map((c, i) => (
-          <ChoiceCard key={i} choice={c} index={i} event={event} mode="full" />
+          <ChoiceCard
+            key={i}
+            choice={c}
+            index={i}
+            event={event}
+            mode="full"
+            editMode={editMode}
+            onEdit={onChoiceEdit}
+          />
         ))}
       </div>
     </div>

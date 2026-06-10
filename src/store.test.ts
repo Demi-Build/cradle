@@ -15,6 +15,9 @@ function resetStore() {
     worldStoryTitle: null,
     worldBeats: [],
     entities: {},
+    entityCache: {},
+    saving: {},
+    saveError: {},
     selection: { kind: "none" },
     error: null,
     lightbox: null,
@@ -292,5 +295,110 @@ describe("store: enrichRecent", () => {
 
     await useStore.getState().enrichRecent("/w");
     expect(useStore.getState().recents).toEqual([original]);
+  });
+});
+
+describe("store: entity cache", () => {
+  beforeEach(() => {
+    resetStore();
+    useStore.setState({ worldPath: "/w" });
+  });
+
+  it("loadEntityIntoCache fetches once and reuses cached drafts on subsequent calls", async () => {
+    invokeMock.mockResolvedValueOnce({ id: "1", name: "Alice" });
+
+    const first = await useStore.getState().loadEntityIntoCache("npcs", "1");
+    const second = await useStore.getState().loadEntityIntoCache("npcs", "1");
+    expect(first).toEqual({ id: "1", name: "Alice" });
+    expect(second).toBe(first);
+    expect(invokeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("setEntityDraft marks the entry dirty and updates the draft", async () => {
+    invokeMock.mockResolvedValueOnce({ name: "Alice" });
+    await useStore.getState().loadEntityIntoCache("npcs", "1");
+
+    useStore.getState().setEntityDraft("npcs", "1", { name: "Alicia" });
+
+    const entry = useStore.getState().entityCache["npcs:1"];
+    expect(entry.dirty).toBe(true);
+    expect(entry.draft).toEqual({ name: "Alicia" });
+    expect(entry.pristine).toEqual({ name: "Alice" });
+    expect(useStore.getState().isEntityDirty("npcs", "1")).toBe(true);
+  });
+
+  it("setEntityDraft is a no-op when the cache entry is absent", () => {
+    useStore.getState().setEntityDraft("npcs", "ghost", { x: 1 });
+    expect(useStore.getState().entityCache["npcs:ghost"]).toBeUndefined();
+  });
+
+  it("revertEntity restores pristine and clears dirty + saveError", async () => {
+    invokeMock.mockResolvedValueOnce({ name: "Alice" });
+    await useStore.getState().loadEntityIntoCache("npcs", "1");
+    useStore.getState().setEntityDraft("npcs", "1", { name: "Alicia" });
+    useStore.setState((s) => ({ saveError: { ...s.saveError, "npcs:1": "boom" } }));
+
+    useStore.getState().revertEntity("npcs", "1");
+
+    const entry = useStore.getState().entityCache["npcs:1"];
+    expect(entry.draft).toEqual({ name: "Alice" });
+    expect(entry.dirty).toBe(false);
+    expect(useStore.getState().saveError["npcs:1"]).toBeUndefined();
+  });
+
+  it("saveEntity calls api.updateEntity and promotes draft to pristine on success", async () => {
+    invokeMock.mockImplementation((cmd: string) => {
+      if (cmd === "get_entity") return Promise.resolve({ name: "Alice" });
+      if (cmd === "update_entity") return Promise.resolve();
+      return Promise.reject(new Error(cmd));
+    });
+
+    await useStore.getState().loadEntityIntoCache("npcs", "1");
+    useStore.getState().setEntityDraft("npcs", "1", { name: "Alicia" });
+    await useStore.getState().saveEntity("npcs", "1");
+
+    expect(invokeMock).toHaveBeenCalledWith("update_entity", {
+      path: "/w",
+      typeId: "npcs",
+      id: "1",
+      data: { name: "Alicia" },
+    });
+    const entry = useStore.getState().entityCache["npcs:1"];
+    expect(entry.pristine).toEqual({ name: "Alicia" });
+    expect(entry.dirty).toBe(false);
+    expect(useStore.getState().saving["npcs:1"]).toBeUndefined();
+    expect(useStore.getState().saveError["npcs:1"]).toBeUndefined();
+  });
+
+  it("saveEntity stores saveError and keeps draft dirty on backend failure", async () => {
+    invokeMock.mockImplementation((cmd: string) => {
+      if (cmd === "get_entity") return Promise.resolve({ name: "Alice" });
+      if (cmd === "update_entity") return Promise.reject(new Error("write failed"));
+      return Promise.reject(new Error(cmd));
+    });
+
+    await useStore.getState().loadEntityIntoCache("npcs", "1");
+    useStore.getState().setEntityDraft("npcs", "1", { name: "Alicia" });
+    await expect(useStore.getState().saveEntity("npcs", "1")).rejects.toThrow("write failed");
+
+    const entry = useStore.getState().entityCache["npcs:1"];
+    expect(entry.dirty).toBe(true);
+    expect(entry.pristine).toEqual({ name: "Alice" });
+    expect(useStore.getState().saveError["npcs:1"]).toContain("write failed");
+    expect(useStore.getState().saving["npcs:1"]).toBeUndefined();
+  });
+
+  it("setWorld and closeWorld reset the entity cache and save state", async () => {
+    invokeMock.mockResolvedValueOnce({ name: "Alice" });
+    await useStore.getState().loadEntityIntoCache("npcs", "1");
+    useStore.setState((s) => ({
+      saving: { ...s.saving, "npcs:1": true },
+      saveError: { ...s.saveError, "npcs:1": "stale" },
+    }));
+
+    useStore.getState().closeWorld();
+    expect(useStore.getState().entityCache).toEqual({});
+    expect(useStore.getState().saving).toEqual({});
+    expect(useStore.getState().saveError).toEqual({});
   });
 });

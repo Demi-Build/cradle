@@ -35,6 +35,13 @@ pub trait DataSource: Send + Sync {
     fn list_entities(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRef>, String>;
     fn list_entity_rows(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRow>, String>;
     fn get_entity(&self, path: &Path, type_id: &str, id: &str) -> Result<Value, String>;
+    fn update_entity(
+        &self,
+        path: &Path,
+        type_id: &str,
+        id: &str,
+        data: &Value,
+    ) -> Result<(), String>;
     fn resolve_asset(&self, path: &Path, hint: &str) -> Option<String>;
 }
 
@@ -103,6 +110,33 @@ impl LocalFsDataSource {
         let s =
             std::fs::read_to_string(path).map_err(|e| format!("read {}: {}", path.display(), e))?;
         serde_json::from_str(&s).map_err(|e| format!("parse {}: {}", path.display(), e))
+    }
+
+    // Tmpfile in the target's parent dir + rename. Same-FS rename is atomic
+    // on Unix/Windows, so a flat-collection write can't be torn into
+    // half-written corruption.
+    fn atomic_write(target: &Path, contents: &[u8]) -> Result<(), String> {
+        let dir = target
+            .parent()
+            .ok_or_else(|| format!("target has no parent directory: {}", target.display()))?;
+        std::fs::create_dir_all(dir).map_err(|e| format!("create dir {}: {}", dir.display(), e))?;
+        let mut tmp = tempfile::NamedTempFile::new_in(dir)
+            .map_err(|e| format!("tempfile in {}: {}", dir.display(), e))?;
+        use std::io::Write;
+        tmp.write_all(contents)
+            .map_err(|e| format!("write tmp for {}: {}", target.display(), e))?;
+        tmp.flush()
+            .map_err(|e| format!("flush tmp for {}: {}", target.display(), e))?;
+        tmp.persist(target)
+            .map_err(|e| format!("persist {}: {}", target.display(), e.error))?;
+        Ok(())
+    }
+
+    fn write_json(target: &Path, value: &Value) -> Result<(), String> {
+        let mut bytes = serde_json::to_vec_pretty(value)
+            .map_err(|e| format!("serialize {}: {}", target.display(), e))?;
+        bytes.push(b'\n');
+        Self::atomic_write(target, &bytes)
     }
 
     fn collection_entries(root: &Path, type_id: &str) -> Result<Vec<EntityRef>, String> {
@@ -400,6 +434,83 @@ impl DataSource for LocalFsDataSource {
             }
             let obj: serde_json::Map<String, Value> = files.into_iter().collect();
             return Ok(Value::Object(obj));
+        }
+        Err(format!(
+            "entity {}/{} not found under {}",
+            type_id,
+            id,
+            root.display()
+        ))
+    }
+
+    fn update_entity(
+        &self,
+        path: &Path,
+        type_id: &str,
+        id: &str,
+        data: &Value,
+    ) -> Result<(), String> {
+        let root = Self::data_root(path);
+        if is_audio_type(type_id) {
+            return Err("audio entities are not editable".to_string());
+        }
+        let flat = root.join(type_id).join(format!("{}.json", type_id));
+        if flat.is_file() {
+            let v = Self::read_json(&flat)?;
+            let next = match v {
+                Value::Array(mut a) => {
+                    let mut replaced = false;
+                    for (i, item) in a.iter_mut().enumerate() {
+                        let matches_id = item
+                            .get("id")
+                            .map(|x| x.to_string().trim_matches('"').to_string())
+                            == Some(id.to_string());
+                        let matches_index = i.to_string() == id;
+                        if matches_id || (item.get("id").is_none() && matches_index) {
+                            *item = data.clone();
+                            replaced = true;
+                            break;
+                        }
+                    }
+                    if !replaced {
+                        return Err(format!("entity {}/{} not found", type_id, id));
+                    }
+                    Value::Array(a)
+                }
+                Value::Object(mut o) => {
+                    if !o.contains_key(id) {
+                        return Err(format!("entity {}/{} not found", type_id, id));
+                    }
+                    o.insert(id.to_string(), data.clone());
+                    Value::Object(o)
+                }
+                _ => {
+                    return Err(format!(
+                        "cannot update entity in non-collection file {}",
+                        flat.display()
+                    ));
+                }
+            };
+            return Self::write_json(&flat, &next);
+        }
+        let direct = root.join(type_id).join(format!("{}.json", id));
+        if direct.is_file() {
+            return Self::write_json(&direct, data);
+        }
+        let nested_dir = root.join(type_id).join(id);
+        if nested_dir.is_dir() {
+            let mut json_files: Vec<PathBuf> = Vec::new();
+            for entry in std::fs::read_dir(&nested_dir).map_err(|e| e.to_string())? {
+                let entry = entry.map_err(|e| e.to_string())?;
+                let fname = entry.file_name().to_string_lossy().to_string();
+                if fname.ends_with(".json") {
+                    json_files.push(entry.path());
+                }
+            }
+            if json_files.len() == 1 {
+                return Self::write_json(&json_files.into_iter().next().unwrap(), data);
+            }
+            return Err("multi-file nested entities are not editable in v0.2".to_string());
         }
         Err(format!(
             "entity {}/{} not found under {}",
@@ -761,5 +872,183 @@ mod tests {
             .resolve_asset(&f.root, "ogre.png")
             .unwrap();
         assert!(out.ends_with("ogre.png"));
+    }
+
+    // --- update_entity ---
+
+    #[test]
+    fn update_entity_overwrites_direct_per_file() {
+        let f = WorldFixture::new();
+        f.write_json("data/quests/q1.json", &json!({"id": "q1", "title": "Old"}));
+        LocalFsDataSource
+            .update_entity(
+                &f.root,
+                "quests",
+                "q1",
+                &json!({"id": "q1", "title": "New"}),
+            )
+            .unwrap();
+        let v = LocalFsDataSource
+            .get_entity(&f.root, "quests", "q1")
+            .unwrap();
+        assert_eq!(v.get("title").and_then(|t| t.as_str()), Some("New"));
+    }
+
+    #[test]
+    fn update_entity_splices_into_flat_array_and_leaves_siblings() {
+        let f = WorldFixture::new();
+        f.write_json(
+            "data/npcs/npcs.json",
+            &json!([
+                {"id": "npc_a", "name": "Alice"},
+                {"id": "npc_b", "name": "Bob"},
+            ]),
+        );
+        LocalFsDataSource
+            .update_entity(
+                &f.root,
+                "npcs",
+                "npc_b",
+                &json!({"id": "npc_b", "name": "Bobby", "level": 3}),
+            )
+            .unwrap();
+        let updated = LocalFsDataSource
+            .get_entity(&f.root, "npcs", "npc_b")
+            .unwrap();
+        assert_eq!(updated.get("name").and_then(|n| n.as_str()), Some("Bobby"));
+        assert_eq!(updated.get("level").and_then(|n| n.as_i64()), Some(3));
+        let sibling = LocalFsDataSource
+            .get_entity(&f.root, "npcs", "npc_a")
+            .unwrap();
+        assert_eq!(sibling.get("name").and_then(|n| n.as_str()), Some("Alice"));
+    }
+
+    #[test]
+    fn update_entity_splices_flat_array_by_index_when_no_id_field() {
+        let f = WorldFixture::new();
+        f.write_json(
+            "data/items/items.json",
+            &json!([
+                {"name": "Stick"},
+                {"name": "Stone"},
+            ]),
+        );
+        LocalFsDataSource
+            .update_entity(&f.root, "items", "1", &json!({"name": "Boulder"}))
+            .unwrap();
+        let v = LocalFsDataSource.get_entity(&f.root, "items", "1").unwrap();
+        assert_eq!(v.get("name").and_then(|n| n.as_str()), Some("Boulder"));
+        let other = LocalFsDataSource.get_entity(&f.root, "items", "0").unwrap();
+        assert_eq!(other.get("name").and_then(|n| n.as_str()), Some("Stick"));
+    }
+
+    #[test]
+    fn update_entity_splices_into_flat_object_and_leaves_siblings() {
+        let f = WorldFixture::new();
+        f.write_json(
+            "data/rooms/rooms.json",
+            &json!({
+                "room_1": {"name": "Entry"},
+                "room_2": {"name": "Hall"},
+            }),
+        );
+        LocalFsDataSource
+            .update_entity(&f.root, "rooms", "room_2", &json!({"name": "Grand Hall"}))
+            .unwrap();
+        let updated = LocalFsDataSource
+            .get_entity(&f.root, "rooms", "room_2")
+            .unwrap();
+        assert_eq!(
+            updated.get("name").and_then(|n| n.as_str()),
+            Some("Grand Hall")
+        );
+        let sibling = LocalFsDataSource
+            .get_entity(&f.root, "rooms", "room_1")
+            .unwrap();
+        assert_eq!(sibling.get("name").and_then(|n| n.as_str()), Some("Entry"));
+    }
+
+    #[test]
+    fn update_entity_overwrites_single_file_nested_dir() {
+        let f = WorldFixture::new();
+        f.write_json(
+            "data/rooms/room_1/maze.json",
+            &json!({"environment_name": "Crypt", "grid": []}),
+        );
+        LocalFsDataSource
+            .update_entity(
+                &f.root,
+                "rooms",
+                "room_1",
+                &json!({"environment_name": "Vault", "grid": [[0]]}),
+            )
+            .unwrap();
+        let v = LocalFsDataSource
+            .get_entity(&f.root, "rooms", "room_1")
+            .unwrap();
+        assert_eq!(
+            v.get("environment_name").and_then(|s| s.as_str()),
+            Some("Vault")
+        );
+    }
+
+    #[test]
+    fn update_entity_rejects_audio_types() {
+        let f = WorldFixture::new();
+        f.write_bytes("data/music/theme.mp3", b"id3");
+        let res =
+            LocalFsDataSource.update_entity(&f.root, "music", "theme", &json!({"name": "Theme"}));
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("audio"));
+    }
+
+    #[test]
+    fn update_entity_rejects_multi_file_nested_dir() {
+        let f = WorldFixture::new();
+        f.write_json(
+            "data/rooms/room_1/maze.json",
+            &json!({"environment_name": "Crypt"}),
+        );
+        f.write_json("data/rooms/room_1/story.json", &json!({"beat": "x"}));
+        let res = LocalFsDataSource.update_entity(
+            &f.root,
+            "rooms",
+            "room_1",
+            &json!({"environment_name": "Vault"}),
+        );
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("multi-file"));
+    }
+
+    #[test]
+    fn update_entity_errors_when_missing_in_flat_array() {
+        let f = WorldFixture::new();
+        f.write_json("data/npcs/npcs.json", &json!([{"id": "npc_a"}]));
+        let res =
+            LocalFsDataSource.update_entity(&f.root, "npcs", "ghost", &json!({"id": "ghost"}));
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("not found"));
+    }
+
+    #[test]
+    fn update_entity_errors_when_missing_in_flat_object() {
+        let f = WorldFixture::new();
+        f.write_json(
+            "data/rooms/rooms.json",
+            &json!({"room_1": {"name": "Entry"}}),
+        );
+        let res =
+            LocalFsDataSource.update_entity(&f.root, "rooms", "ghost", &json!({"name": "Ghost"}));
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("not found"));
+    }
+
+    #[test]
+    fn update_entity_errors_when_type_dir_absent() {
+        let f = WorldFixture::new();
+        let res =
+            LocalFsDataSource.update_entity(&f.root, "npcs", "npc_a", &json!({"name": "Alice"}));
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("not found"));
     }
 }

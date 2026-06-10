@@ -12,6 +12,13 @@ import { AudioPlayer } from "./AudioPlayer";
 import { useStore } from "../store";
 import { api } from "../lib/invoke";
 import { Icon } from "./start/Icons";
+import {
+  ScalarInput,
+  ProseInput,
+  inferType,
+  setField,
+  useDraftUpdater,
+} from "./edit/inputs";
 
 function useStoreWorldPath() {
   return useStore((s) => s.worldPath);
@@ -42,6 +49,7 @@ function useAssetUrlInline(worldPath: string, hint: string | null | undefined): 
 }
 
 type Json = Record<string, unknown>;
+type ScalarValue = string | number | boolean | null;
 
 const SCALAR_TYPES = ["string", "number", "boolean"];
 
@@ -72,7 +80,7 @@ const NPC_PROSE_ORDER = [
   "portrait_prompt",
 ];
 
-function isScalar(v: unknown): v is string | number | boolean {
+function isScalar(v: unknown): v is ScalarValue {
   return SCALAR_TYPES.includes(typeof v) || v === null;
 }
 
@@ -91,17 +99,24 @@ export function EntityOverview({
   data,
   typeId,
   entityId,
+  editMode = false,
 }: {
   data: Json;
   typeId: string;
   entityId: string;
+  editMode?: boolean;
 }) {
+  const updateDraft = useDraftUpdater(typeId, entityId);
+  const setScalar = (key: string, value: ScalarValue) => updateDraft(setField(data, key, value));
+
   const name =
     (data.name as string | undefined) ??
     (data.environment_name as string | undefined) ??
     (data.id as string | number | undefined)?.toString() ??
     entityId ??
     "(unnamed)";
+  // Decides which underlying field the editable title binds to.
+  const nameField = typeof data.name === "string" ? "name" : typeof data.environment_name === "string" ? "environment_name" : null;
   const portraitHint =
     (data[PORTRAIT_FIELDS[0]] as string | undefined) ??
     (data[PORTRAIT_FIELDS[1]] as string | undefined) ??
@@ -166,7 +181,7 @@ export function EntityOverview({
     ].forEach((k) => typeSkip.add(k));
 
   const prose: Array<[string, string]> = [];
-  const scalars: Array<[string, string]> = [];
+  const scalars: Array<[string, ScalarValue]> = [];
   const refs: Array<[string, ReturnType<typeof refFromField>]> = [];
   const complex: Array<[string, unknown]> = [];
   const noteLists: Array<[string, string[]]> = [];
@@ -219,7 +234,7 @@ export function EntityOverview({
     if (isNpcProse || (PROSE_FIELDS.has(key) && typeof value === "string" && value.length > 60)) {
       prose.push([key, value as string]);
     } else if (isScalar(value)) {
-      scalars.push([key, formatValue(value)]);
+      scalars.push([key, value]);
     } else {
       complex.push([key, value]);
     }
@@ -237,8 +252,9 @@ export function EntityOverview({
   }
 
   // For events, inject a synthesized "failure damage" scalar combining type + range,
-  // placed alongside other combat-outcome stats.
-  if (isEvent) {
+  // placed alongside other combat-outcome stats. Read-only by construction (it spans
+  // two fields); in edit mode the user can change them via the Raw JSON tab.
+  if (isEvent && !editMode) {
     const fType = data.failure_damage_type;
     const fRange = data.failure_damage_range;
     const typeStr = typeof fType === "string" ? fType : null;
@@ -281,10 +297,40 @@ export function EntityOverview({
   const portraitPrompt =
     typeof data.portrait_prompt === "string" ? data.portrait_prompt : undefined;
 
+  const renderScalarRow = ([k, v]: [string, ScalarValue]) => (
+    <div key={k} className="field-row">
+      <div className="field-key">{labelFor(k)}</div>
+      <div className="field-val">
+        {editMode && k !== "failure_damage" ? (
+          <ScalarInput
+            value={v}
+            type={inferType(v)}
+            onChange={(next) => setScalar(k, next as ScalarValue)}
+          />
+        ) : (
+          formatValue(v)
+        )}
+      </div>
+    </div>
+  );
+
+  const renderProseBlock = ([k, v]: [string, string]) => (
+    <div key={k} className="prose-block">
+      <div className="prose-label">{labelFor(k)}</div>
+      <div className="prose-body">
+        {editMode ? (
+          <ProseInput value={v} onChange={(next) => setScalar(k, next)} />
+        ) : (
+          v
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="overview">
       {isRoom ? (
-        <RoomHero data={data} entityId={entityId} />
+        <RoomHero data={data} entityId={entityId} editMode={editMode} onNameChange={nameField ? (v) => setScalar(nameField, v) : undefined} />
       ) : (
         <header
           className={`overview-header ${isNpc ? "overview-header--npc" : ""} ${isMonster ? "overview-header--monster" : ""} ${isEvent ? "overview-header--event" : ""} ${isClass ? "overview-header--class" : ""}`}
@@ -305,7 +351,17 @@ export function EntityOverview({
             )}
           </div>
           <div className="overview-titleblock">
-            <h2 className="overview-name">{name}</h2>
+            <h2 className="overview-name">
+              {editMode && nameField ? (
+                <ScalarInput
+                  type="string"
+                  value={String(data[nameField] ?? "")}
+                  onChange={(v) => setScalar(nameField, typeof v === "string" ? v : "")}
+                />
+              ) : (
+                name
+              )}
+            </h2>
             <div className="overview-sub">
               <span className="chip">{typeId}</span>
               {typeof data.id !== "undefined" && (
@@ -314,48 +370,65 @@ export function EntityOverview({
               {typeof data.type === "string" && (
                 <span className="chip chip-muted">{data.type}</span>
               )}
-              {isBoss && <span className="ability-badge starting">boss</span>}
+              {isMonster &&
+                (editMode ? (
+                  <button
+                    type="button"
+                    className={`ability-badge is-toggle ${data.is_boss ? "starting" : "is-off"}`}
+                    onClick={() => setScalar("is_boss", !data.is_boss)}
+                  >
+                    boss
+                  </button>
+                ) : (
+                  // Always render the slot — schema-driven presentation. Dim
+                  // when off so the layout is identical between modes.
+                  <span className={`ability-badge ${isBoss ? "starting" : "is-off"}`}>boss</span>
+                ))}
             </div>
             {scalars.length > 0 && (
-              <div className="overview-fields-inline">
-                {scalars.map(([k, v]) => (
-                  <div key={k} className="field-row">
-                    <div className="field-key">{labelFor(k)}</div>
-                    <div className="field-val">{v}</div>
-                  </div>
-                ))}
-              </div>
+              <div className="overview-fields-inline">{scalars.map(renderScalarRow)}</div>
             )}
-            {itemStats && <ItemStatsTable stats={itemStats} />}
+            {itemStats && <ItemStatsTable stats={itemStats} editMode={editMode} onChange={(k, v) => updateDraft(setField(data, "item_stats", { ...itemStats, [k]: v }))} />}
             {isClass && typeof data.starting_weapon === "string" && (
               <StartingWeaponField name={data.starting_weapon} />
             )}
-            {classStats && <ClassStatsTable stats={classStats} />}
+            {classStats && <ClassStatsTable stats={classStats} editMode={editMode} onChange={(k, v) => updateDraft(setField(data, "stats", { ...classStats, [k]: v }))} />}
             {isMonster && (
-              <MonsterStatBlock data={data as Parameters<typeof MonsterStatBlock>[0]["data"]} />
+              <MonsterStatBlock
+                data={data as Parameters<typeof MonsterStatBlock>[0]["data"]}
+                editMode={editMode}
+                typeId={typeId}
+                entityId={entityId}
+              />
             )}
             {isMonster &&
               Array.isArray(data.abilities) &&
               (data.abilities as unknown[]).length > 0 && (
                 <MonsterAbilities
                   abilities={data.abilities as Parameters<typeof MonsterAbilities>[0]["abilities"]}
+                  editMode={editMode}
+                  typeId={typeId}
+                  entityId={entityId}
+                  data={data}
                 />
               )}
-            {isNpc && npcBackstory && (
+            {isNpc && (npcBackstory !== null || editMode) && (
               <div className="overview-backstory">
                 <div className="prose-label">backstory</div>
-                <div className="prose-body">{npcBackstory}</div>
+                <div className="prose-body">
+                  {editMode ? (
+                    <ProseInput
+                      value={npcBackstory ?? ""}
+                      onChange={(next) => setScalar("backstory", next)}
+                    />
+                  ) : (
+                    npcBackstory
+                  )}
+                </div>
               </div>
             )}
             {(isNpc || isMonster || isEvent || isClass) && prose.length > 0 && (
-              <div className="overview-prose-inline">
-                {prose.map(([k, v]) => (
-                  <div key={k} className="prose-block">
-                    <div className="prose-label">{labelFor(k)}</div>
-                    <div className="prose-body">{v}</div>
-                  </div>
-                ))}
-              </div>
+              <div className="overview-prose-inline">{prose.map(renderProseBlock)}</div>
             )}
             {(isNpc || isMonster || isEvent || isClass) && noteLists.length > 0 && (
               <div className="overview-notes-inline">
@@ -376,14 +449,7 @@ export function EntityOverview({
       )}
 
       {!isNpc && !isMonster && !isEvent && !isClass && prose.length > 0 && (
-        <section className="overview-prose">
-          {prose.map(([k, v]) => (
-            <div key={k} className="prose-block">
-              <div className="prose-label">{labelFor(k)}</div>
-              <div className="prose-body">{v}</div>
-            </div>
-          ))}
-        </section>
+        <section className="overview-prose">{prose.map(renderProseBlock)}</section>
       )}
 
       {!isNpc && !isMonster && !isEvent && !isClass && noteLists.length > 0 && (
@@ -402,14 +468,7 @@ export function EntityOverview({
       )}
 
       {isRoom && scalars.length > 0 && (
-        <section className="overview-fields">
-          {scalars.map(([k, v]) => (
-            <div key={k} className="field-row">
-              <div className="field-key">{labelFor(k)}</div>
-              <div className="field-val">{v}</div>
-            </div>
-          ))}
-        </section>
+        <section className="overview-fields">{scalars.map(renderScalarRow)}</section>
       )}
 
       {refs.length > 0 && (
@@ -671,7 +730,15 @@ function QuestBadge({ questId, questType }: { questId: string; questType?: strin
   );
 }
 
-function ItemStatsTable({ stats }: { stats: Record<string, string | number> }) {
+function ItemStatsTable({
+  stats,
+  editMode,
+  onChange,
+}: {
+  stats: Record<string, string | number>;
+  editMode: boolean;
+  onChange: (k: string, v: string | number | null) => void;
+}) {
   const entries = Object.entries(stats).filter(([, v]) => v !== null && v !== undefined);
   if (entries.length === 0) return null;
   return (
@@ -682,7 +749,17 @@ function ItemStatsTable({ stats }: { stats: Record<string, string | number> }) {
           {entries.map(([k, v]) => (
             <tr key={k}>
               <td className="is-key">{k.replace(/_/g, " ")}</td>
-              <td className={`is-val ${typeof v === "number" ? "is-val-num" : ""}`}>{String(v)}</td>
+              <td className={`is-val ${typeof v === "number" ? "is-val-num" : ""}`}>
+                {editMode ? (
+                  <ScalarInput
+                    value={v}
+                    type={typeof v === "number" ? "number" : "string"}
+                    onChange={(next) => onChange(k, (next ?? "") as string | number)}
+                  />
+                ) : (
+                  String(v)
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -741,7 +818,15 @@ function StartingWeaponField({ name }: { name: string }) {
   );
 }
 
-function ClassStatsTable({ stats }: { stats: Record<string, number> }) {
+function ClassStatsTable({
+  stats,
+  editMode,
+  onChange,
+}: {
+  stats: Record<string, number>;
+  editMode: boolean;
+  onChange: (k: string, v: number) => void;
+}) {
   const entries = Object.entries(stats).filter(([, v]) => typeof v === "number");
   if (entries.length === 0) return null;
   return (
@@ -751,7 +836,17 @@ function ClassStatsTable({ stats }: { stats: Record<string, number> }) {
         {entries.map(([k, v]) => (
           <div key={k} className="class-stat">
             <div className="cs-key">{k}</div>
-            <div className="cs-val">{v}</div>
+            <div className="cs-val">
+              {editMode ? (
+                <ScalarInput
+                  value={v}
+                  type="number"
+                  onChange={(next) => onChange(k, typeof next === "number" ? next : v)}
+                />
+              ) : (
+                v
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -759,7 +854,17 @@ function ClassStatsTable({ stats }: { stats: Record<string, number> }) {
   );
 }
 
-function RoomHero({ data, entityId }: { data: Record<string, unknown>; entityId: string }) {
+function RoomHero({
+  data,
+  entityId,
+  editMode,
+  onNameChange,
+}: {
+  data: Record<string, unknown>;
+  entityId: string;
+  editMode: boolean;
+  onNameChange?: (v: string) => void;
+}) {
   const name = (typeof data.environment_name === "string" && data.environment_name) || entityId;
   const env = typeof data.environment === "string" ? data.environment : undefined;
   const level = typeof data.level === "number" ? data.level : undefined;
@@ -777,7 +882,17 @@ function RoomHero({ data, entityId }: { data: Record<string, unknown>; entityId:
         <RoomHeroImg hint={mapHint} alt={`${name} map`} label="layout" pixelated />
       </div>
       <div className="room-hero-meta">
-        <h2 className="overview-name">{name}</h2>
+        <h2 className="overview-name">
+          {editMode && onNameChange ? (
+            <ScalarInput
+              type="string"
+              value={String(data.environment_name ?? "")}
+              onChange={(v) => onNameChange(typeof v === "string" ? v : "")}
+            />
+          ) : (
+            name
+          )}
+        </h2>
         <div className="overview-sub">
           <span className="chip">room</span>
           <span className="chip chip-muted">id {entityId}</span>

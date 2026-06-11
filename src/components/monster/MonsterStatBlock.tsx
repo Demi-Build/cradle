@@ -1,5 +1,6 @@
 import type { Monster, MonsterAbility } from "./types";
-import { ScalarInput, useDraftUpdater } from "../edit/inputs";
+import { ScalarInput } from "../edit/inputs";
+import { useDraftUpdater } from "../edit/draftHelpers";
 
 /* ============================================================
    Schema-driven presentation (PoC)

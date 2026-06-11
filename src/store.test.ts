@@ -19,6 +19,7 @@ function resetStore() {
     saving: {},
     saveError: {},
     selection: { kind: "none" },
+    editMode: false,
     error: null,
     lightbox: null,
     recents: [],
@@ -400,5 +401,65 @@ describe("store: entity cache", () => {
     expect(useStore.getState().entityCache).toEqual({});
     expect(useStore.getState().saving).toEqual({});
     expect(useStore.getState().saveError).toEqual({});
+  });
+});
+
+// Edit mode is per-session intent — these tests pin the invariant that it is
+// always cleared on entity-navigation and world-transition actions, so a stale
+// `editMode: true` can't leak across entities or a world reload.
+describe("store: editMode lifecycle", () => {
+  beforeEach(resetStore);
+
+  it("setEditMode and toggleEditMode flip the flag", () => {
+    const { setEditMode, toggleEditMode } = useStore.getState();
+    expect(useStore.getState().editMode).toBe(false);
+    setEditMode(true);
+    expect(useStore.getState().editMode).toBe(true);
+    toggleEditMode();
+    expect(useStore.getState().editMode).toBe(false);
+    toggleEditMode();
+    expect(useStore.getState().editMode).toBe(true);
+  });
+
+  it("select() resets editMode to false", () => {
+    useStore.setState({ editMode: true });
+    useStore.getState().select({ kind: "entity", typeId: "npcs", id: "1" });
+    expect(useStore.getState().editMode).toBe(false);
+  });
+
+  it("setWorld with a value resets editMode to false", () => {
+    useStore.setState({ editMode: true });
+    useStore.getState().setWorld({ path: "/w", name: "w", entity_counts: [] });
+    expect(useStore.getState().editMode).toBe(false);
+  });
+
+  it("setWorld with null resets editMode to false", () => {
+    useStore.setState({ editMode: true });
+    useStore.getState().setWorld(null);
+    expect(useStore.getState().editMode).toBe(false);
+  });
+
+  it("closeWorld resets editMode to false", () => {
+    useStore.setState({ editMode: true });
+    useStore.getState().closeWorld();
+    expect(useStore.getState().editMode).toBe(false);
+  });
+
+  it("loadWorldByPath resets editMode to false on success", async () => {
+    invokeMock.mockImplementation((cmd: string) => {
+      switch (cmd) {
+        case "load_world":
+          return Promise.resolve({ path: "/w", name: "w", entity_counts: [] });
+        case "get_world_bible":
+          return Promise.resolve({ story: {} });
+        case "read_world_json":
+          return Promise.resolve({});
+        default:
+          return Promise.reject(new Error(`unexpected ${cmd}`));
+      }
+    });
+    useStore.setState({ editMode: true });
+    await useStore.getState().loadWorldByPath("/w");
+    expect(useStore.getState().editMode).toBe(false);
   });
 });

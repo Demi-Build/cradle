@@ -12,7 +12,8 @@ import { AudioPlayer } from "./AudioPlayer";
 import { useStore } from "../store";
 import { api } from "../lib/invoke";
 import { Icon } from "./start/Icons";
-import { ScalarInput, ProseInput, inferType, setField, useDraftUpdater } from "./edit/inputs";
+import { ScalarInput, ProseInput } from "./edit/inputs";
+import { inferType, setField, useDraftUpdater } from "./edit/draftHelpers";
 
 function useStoreWorldPath() {
   return useStore((s) => s.worldPath);

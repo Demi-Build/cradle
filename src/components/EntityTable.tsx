@@ -12,6 +12,7 @@ import {
 import { useStore } from "../store";
 import { api, type EntityRow } from "../lib/invoke";
 import { Portrait } from "./Portrait";
+import { RowEditor } from "./db/RowEditor";
 import { Icon } from "./start/Icons";
 
 type Row = EntityRow;
@@ -26,6 +27,43 @@ const COLUMN_CONFIG: Record<string, string[]> = {
   rooms: ["environment_name", "environment", "level"],
   music: ["name", "filename"],
   sfx: ["name", "filename"],
+  // Platformer catalog — dotted keys reach nested fields, __keys are computed.
+  enemies: [
+    "name", "archetype", "size", "rarity", "stats.hp", "stats.damage",
+    "stats.speed", "habitats", "behavior.patrol_range", "behavior.aggro_range",
+    "review_status",
+  ],
+  levels: [
+    "stage_id", "__dims", "__enemies", "__items", "layout_fallback", "status",
+    "review_status",
+  ],
+  tilesets: ["stage_id", "__slots", "render_filter", "tilesheet_path"],
+  backdrops: ["stage_id", "__bands", "depths"],
+  audio: ["stage_id", "music_path", "__sfx"],
+};
+
+// Platformer items share the "items" type id with MazeWorld's — pick by shape.
+const PLATFORMER_ITEM_COLUMNS = [
+  "name", "kind", "rarity", "params.coin_value", "params.heal_amount",
+  "params.duration_s", "params.boost_mult", "review_status",
+];
+const PLATFORMER_ITEM_SORTS: SortOption[] = [
+  { id: "name", label: "Name", keys: ["name"] },
+  { id: "kind-name", label: "Kind → Name", keys: ["kind", "name"], groupKey: "kind" },
+  { id: "rarity-name", label: "Rarity → Name", keys: ["rarity", "name"], groupKey: "rarity" },
+];
+function isPlatformerItems(typeId: string, rows: Row[]): boolean {
+  return typeId === "items" && !!rows[0]?.data && "item_id" in rows[0].data;
+}
+
+// Computed table fields (spreadsheet-style rollups of nested data).
+const COMPUTED: Record<string, (row: Row) => string | number> = {
+  __dims: (r) => `${r.data?.grid_width ?? "?"}×${r.data?.grid_height ?? "?"}`,
+  __enemies: (r) => ((r.data?.entities as unknown[] | undefined) ?? []).length,
+  __items: (r) => ((r.data?.items as unknown[] | undefined) ?? []).length,
+  __slots: (r) => ((r.data?.slots as unknown[] | undefined) ?? []).length,
+  __bands: (r) => ((r.data?.band_paths as unknown[] | undefined) ?? []).length,
+  __sfx: (r) => Object.keys((r.data?.sfx_paths as object | undefined) ?? {}).length,
 };
 
 const PARTITION_FIELD: Record<string, string> = {
@@ -123,24 +161,65 @@ const SORT_CONFIG: Record<string, SortOption[]> = {
   ],
   music: [{ id: "name", label: "Name", keys: ["name"] }],
   sfx: [{ id: "name", label: "Name", keys: ["name"] }],
+  enemies: [
+    { id: "name", label: "Name", keys: ["name"] },
+    { id: "arch-name", label: "Archetype → Name", keys: ["archetype", "name"], groupKey: "archetype" },
+    { id: "rarity-name", label: "Rarity → Name", keys: ["rarity", "name"], groupKey: "rarity" },
+    { id: "size-first", label: "Biggest first", keys: ["-size", "name"] },
+  ],
+  levels: [
+    { id: "id", label: "Level id", keys: ["id"] },
+    { id: "stage-id", label: "Stage → Id", keys: ["stage_id", "id"], groupKey: "stage_id" },
+  ],
+  tilesets: [{ id: "id", label: "Stage", keys: ["id"] }],
+  backdrops: [{ id: "id", label: "Stage", keys: ["id"] }],
+  audio: [{ id: "id", label: "Stage", keys: ["id"] }],
 };
 
 function labelFor(key: string): string {
-  return key.replace(/_/g, " ");
+  if (key.startsWith("__")) return key.slice(2);
+  const leaf = key.includes(".") ? key.split(".").pop()! : key;
+  return leaf.replace(/_/g, " ");
 }
 
-function cellValue(row: Row, key: string): string {
-  const v = row.data?.[key];
+/** Raw cell value: dotted paths reach nested fields, __keys are computed,
+ * primitive arrays join, numbers stay numeric (so sorting sorts). */
+function cellRaw(row: Row, key: string): string | number {
+  if (key.startsWith("__")) return COMPUTED[key]?.(row) ?? "";
+  let v: unknown = row.data;
+  for (const part of key.split(".")) {
+    v = (v as Record<string, unknown> | undefined)?.[part];
+  }
   if (v === undefined || v === null) return "";
-  if (typeof v === "object") return Array.isArray(v) ? `[${v.length}]` : "{…}";
+  if (typeof v === "number") return v;
+  if (Array.isArray(v)) {
+    return v.every((x) => typeof x !== "object") ? v.join(", ") : `[${v.length}]`;
+  }
+  if (typeof v === "object") return "{…}";
   return String(v);
 }
 
+
 function portraitHintFor(typeId: string, row: Row): string | null {
-  const p =
-    (row.data?.profile_image as string | undefined) ??
-    (row.data?.portrait_path as string | undefined);
+  // First non-empty image-ish field (platformer entities carry sprite_path /
+  // tilesheet_path; empty strings are canon's "no art yet", so skip them).
+  const p = [
+    row.data?.profile_image,
+    row.data?.portrait_path,
+    row.data?.sprite_path,
+    row.data?.tilesheet_path,
+  ].find((v): v is string => typeof v === "string" && v.length > 0);
   if (p) return p;
+  if (typeId === "levels") {
+    // Canon's review render is the level thumbnail.
+    const stage = row.data?.stage_id as string | undefined;
+    const lid = (row.data?.level_id as string | undefined) ?? row.id;
+    if (stage) return `review/${stage}/${lid}.png`;
+  }
+  if (typeId === "backdrops") {
+    const bands = row.data?.band_paths as string[] | undefined;
+    if (bands?.length) return bands[bands.length - 1];
+  }
   if (typeId === "rooms") {
     const m = /(\d+)$/.exec(row.id);
     if (m) return `environment_${m[1]}.png`;
@@ -203,11 +282,16 @@ export function EntityTable({
   const select = useStore((s) => s.select);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [filter, setFilter] = useState("");
+  const [newRowOpen, setNewRowOpen] = useState(false);
+  const canCreateRow =
+    typeId === "enemies" || isPlatformerItems(typeId, rows);
   const [partition, setPartition] = useState<string | null>(initialPartition ?? null);
   const [view, setView] = useState<"list" | "cards">(
     typeId === "music" || typeId === "sfx" ? "list" : "cards",
   );
-  const sortOptions = SORT_CONFIG[typeId] ?? [{ id: "id", label: "Id", keys: ["id"] }];
+  const sortOptions = isPlatformerItems(typeId, rows)
+    ? PLATFORMER_ITEM_SORTS
+    : (SORT_CONFIG[typeId] ?? [{ id: "id", label: "Id", keys: ["id"] }]);
   const [sortId, setSortId] = useState<string>(sortOptions[0]?.id ?? "id");
   const partitionKey = PARTITION_FIELD[typeId];
 
@@ -252,9 +336,11 @@ export function EntityTable({
   );
 
   const columns = useMemo<ColumnDef<Row>[]>(() => {
-    const configured = COLUMN_CONFIG[typeId] ?? [];
+    const configured = isPlatformerItems(typeId, rows)
+      ? PLATFORMER_ITEM_COLUMNS
+      : (COLUMN_CONFIG[typeId] ?? []);
     const fallback = configured.length ? configured : deriveColumns(rows);
-    const noPortraits = typeId === "music" || typeId === "sfx";
+    const noPortraits = typeId === "music" || typeId === "sfx" || typeId === "audio";
     const cols: ColumnDef<Row>[] = [];
     if (!noPortraits) {
       cols.push({
@@ -276,7 +362,8 @@ export function EntityTable({
       cols.push({
         id: key,
         header: labelFor(key),
-        accessorFn: (r) => cellValue(r, key),
+        // Raw values keep numbers numeric so header-click sorting is sane.
+        accessorFn: (r) => cellRaw(r, key),
       });
     }
     return cols;
@@ -353,6 +440,13 @@ export function EntityTable({
           ))}
         </div>
       )}
+      {newRowOpen && (
+        <RowEditor
+          typeId={typeId}
+          onClose={() => setNewRowOpen(false)}
+          onCreated={(id) => select({ kind: "entity", typeId, id })}
+        />
+      )}
       <div className="entity-table-toolbar">
         <input
           value={filter}
@@ -365,6 +459,16 @@ export function EntityTable({
           {partition ? ` (of ${rows.length} total)` : ""}
         </span>
         <span className="tb-spacer" />
+        {canCreateRow && (
+          <button
+            className="view-toggle"
+            title="New row (anchored generation)"
+            onClick={() => setNewRowOpen(true)}
+            style={{ cursor: "pointer" }}
+          >
+            ＋ new row
+          </button>
+        )}
         {sortOptions.length > 1 && (
           <label className="sort-inline">
             <span className="sort-inline-label">sort</span>

@@ -103,8 +103,11 @@ export function EntityOverview({
     entityId ??
     "(unnamed)";
   const portraitHint =
-    (data[PORTRAIT_FIELDS[0]] as string | undefined) ??
-    (data[PORTRAIT_FIELDS[1]] as string | undefined) ??
+    [
+      ...PORTRAIT_FIELDS.map((f) => data[f]),
+      data.sprite_path, // platformer enemies / items
+      data.tilesheet_path, // platformer tilesets
+    ].find((v): v is string => typeof v === "string" && v.length > 0) ??
     (typeId === "rooms" ? `${entityId}_map.png` : null);
 
   const isClass = typeId === "classes";
@@ -114,6 +117,7 @@ export function EntityOverview({
   const isItem = typeId === "items";
   const isEvent = typeId === "events";
   const isAudio = typeId === "music" || typeId === "sfx";
+  const isStageAudio = typeId === "audio"; // platformer per-stage audio manifest
 
   if (isAudio) {
     const filename = (data.filename as string | undefined) ?? `${entityId}.mp3`;
@@ -130,6 +134,34 @@ export function EntityOverview({
           </div>
         </header>
         <AudioPlayer hint={filename} name={displayName} kind={typeId} />
+      </div>
+    );
+  }
+
+  if (isStageAudio) {
+    // Platformer stage audio: one manifest per stage with a music theme and a
+    // small SFX set, all referenced by pack-relative path.
+    const music = data.music_path as string | undefined;
+    const sfx = (data.sfx_paths as Record<string, string> | undefined) ?? {};
+    return (
+      <div className="overview">
+        <header className="overview-header">
+          <div className="overview-titleblock">
+            <h2 className="overview-name">{entityId}</h2>
+            <div className="overview-sub">
+              <span className="chip">stage audio</span>
+              {music && <span className="chip chip-muted">{music}</span>}
+            </div>
+          </div>
+        </header>
+        {music ? (
+          <AudioPlayer hint={music} name={`${entityId} · theme`} kind="music" />
+        ) : (
+          <p className="overview-muted">No music generated for this stage.</p>
+        )}
+        {Object.entries(sfx).map(([event, p]) => (
+          <AudioPlayer key={event} hint={p} name={`sfx · ${event}`} kind="sfx" />
+        ))}
       </div>
     );
   }
@@ -306,6 +338,9 @@ export function EntityOverview({
           </div>
           <div className="overview-titleblock">
             <h2 className="overview-name">{name}</h2>
+            {(typeId === "enemies" || (isItem && "item_id" in data)) && (
+              <GenActions typeId={typeId} data={data} entityId={entityId} />
+            )}
             <div className="overview-sub">
               <span className="chip">{typeId}</span>
               {typeof data.id !== "undefined" && (
@@ -824,5 +859,106 @@ function RoomHeroImg({
       </div>
       <figcaption className="room-hero-cap">{label}</figcaption>
     </figure>
+  );
+}
+
+/** Generation actions for platformer DB entities (canon-backed, confirm-gated
+ * — these spend real money on paid backends). */
+function GenActions({
+  typeId,
+  data,
+  entityId,
+}: {
+  typeId: string;
+  data: Record<string, unknown>;
+  entityId?: string;
+}) {
+  const worldPath = useStore((s) => s.worldPath);
+  const select = useStore((s) => s.select);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const kind = typeId === "enemies" ? "enemy" : "item";
+  const id = String(
+    (data.enemy_id as string) ?? (data.item_id as string) ?? entityId ?? "",
+  );
+  if (!id) return null;
+  const target = `${kind}:${id}`;
+
+  const run = async (
+    label: string,
+    confirmText: string,
+    fn: () => Promise<unknown>,
+  ) => {
+    if (!window.confirm(confirmText)) return;
+    setBusy(label);
+    setNote(null);
+    try {
+      const result = (await fn()) as Record<string, unknown>;
+      const warnings = (result.warnings as string[]) ?? [];
+      setNote(warnings.length ? warnings[0] : `${label} done ✓`);
+      select({ kind: "entity", typeId, id: entityId ?? id });
+    } catch (e) {
+      setNote(String(e).slice(0, 160));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const btn: React.CSSProperties = {
+    fontSize: 12,
+    padding: "3px 10px",
+    borderRadius: 6,
+    border: "1px solid var(--border, #3a2f4a)",
+    background: "var(--surface-2, #2a2136)",
+    color: "var(--text-2, #d9cfe8)",
+    cursor: "pointer",
+  };
+  return (
+    <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "6px 0 2px", flexWrap: "wrap" }}>
+      <button
+        style={btn}
+        disabled={!!busy}
+        onClick={() =>
+          run(
+            "generate sprite",
+            `Generate a new sprite for ${id}?\n\nBackend: fal (nano-banana). Rough cost ~$0.04/image. The current sprite is replaced (original stays recoverable in the object store).`,
+            () => api.generateAsset(worldPath, target, "fal"),
+          )
+        }
+      >
+        {busy === "generate sprite" ? "…" : "🎨 Generate sprite"}
+      </button>
+      <button
+        style={btn}
+        disabled={!!busy}
+        onClick={() =>
+          run(
+            "LLM re-complete",
+            `Re-author ${id}'s name/flavor with the LLM (mechanical stats preserved)?\n\nBackend: anthropic (cheap tier). Rough cost: well under 1¢.`,
+            () => api.dbComplete(worldPath, kind, id, ["archetype", "size", "rarity"]),
+          )
+        }
+      >
+        {busy === "LLM re-complete" ? "…" : "✍️ LLM re-complete"}
+      </button>
+      {kind === "enemy" && (
+        <button
+          style={btn}
+          disabled={!!busy}
+          onClick={() =>
+            run(
+              "animate",
+              `Animate ${id} (multi-image path)?\n\nVLM authors a per-state motion spec from the sprite, then one img2img sheet per state (idle/walk/hurt/death…).\nBackends: fal edit + anthropic VLM. Rough cost ~$0.04×states + VLM tokens.`,
+              () => api.animateAsset(worldPath, target, "fal", "anthropic"),
+            )
+          }
+        >
+          {busy === "animate" ? "…" : "🎬 Animate"}
+        </button>
+      )}
+      {note && (
+        <span style={{ fontSize: 11, color: "var(--text-3, #8a8398)" }}>{note}</span>
+      )}
+    </div>
   );
 }

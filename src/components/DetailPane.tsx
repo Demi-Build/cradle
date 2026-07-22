@@ -9,6 +9,7 @@ import type { DialogueTree } from "./dialogue/types";
 import { PuzzleTab } from "./event/PuzzleTab";
 import { hasTreeView, type PuzzleEvent } from "./event/types";
 import { QuestDetail } from "./quest/QuestDetail";
+import { LevelDetail } from "./level/LevelDetail";
 import { WorldBibleView } from "./WorldBibleView";
 
 type Json = Record<string, unknown>;
@@ -47,7 +48,9 @@ export function DetailPane() {
     if (selection.kind !== "entity" || !payload) return null;
     const data = payload as Json;
     const overviewContent =
-      selection.typeId === "quests" ? (
+      selection.typeId === "levels" ? (
+        <LevelDetail levelId={selection.id} />
+      ) : selection.typeId === "quests" ? (
         <QuestDetail
           data={data as Parameters<typeof QuestDetail>[0]["data"]}
           entityId={selection.id}

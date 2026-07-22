@@ -2,6 +2,60 @@ import { useEffect, useState } from "react";
 import { api, type EntityRow } from "../lib/invoke";
 import { useStore } from "../store";
 
+/** Inline "+ New level" form for platformer packs (creates a DRAFT level). */
+function NewLevelForm({ onDone }: { onDone: () => void }) {
+  const { worldPath, setEntities, select, setError } = useStore();
+  const [stages, setStages] = useState<string[]>([]);
+  const [stage, setStage] = useState("");
+  const [width, setWidth] = useState(60);
+  const [height, setHeight] = useState(16);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api
+      .listEntities(worldPath, "tilesets")
+      .then((refs) => {
+        const ids = refs.map((r) => r.id);
+        setStages(ids);
+        if (ids.length) setStage(ids[0]);
+      })
+      .catch(() => {});
+  }, [worldPath]);
+
+  const create = async () => {
+    if (!stage) return;
+    setBusy(true);
+    try {
+      const result = await api.createLevel(worldPath, stage, width, height);
+      setEntities("levels", await api.listEntities(worldPath, "levels"));
+      select({ kind: "entity", typeId: "levels", id: result.level_id });
+      onDone();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const field: React.CSSProperties = { width: 52, fontSize: 11 };
+  return (
+    <div style={{ padding: "6px 10px 8px 26px", display: "flex", flexDirection: "column", gap: 5 }}>
+      <select value={stage} onChange={(e) => setStage(e.target.value)} style={{ fontSize: 11 }}>
+        {stages.map((s) => (
+          <option key={s} value={s}>{s}</option>
+        ))}
+      </select>
+      <div style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 11 }}>
+        W <input type="number" min={8} value={width} onChange={(e) => setWidth(+e.target.value)} style={field} />
+        H <input type="number" min={8} value={height} onChange={(e) => setHeight(+e.target.value)} style={field} />
+      </div>
+      <button onClick={create} disabled={busy || !stage} style={{ fontSize: 11, cursor: "pointer" }}>
+        {busy ? "creating…" : "create draft"}
+      </button>
+    </div>
+  );
+}
+
 const TYPE_LABELS: Record<string, string> = {
   npcs: "NPCs",
   items: "Items",
@@ -12,6 +66,11 @@ const TYPE_LABELS: Record<string, string> = {
   classes: "Classes",
   music: "Music",
   sfx: "SFX",
+  levels: "Levels",
+  enemies: "Enemies",
+  tilesets: "Tilesets",
+  backdrops: "Backdrops",
+  audio: "Audio",
 };
 
 const PARTITION_FIELD: Record<string, string> = {
@@ -26,10 +85,14 @@ export function LeftNav() {
   const worldStoryTitle = useStore((s) => s.worldStoryTitle);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [partitionCounts, setPartitionCounts] = useState<Record<string, PartitionCount[]>>({});
+  const [newLevelOpen, setNewLevelOpen] = useState(false);
+  // Platformer packs expose tilesets — that's the "can create levels" signal.
+  const isPlatformer = !!world?.entity_counts.some((c) => c.type_id === "tilesets");
 
   useEffect(() => {
     setExpanded({});
     setPartitionCounts({});
+    setNewLevelOpen(false);
   }, [worldPath]);
 
   if (!world) {
@@ -112,7 +175,22 @@ export function LeftNav() {
                 </span>
                 <span className="nav-label">{TYPE_LABELS[type_id] ?? type_id}</span>
                 <span className="nav-count">({count})</span>
+                {type_id === "levels" && isPlatformer && (
+                  <span
+                    title="New draft level"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNewLevelOpen((v) => !v);
+                    }}
+                    style={{ marginLeft: 6, cursor: "pointer", opacity: 0.8 }}
+                  >
+                    ＋
+                  </span>
+                )}
               </button>
+              {type_id === "levels" && newLevelOpen && (
+                <NewLevelForm onDone={() => setNewLevelOpen(false)} />
+              )}
 
               {expanded[type_id] && hasPartition && parts && (
                 <ul className="nav-entities">

@@ -21,6 +21,12 @@ type EntitiesByType = Record<string, EntityRef[]>;
 export type LightboxImage = { src: string; alt: string };
 export type Route = "start" | "recents";
 export type Theme = "dark" | "light";
+export type AudioTrack = {
+  typeId: string;
+  id: string;
+  name: string;
+  hint: string;
+};
 
 export type BibleBeat = {
   room_id?: string;
@@ -44,6 +50,12 @@ type Store = {
   route: Route;
   theme: Theme;
   drawerOpen: boolean;
+  audioTrack: AudioTrack | null;
+  audioResolvedSrc: string | null;
+  audioIsPlaying: boolean;
+  audioCurrentTime: number;
+  audioDuration: number;
+  audioError: string | null;
   loading: boolean;
   setWorldPath: (p: string) => void;
   setWorld: (w: WorldSummary | null) => void;
@@ -55,6 +67,17 @@ type Store = {
   setRoute: (r: Route) => void;
   setTheme: (t: Theme) => void;
   setDrawerOpen: (open: boolean) => void;
+  playTrack: (track: AudioTrack) => void;
+  pauseAudio: () => void;
+  resumeAudio: () => void;
+  stopAudio: () => void;
+  seekAudio: (seconds: number) => void;
+  clearAudio: () => void;
+  setAudioResolvedSrc: (src: string | null) => void;
+  setAudioPlaying: (playing: boolean) => void;
+  setAudioTime: (seconds: number) => void;
+  setAudioDuration: (seconds: number) => void;
+  setAudioError: (e: string | null) => void;
   loadWorldByPath: (path: string) => Promise<void>;
   closeWorld: () => void;
   togglePin: (path: string) => void;
@@ -63,6 +86,16 @@ type Store = {
 };
 
 const THEME_KEY = "cradle.theme.v1";
+
+const INITIAL_AUDIO_STATE = {
+  audioTrack: null as AudioTrack | null,
+  audioResolvedSrc: null as string | null,
+  audioIsPlaying: false,
+  audioCurrentTime: 0,
+  audioDuration: 0,
+  audioError: null as string | null,
+};
+
 function initialTheme(): Theme {
   try {
     const v = localStorage.getItem(THEME_KEY);
@@ -84,10 +117,16 @@ export const useStore = create<Store>((set, get) => ({
   route: "start",
   theme: initialTheme(),
   drawerOpen: false,
+  ...INITIAL_AUDIO_STATE,
   loading: false,
   setWorldPath: (p) => set({ worldPath: p }),
   setWorld: (w) =>
-    set({ world: w, entities: {}, selection: w ? { kind: "bible" } : { kind: "none" } }),
+    set({
+      world: w,
+      entities: {},
+      selection: w ? { kind: "bible" } : { kind: "none" },
+      ...(w ? {} : INITIAL_AUDIO_STATE),
+    }),
   setEntities: (typeId, refs) => set((s) => ({ entities: { ...s.entities, [typeId]: refs } })),
   select: (s) => set({ selection: s }),
   setError: (e) => set({ error: e }),
@@ -101,6 +140,34 @@ export const useStore = create<Store>((set, get) => ({
     set({ theme: t });
   },
   setDrawerOpen: (open) => set({ drawerOpen: open }),
+  playTrack: (track) =>
+    set((s) => {
+      const sameTrack =
+        s.audioTrack?.typeId === track.typeId &&
+        s.audioTrack?.id === track.id &&
+        s.audioTrack?.hint === track.hint;
+      if (sameTrack) {
+        return { audioIsPlaying: true, audioError: null };
+      }
+      return {
+        audioTrack: track,
+        audioResolvedSrc: null,
+        audioIsPlaying: true,
+        audioCurrentTime: 0,
+        audioDuration: 0,
+        audioError: null,
+      };
+    }),
+  pauseAudio: () => set({ audioIsPlaying: false }),
+  resumeAudio: () => set((s) => (s.audioTrack ? { audioIsPlaying: true } : {})),
+  stopAudio: () => set({ audioIsPlaying: false, audioCurrentTime: 0 }),
+  seekAudio: (seconds) => set({ audioCurrentTime: Math.max(0, seconds) }),
+  clearAudio: () => set({ ...INITIAL_AUDIO_STATE }),
+  setAudioResolvedSrc: (src) => set({ audioResolvedSrc: src }),
+  setAudioPlaying: (playing) => set({ audioIsPlaying: playing }),
+  setAudioTime: (seconds) => set({ audioCurrentTime: Math.max(0, seconds) }),
+  setAudioDuration: (seconds) => set({ audioDuration: Math.max(0, seconds) }),
+  setAudioError: (e) => set({ audioError: e }),
   closeWorld: () =>
     set({
       world: null,
@@ -110,6 +177,7 @@ export const useStore = create<Store>((set, get) => ({
       entities: {},
       selection: { kind: "none" },
       route: "start",
+      ...INITIAL_AUDIO_STATE,
     }),
   togglePin: (path: string) => set((s) => ({ recents: togglePinFn(s.recents, path) })),
   removeRecent: (path) => set((s) => ({ recents: removeRecentFn(s.recents, path) })),
@@ -174,7 +242,7 @@ export const useStore = create<Store>((set, get) => ({
   },
   loadWorldByPath: async (inputPath: string) => {
     if (import.meta.env.DEV) console.log("[cradle] loadWorldByPath called with:", inputPath);
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, ...INITIAL_AUDIO_STATE });
     try {
       const summary = await api.loadWorld(inputPath);
       // Backend returns the canonical world root (walks up from `/data` if needed).
@@ -188,6 +256,46 @@ export const useStore = create<Store>((set, get) => ({
           counts: summary.entity_counts,
         });
       const prevRecents = get().recents.filter((r) => r.path !== inputPath && r.path !== path);
+
+      // Platformer packs have no world_bible.json (manifest.json + world.json +
+      // level/ instead). Open straight to the first level rather than a Bible
+      // view that would error, and prime the nav with levels + enemies.
+      const isPlatformer = summary.entity_counts.some(
+        (c) => c.type_id === "levels" && c.count > 0,
+      );
+      if (isPlatformer) {
+        let levelRefs: EntityRef[] = [];
+        let enemyRefs: EntityRef[] = [];
+        try {
+          levelRefs = await api.listEntities(path, "levels");
+        } catch {}
+        try {
+          enemyRefs = await api.listEntities(path, "enemies");
+        } catch {}
+        const first = levelRefs[0];
+        set({
+          worldPath: path,
+          world: summary,
+          worldStoryTitle: summary.name,
+          worldBeats: [],
+          selection: first
+            ? { kind: "entity", typeId: "levels", id: first.id }
+            : { kind: "none" },
+          entities: { levels: levelRefs, enemies: enemyRefs },
+          route: "start",
+          recents: prevRecents,
+          ...INITIAL_AUDIO_STATE,
+        });
+        set((s) => ({
+          recents: upsertRecent(s.recents, {
+            path,
+            name: summary.name,
+            lastOpenedAt: Date.now(),
+          }),
+        }));
+        return;
+      }
+
       set({
         worldPath: path,
         world: summary,
@@ -197,6 +305,7 @@ export const useStore = create<Store>((set, get) => ({
         entities: {},
         route: "start",
         recents: prevRecents,
+        ...INITIAL_AUDIO_STATE,
       });
 
       // Best-effort enrichment of the recent entry.
@@ -250,7 +359,7 @@ export const useStore = create<Store>((set, get) => ({
 
       set((s) => ({ recents: upsertRecent(s.recents, recent) }));
     } catch (e) {
-      set({ error: String(e), world: null });
+      set({ error: String(e), world: null, ...INITIAL_AUDIO_STATE });
       throw e;
     } finally {
       set({ loading: false });

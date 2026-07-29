@@ -10,6 +10,8 @@ import { PuzzleTab } from "./event/PuzzleTab";
 import { hasTreeView, type PuzzleEvent } from "./event/types";
 import { QuestDetail } from "./quest/QuestDetail";
 import { LevelDetail } from "./level/LevelDetail";
+import { LibraryPanel } from "./db/LibraryPanel";
+import { LineagePanel } from "./db/LineagePanel";
 import { WorldBibleView } from "./WorldBibleView";
 
 type Json = Record<string, unknown>;
@@ -25,7 +27,8 @@ export function DetailPane() {
     setPayload(null);
     setLocalErr(null);
     setActiveTab(selection.kind === "entity" && selection.tab ? selection.tab : "overview");
-    if (!worldPath || selection.kind === "none") return;
+    if (!worldPath || selection.kind === "none" || selection.kind === "library")
+      return;
     setLoading(true);
     (async () => {
       try {
@@ -97,6 +100,24 @@ export function DetailPane() {
         content: <PuzzleTab event={data as PuzzleEvent} />,
       });
     }
+    // Lineage/History (Library A): platformer asset artifacts whose journal
+    // chains cradle can browse and restore from.
+    const artifactPrefix: Record<string, string> = {
+      enemies: "enemy", items: "item", tilesets: "tileset", backdrops: "backdrop",
+    };
+    if (artifactPrefix[selection.typeId]) {
+      tabs.push({
+        id: "history",
+        label: "History",
+        content: (
+          <LineagePanel
+            artifactId={`${artifactPrefix[selection.typeId]}:${selection.id}`}
+            typeId={selection.typeId}
+            entityId={selection.id}
+          />
+        ),
+      });
+    }
     tabs.push({
       id: "raw",
       label: "Raw JSON",
@@ -141,6 +162,15 @@ export function DetailPane() {
   }
   if (selection.kind === "none") {
     return <main className="detail detail-empty">Select something in the nav.</main>;
+  }
+  // The library browser needs no per-entity payload — render before the
+  // loading/payload guards.
+  if (selection.kind === "library") {
+    return (
+      <main className="detail">
+        <LibraryPanel />
+      </main>
+    );
   }
   if (loading)
     return (

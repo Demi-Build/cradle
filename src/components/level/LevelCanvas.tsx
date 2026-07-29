@@ -204,6 +204,14 @@ export function LevelCanvas({
   const onPointerDown = (e: React.PointerEvent) => {
     const cell = clampCell(cellAt(e));
     canvasRef.current!.setPointerCapture(e.pointerId);
+    // Right-click (and right-drag) ERASES — the discoverable delete gesture,
+    // independent of the armed brush: removes the topmost placement at the
+    // cell, else clears the painted tile (same cascade as the eraser brush).
+    if (e.button === 2) {
+      stroke.current = "erase";
+      onErase?.(cell.x, cell.y);
+      return;
+    }
     // An armed brush takes priority over select/pan.
     if (brush) {
       if (brush.kind === "tile") {
@@ -318,6 +326,7 @@ export function LevelCanvas({
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onContextMenu={(e) => e.preventDefault()}
         style={{ display: "block", imageRendering: "pixelated", cursor: "grab", touchAction: "none" }}
       />
       <div style={{ position: "absolute", right: 10, bottom: 10, display: "flex", gap: 6, alignItems: "center" }}>

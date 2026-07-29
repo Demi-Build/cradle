@@ -4,7 +4,7 @@ use data::{canon_world_root, DataSource, EntityRef, EntityRow, LocalFsDataSource
 use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 struct AppState {
     source: Arc<dyn DataSource>,
@@ -257,6 +257,288 @@ fn db_complete(
     run_canon_owned(with_env_file(args))
 }
 
+/// Resolve the canon repo checkout (for the pygame play harness): CANON_REPO
+/// env wins; else derived from CANON_BIN when it points into `<repo>/.venv/bin/`.
+fn canon_repo_root() -> Result<PathBuf, String> {
+    if let Ok(repo) = std::env::var("CANON_REPO") {
+        if !repo.is_empty() {
+            return Ok(PathBuf::from(repo));
+        }
+    }
+    let bin = std::env::var("CANON_BIN").map_err(|_| {
+        "set CANON_BIN (or CANON_REPO) so cradle can find the play harness".to_string()
+    })?;
+    let p = PathBuf::from(&bin);
+    p.parent() // bin/
+        .and_then(|b| b.parent()) // .venv/
+        .and_then(|v| v.parent()) // repo
+        .map(|r| r.to_path_buf())
+        .ok_or_else(|| format!("cannot derive the canon repo from CANON_BIN={bin}"))
+}
+
+/// The PLAT_* hooks turn the play surfaces into scripted/headless sessions
+/// (capture, trajectory dumps, forced start level, plain rendering) — strip
+/// them all so Play starts from a clean slate, then set only what we mean.
+const PLAT_HOOK_VARS: [&str; 9] = [
+    "PLAT_CAPTURE", "PLAT_TRAJ", "PLAT_HOLD", "PLAT_HOLD_JUMP_EVERY",
+    "PLAT_ACTIONS", "PLAT_CAPTURE_TICKS", "PLAT_CAPTURE_EVERY", "PLAT_LEVEL",
+    "PLAT_PLAIN",
+];
+
+/// Reap the detached child (a dropped Child is never waited on → zombie)
+/// and tell the frontend when the session ends so "playing…" notes clear.
+fn reap_and_notify(app: AppHandle, mut child: std::process::Child, engine: &'static str) -> u32 {
+    let pid = child.id();
+    std::thread::spawn(move || {
+        let _ = child.wait();
+        let _ = app.emit(
+            "play-exited",
+            serde_json::json!({ "pid": pid, "engine": engine }),
+        );
+    });
+    pid
+}
+
+/// Launch the pygame play harness on ONE level, detached — the editor's
+/// "how does this level feel" loop (exact physics parity with godot).
+/// `plain` plays WITHOUT art: palette blocks + placeholder shapes.
+#[tauri::command]
+fn play_level(
+    app: AppHandle,
+    path: String,
+    level_id: String,
+    plain: Option<bool>,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let repo = canon_repo_root()?;
+    let python = repo.join(".venv").join("bin").join("python");
+    let script = repo.join("examples").join("platformer_play.py");
+    if !python.is_file() {
+        return Err(format!("python not found at {}", python.display()));
+    }
+    if !script.is_file() {
+        return Err(format!("play harness not found at {}", script.display()));
+    }
+    let mut cmd = std::process::Command::new(&python);
+    cmd.arg(&script)
+        .arg(&root)
+        .arg(&level_id)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    for var in PLAT_HOOK_VARS {
+        cmd.env_remove(var);
+    }
+    if plain.unwrap_or(false) {
+        cmd.env("PLAT_PLAIN", "1");
+    }
+    let child = cmd
+        .spawn()
+        .map_err(|e| format!("failed to launch play harness: {e}"))?;
+    let pid = reap_and_notify(app, child, "pygame");
+    Ok(serde_json::json!({ "launched": true, "engine": "pygame", "pid": pid }))
+}
+
+/// Launch the FULL game (splash → world map → progression) in Godot,
+/// detached. GODOT_BIN wins; falls back to `godot` on PATH, then the macOS
+/// app bundle. Packs carry project.godot at their root.
+#[tauri::command]
+fn play_game(
+    app: AppHandle,
+    path: String,
+    level_id: Option<String>,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    // A pack generated without the godot engine has nothing to boot — say
+    // so instead of "launching" godot into an error dialog.
+    if !std::path::Path::new(&root).join("project.godot").is_file() {
+        return Err(format!(
+            "no project.godot in {root} — this pack was generated without the \
+             godot engine; use ▶ Play on a level (pygame) instead"
+        ));
+    }
+    let mut candidates: Vec<String> = Vec::new();
+    if let Ok(bin) = std::env::var("GODOT_BIN") {
+        if !bin.is_empty() {
+            candidates.push(bin);
+        }
+    }
+    candidates.push("godot".to_string());
+    candidates.push("/Applications/Godot.app/Contents/MacOS/Godot".to_string());
+
+    let mut errs: Vec<String> = Vec::new();
+    for bin in &candidates {
+        let mut cmd = std::process::Command::new(bin);
+        cmd.arg("--path")
+            .arg(&root)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+        for var in PLAT_HOOK_VARS {
+            cmd.env_remove(var);
+        }
+        if let Some(ref lid) = level_id {
+            // PLAT_LEVEL boots straight into one level, skipping splash/map.
+            cmd.env("PLAT_LEVEL", lid);
+        }
+        match cmd.spawn() {
+            Ok(child) => {
+                let pid = reap_and_notify(app.clone(), child, "godot");
+                return Ok(serde_json::json!({
+                    "launched": true, "engine": "godot", "pid": pid
+                }));
+            }
+            // Every candidate's failure matters — a broken GODOT_BIN is the
+            // diagnostic the user actually needs, not the last fallback's.
+            Err(e) => errs.push(format!("{bin}: {e}")),
+        }
+    }
+    Err(format!(
+        "godot not found ({}) — set GODOT_BIN or put godot on PATH. \
+         Per-level playtesting (▶ Play on a level) uses the built-in pygame harness instead.",
+        errs.join("; ")
+    ))
+}
+
+/// Run generation's real validation suite on one level via `canon level validate`.
+#[tauri::command]
+fn validate_level(path: String, level_id: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&["level", "validate", &root, "--level", &level_id])
+}
+
+/// The artifact's family tree (journal + CAS) via `canon asset lineage`.
+#[tauri::command]
+fn asset_lineage(path: String, target: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&["asset", "lineage", &root, "--target", &target])
+}
+
+/// Make a historic version current again via `canon asset restore`.
+#[tauri::command]
+fn asset_restore(path: String, target: String, to: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&[
+        "asset", "restore", &root, "--target", &target, "--to", &to,
+        "--actor", "cradle:user",
+    ])
+}
+
+/// Fetch a stored version's bytes (base64) via `canon object cat` — history
+/// thumbnails live only in the object store.
+#[tauri::command]
+fn object_cat(path: String, hash: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&["object", "cat", &root, &hash])
+}
+
+/// Browse the GLOBAL asset library index via `canon library list`.
+#[tauri::command]
+fn library_list(
+    kind: Option<String>,
+    query: Option<String>,
+    project: Option<String>,
+) -> Result<Value, String> {
+    let mut args: Vec<String> = vec!["library".into(), "list".into()];
+    if let Some(k) = kind.filter(|s| !s.is_empty()) {
+        args.push("--kind".into());
+        args.push(k);
+    }
+    if let Some(q) = query.filter(|s| !s.is_empty()) {
+        args.push("--query".into());
+        args.push(q);
+    }
+    if let Some(p) = project.filter(|s| !s.is_empty()) {
+        args.push("--project".into());
+        args.push(p);
+    }
+    run_canon_owned(args)
+}
+
+/// Publish an asset into the global library via `canon library publish`.
+#[tauri::command]
+fn library_publish(path: String, target: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&[
+        "library", "publish", &root, "--target", &target,
+        "--actor", "cradle:user",
+    ])
+}
+
+/// Import a library entry into the open pack via `canon library import`.
+#[tauri::command]
+fn library_import(
+    path: String,
+    id: String,
+    into: Option<String>,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<String> = vec![
+        "library".into(), "import".into(), root, "--id".into(), id,
+        "--actor".into(), "cradle:user".into(),
+    ];
+    if let Some(i) = into.filter(|s| !s.is_empty()) {
+        args.push("--into".into());
+        args.push(i);
+    }
+    run_canon_owned(args)
+}
+
+/// Library object bytes (previews) via `canon library cat`.
+#[tauri::command]
+fn library_cat(hash: String) -> Result<Value, String> {
+    run_canon(&["library", "cat", &hash])
+}
+
+/// Copy one row's art bundle onto another via `canon asset assign`.
+#[tauri::command]
+fn asset_assign(path: String, source: String, to: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&[
+        "asset", "assign", &root, "--source", &source, "--to", &to,
+        "--actor", "cradle:user",
+    ])
+}
+
+/// Direct human edit of an existing DB row (or tile type's gameplay knobs)
+/// via `canon db update` — values land verbatim; canon rehashes, stamps
+/// user_edited, and journals op=edit with the field diff.
+#[tauri::command]
+fn db_update(
+    path: String,
+    entity_type: String,
+    id: String,
+    set: Value,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let set_str = serde_json::to_string(&set).map_err(|e| e.to_string())?;
+    run_canon(&[
+        "db", "update", &root, "--type", &entity_type, "--id", &id,
+        "--set", &set_str, "--actor", "cradle:user",
+    ])
+}
+
+/// The effective roll-table schema for one entity type via `canon db schema`.
+#[tauri::command]
+fn db_schema(path: String, entity_type: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&["db", "schema", &root, "--type", &entity_type])
+}
+
+/// Edit roll tables (validated fail-closed canon-side; lands as a pack-local
+/// override) via `canon db schema --set`.
+#[tauri::command]
+fn db_update_schema(
+    path: String,
+    entity_type: String,
+    set: Value,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let set_str = serde_json::to_string(&set).map_err(|e| e.to_string())?;
+    run_canon(&[
+        "db", "schema", &root, "--type", &entity_type,
+        "--set", &set_str, "--actor", "cradle:user",
+    ])
+}
+
 /// (Re)generate one asset (sprite/backdrop/audio) via `canon asset generate`.
 #[tauri::command]
 fn generate_asset(
@@ -379,6 +661,20 @@ pub fn run() {
             db_types,
             db_new,
             db_complete,
+            db_update,
+            db_schema,
+            db_update_schema,
+            play_level,
+            play_game,
+            validate_level,
+            asset_lineage,
+            asset_restore,
+            object_cat,
+            library_list,
+            library_publish,
+            library_import,
+            library_cat,
+            asset_assign,
             generate_asset,
             animate_asset,
             create_level,

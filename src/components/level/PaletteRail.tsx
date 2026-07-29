@@ -5,6 +5,7 @@
 // clicking the entry again disarms.
 
 import { useEffect, useState } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { api } from "../../lib/invoke";
 import { useStore } from "../../store";
 import { tileColor, type Brush, type LevelBundle } from "./drawLevel";
@@ -33,7 +34,12 @@ function useDbEntries(typeId: "enemies" | "items"): DbEntry[] {
           let spriteUrl: string | null = null;
           if (sprite) {
             try {
-              spriteUrl = await api.resolveAsset(worldPath, sprite);
+              // convertFileSrc turns the resolved absolute path into a
+              // webview-loadable asset URL (identity in the browser mock);
+              // without it a native <img src="/abs/path.png"> never loads
+              // and the row silently falls back to a color block.
+              const resolved = await api.resolveAsset(worldPath, sprite);
+              spriteUrl = resolved ? convertFileSrc(resolved) : null;
             } catch {}
           }
           out.push({

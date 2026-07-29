@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { EntityRef, WorldSummary } from "./lib/invoke";
+import type { EntityRef, ValidationReport, WorldSummary } from "./lib/invoke";
 import { api } from "./lib/invoke";
 import {
   loadRecents,
@@ -13,6 +13,7 @@ import {
 export type Selection =
   | { kind: "none" }
   | { kind: "bible" }
+  | { kind: "library" }
   | { kind: "type"; typeId: string; partition?: string }
   | { kind: "entity"; typeId: string; id: string; tab?: string };
 
@@ -44,6 +45,9 @@ type Store = {
   worldBeats: BibleBeat[];
   entities: EntitiesByType;
   selection: Selection;
+  //: Per-level `canon level validate` reports (keyed by level id) — feeds
+  //: the ValidationBar and level chips; cleared with the world.
+  levelValidation: Record<string, ValidationReport>;
   error: string | null;
   lightbox: LightboxImage | null;
   recents: RecentProject[];
@@ -60,6 +64,7 @@ type Store = {
   setWorldPath: (p: string) => void;
   setWorld: (w: WorldSummary | null) => void;
   setEntities: (typeId: string, refs: EntityRef[]) => void;
+  setLevelValidation: (levelId: string, report: ValidationReport | null) => void;
   select: (s: Selection) => void;
   setError: (e: string | null) => void;
   openLightbox: (img: LightboxImage) => void;
@@ -111,6 +116,7 @@ export const useStore = create<Store>((set, get) => ({
   worldBeats: [],
   entities: {},
   selection: { kind: "none" },
+  levelValidation: {},
   error: null,
   lightbox: null,
   recents: loadRecents(),
@@ -125,9 +131,17 @@ export const useStore = create<Store>((set, get) => ({
       world: w,
       entities: {},
       selection: w ? { kind: "bible" } : { kind: "none" },
+      levelValidation: {},
       ...(w ? {} : INITIAL_AUDIO_STATE),
     }),
   setEntities: (typeId, refs) => set((s) => ({ entities: { ...s.entities, [typeId]: refs } })),
+  setLevelValidation: (levelId, report) =>
+    set((s) => {
+      const next = { ...s.levelValidation };
+      if (report) next[levelId] = report;
+      else delete next[levelId]; // null = the verdict went stale (level edited)
+      return { levelValidation: next };
+    }),
   select: (s) => set({ selection: s }),
   setError: (e) => set({ error: e }),
   openLightbox: (img) => set({ lightbox: img }),
@@ -176,6 +190,7 @@ export const useStore = create<Store>((set, get) => ({
       worldBeats: [],
       entities: {},
       selection: { kind: "none" },
+      levelValidation: {},
       route: "start",
       ...INITIAL_AUDIO_STATE,
     }),
@@ -282,6 +297,7 @@ export const useStore = create<Store>((set, get) => ({
             ? { kind: "entity", typeId: "levels", id: first.id }
             : { kind: "none" },
           entities: { levels: levelRefs, enemies: enemyRefs },
+          levelValidation: {},
           route: "start",
           recents: prevRecents,
           ...INITIAL_AUDIO_STATE,

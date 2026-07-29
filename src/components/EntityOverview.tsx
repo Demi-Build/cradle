@@ -12,6 +12,8 @@ import { AudioPlayer } from "./AudioPlayer";
 import { useStore } from "../store";
 import { api } from "../lib/invoke";
 import { Icon } from "./start/Icons";
+import { RowEditor } from "./db/RowEditor";
+import { TileSlotEditor } from "./db/TileSlotEditor";
 
 function useStoreWorldPath() {
   return useStore((s) => s.worldPath);
@@ -408,6 +410,10 @@ export function EntityOverview({
             )}
           </div>
         </header>
+      )}
+
+      {typeId === "tilesets" && Array.isArray(data.slots) && (
+        <TileSlotEditor data={data as Record<string, unknown>} entityId={entityId} />
       )}
 
       {!isNpc && !isMonster && !isEvent && !isClass && prose.length > 0 && (
@@ -877,6 +883,8 @@ function GenActions({
   const select = useStore((s) => s.select);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  // Hooks stay ABOVE the `!id` early return (Rules of Hooks).
+  const [editing, setEditing] = useState(false);
   const kind = typeId === "enemies" ? "enemy" : "item";
   const id = String(
     (data.enemy_id as string) ?? (data.item_id as string) ?? entityId ?? "",
@@ -915,6 +923,26 @@ function GenActions({
   };
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "6px 0 2px", flexWrap: "wrap" }}>
+      <button
+        style={btn}
+        disabled={!!busy}
+        onClick={() => setEditing(true)}
+      >
+        ✎ Edit row
+      </button>
+      <button
+        style={btn}
+        disabled={!!busy}
+        onClick={() =>
+          run(
+            "publish",
+            `Publish ${id} to your asset library?\n\nThe whole bundle travels (row + sprite + animation) — importable into any project with full provenance. Free (local snapshot).`,
+            () => api.libraryPublish(worldPath, target),
+          )
+        }
+      >
+        ⬆ Publish
+      </button>
       <button
         style={btn}
         disabled={!!busy}
@@ -958,6 +986,15 @@ function GenActions({
       )}
       {note && (
         <span style={{ fontSize: 11, color: "var(--text-3, #8a8398)" }}>{note}</span>
+      )}
+      {editing && (
+        <RowEditor
+          typeId={typeId}
+          editRow={data}
+          editId={id}
+          onClose={() => setEditing(false)}
+          onCreated={(rid) => select({ kind: "entity", typeId, id: rid })}
+        />
       )}
     </div>
   );

@@ -86,6 +86,7 @@ export function LeftNav() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [partitionCounts, setPartitionCounts] = useState<Record<string, PartitionCount[]>>({});
   const [newLevelOpen, setNewLevelOpen] = useState(false);
+  const [playingGame, setPlayingGame] = useState(false);
   // Platformer packs expose tilesets — that's the "can create levels" signal.
   const isPlatformer = !!world?.entity_counts.some((c) => c.type_id === "tilesets");
 
@@ -142,6 +143,21 @@ export function LeftNav() {
     selection.kind === "entity" && selection.typeId === typeId && selection.id === id;
   const isBibleSelected = selection.kind === "bible";
 
+  // Whole-game playtest (platformer packs): godot boots the full loop —
+  // splash → world map → progression. Per-level feel-checks live on the
+  // level editor's ▶ Play (pygame).
+  const playGame = async () => {
+    setPlayingGame(true);
+    try {
+      const result = await api.playGame(worldPath);
+      if (!result.launched && result.note) setError(result.note);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setPlayingGame(false);
+    }
+  };
+
   return (
     <aside className="leftnav">
       <button
@@ -151,6 +167,35 @@ export function LeftNav() {
       >
         {worldStoryTitle ?? world?.name ?? "World Bible"}
       </button>
+      {isPlatformer && (
+        <button
+          className={`nav-root ${selection.kind === "library" ? "selected" : ""}`}
+          onClick={() => select({ kind: "library" })}
+          title="The global asset library — publish here from any project, import into this one"
+          style={{ fontSize: 12 }}
+        >
+          🗂 LIBRARY
+        </button>
+      )}
+      {isPlatformer && (
+        <button
+          onClick={() => void playGame()}
+          title="Launch the whole game in Godot: splash → world map → progression (set GODOT_BIN if godot isn't on PATH)"
+          style={{
+            margin: "6px 10px 2px",
+            fontSize: 12,
+            padding: "3px 12px",
+            borderRadius: 7,
+            cursor: "pointer",
+            border: "1px solid var(--border, #3a2f4a)",
+            background: "var(--accent, #e2b714)",
+            color: "#1a1208",
+            fontWeight: 600,
+          }}
+        >
+          {playingGame ? "launching…" : "▶ Play game"}
+        </button>
+      )}
       <div className="nav-types">
         {world.entity_counts.map(({ type_id, count }) => {
           const hasPartition = !!PARTITION_FIELD[type_id];

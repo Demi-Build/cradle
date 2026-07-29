@@ -10,7 +10,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { api } from "../../lib/invoke";
+import { api, type ValidationReport } from "../../lib/invoke";
+import { countProblems } from "../../lib/validation";
 import { useStore } from "../../store";
 import { LevelCanvas } from "./LevelCanvas";
 import { PaletteRail } from "./PaletteRail";
@@ -120,6 +121,34 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   const [resizeH, setResizeH] = useState<number>(0);
   const [publishPos, setPublishPos] = useState<string>("");
   const [assetRev, setAssetRev] = useState(0);
+  const setLevelValidation = useStore((s) => s.setLevelValidation);
+  const [valReport, setValReport] = useState<ValidationReport | null>(null);
+  const [validating, setValidating] = useState(false);
+  const [playNote, setPlayNote] = useState<string | null>(null);
+
+  // Validation/play notes are per-level — drop them when switching levels.
+  useEffect(() => {
+    setValReport(null);
+    setPlayNote(null);
+  }, [levelId]);
+
+  // The Rust reaper emits play-exited when a detached session ends — clear
+  // the "playing…" note instead of asserting it forever. (The mock has no
+  // event plumbing; the listener just never attaches there.)
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        unlisten = await listen("play-exited", () => setPlayNote(null));
+      } catch {
+        /* browser mock — no native events */
+      }
+    })();
+    return () => {
+      unlisten?.();
+    };
+  }, []);
   const enemyDb = useDbInfo("enemies");
   const itemDb = useDbInfo("items");
 
@@ -132,8 +161,13 @@ export function LevelDetail({ levelId }: { levelId: string }) {
       setResizeH(b.grid_height);
     }
   };
-  const markDirty = (layer: DirtyLayer) =>
+  const markDirty = (layer: DirtyLayer) => {
     setDirty((d) => (d.has(layer) ? d : new Set(d).add(layer)));
+    // Any edit invalidates the last validation verdict — a "valid ✓" chip
+    // must never describe a level that no longer exists.
+    setValReport(null);
+    setLevelValidation(levelId, null);
+  };
 
   const reload = async (rev = assetRev) => {
     const b = (await api.exportLevel(worldPath, levelId)) as LevelBundle;
@@ -379,9 +413,9 @@ export function LevelDetail({ levelId }: { levelId: string }) {
 
   // --- persistence ---------------------------------------------------------
 
-  const doSave = async () => {
+  const doSave = async (): Promise<boolean> => {
     const b = bundleRef.current;
-    if (!b || dirty.size === 0) return;
+    if (!b || dirty.size === 0) return true;
     setSave({ status: "saving" });
     try {
       if (dirty.has("grids")) {
@@ -409,8 +443,46 @@ export function LevelDetail({ levelId }: { levelId: string }) {
       }
       await reload();
       setSave({ status: "saved" });
+      return true;
     } catch (e) {
       setSave({ status: "error", msg: String(e) });
+      return false;
+    }
+  };
+
+  // Validate/Play always see the level AS IT SITS in the editor: dirty
+  // layers flush to disk first (canon owns the formats), then the real
+  // machinery runs on the saved tree.
+  const doValidate = async () => {
+    setValidating(true);
+    setPlayNote(null);
+    try {
+      if (!(await doSave())) return;
+      const report = await api.validateLevel(worldPath, levelId);
+      setValReport(report);
+      setLevelValidation(levelId, report);
+    } catch (e) {
+      setPlayNote(String(e).slice(0, 200));
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  // Plays in the CURRENT view mode: Blocks view → plain blocks (no tile
+  // art, placeholder sprites), Art/Overlay → full art. Same physics.
+  const doPlay = async () => {
+    setPlayNote(null);
+    const plain = mode === "blocks";
+    try {
+      if (!(await doSave())) return;
+      const result = await api.playLevel(worldPath, levelId, plain);
+      setPlayNote(
+        result.launched
+          ? `playing${plain ? " without art" : ""} in ${result.engine ?? "pygame"} ▶ (Esc quits, R respawns)`
+          : (result.note ?? "not launched"),
+      );
+    } catch (e) {
+      setPlayNote(String(e).slice(0, 200));
     }
   };
 
@@ -513,7 +585,28 @@ export function LevelDetail({ levelId }: { levelId: string }) {
         {dirty.size > 0 && chip(`unsaved: ${[...dirty].join(" ")}`, "#e2b714", "dirty")}
         {save.status === "saved" && dirty.size === 0 && chip("saved ✓", "#3ddc84")}
         {save.status === "error" && chip(`save failed: ${save.msg?.slice(0, 60)}`, "#e0453a")}
+        {valReport &&
+          chip(
+            !valReport.ok
+              ? `invalid ✗ ${countProblems(valReport)}`
+              : (valReport.repair_count ?? 0) > 0
+                ? `playable · ${valReport.repair_count} placement notes`
+                : "valid ✓",
+            !valReport.ok
+              ? "#e0453a"
+              : (valReport.repair_count ?? 0) > 0
+                ? "#e0a15a"
+                : "#3ddc84",
+            "validation",
+          )}
+        {playNote && chip(playNote.slice(0, 70), "#a78bfa", "play-note")}
         <span style={{ flex: 1 }} />
+        {btn(validating ? "Validating…" : "✓ Validate", () => void doValidate())}
+        {btn(
+          mode === "blocks" ? "▶ Play blocks" : "▶ Play",
+          () => void doPlay(),
+          dirty.size === 0,
+        )}
         <div style={{ display: "inline-flex", border: "1px solid var(--border, #3a2f4a)", borderRadius: 7, overflow: "hidden" }}>
           {MODES.map((m) => (
             <button
@@ -542,6 +635,8 @@ export function LevelDetail({ levelId }: { levelId: string }) {
         {btn(save.status === "saving" ? "Saving…" : "Save", () => void doSave(), dirty.size > 0)}
       </div>
 
+      {valReport && <ValidationPanel report={valReport} />}
+
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
         <PaletteRail bundle={bundle} brush={brush} onBrush={setBrush} onReplaceArt={replaceArt} />
 
@@ -565,8 +660,8 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           <div style={{ margin: "10px 2px 0", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <p style={{ margin: 0, color: "var(--text-3, #8a8398)", fontSize: 12, flex: 1, minWidth: 260 }}>
               {brush
-                ? "Brush armed: click/drag the canvas · Esc to disarm."
-                : "Click to select · drag to move · Delete removes · drag space/scroll pans · ⌘S saves."}
+                ? "Brush armed: left-click/drag paints · right-click/drag erases · Esc to disarm."
+                : "Click to select · drag to move · right-click erases a cell · Delete removes · drag space/scroll pans · ⌘S saves."}
             </p>
             <label style={{ fontSize: 12, color: "var(--text-3, #8a8398)" }}>
               W{" "}
@@ -775,6 +870,53 @@ function Header({ title, sub, sprite, color }: { title: string; sub: string; spr
         <div style={{ fontWeight: 600, textTransform: "capitalize" }}>{title}</div>
         <div style={{ color: "var(--text-3, #8a8398)", fontSize: 11 }}>{sub}</div>
       </div>
+    </div>
+  );
+}
+
+/** Per-check results from `canon level validate` — problems in red, code
+ * repairs (nudges the generator would apply) and free-water notes muted.
+ * Collapses to nothing when a clean report has nothing to say. */
+function ValidationPanel({ report }: { report: ValidationReport }) {
+  const rows: React.ReactNode[] = [];
+  const line = (color: string, text: string, key: string) => (
+    <li key={key} style={{ color, fontSize: 12, margin: "2px 0" }}>{text}</li>
+  );
+  const renderOne = (r: ValidationReport, label: string) => {
+    for (const c of r.checks) {
+      for (const [i, p] of c.problems.entries())
+        rows.push(line("#e0453a", `${label}${c.name}: ${p}`, `${label}${c.name}p${i}`));
+      for (const [i, p] of (c.repairs ?? []).entries())
+        rows.push(
+          line(
+            "#e0a15a",
+            `${label}${c.name} (placement defect — playable, but generation would relocate/drop it): ${p}`,
+            `${label}${c.name}r${i}`,
+          ),
+        );
+      for (const [i, p] of (c.notes ?? []).entries())
+        rows.push(line("var(--text-3, #8a8398)", `${label}${c.name}: ${p}`, `${label}${c.name}n${i}`));
+    }
+    for (const room of r.rooms ?? []) renderOne(room, `${room.level_id} · `);
+  };
+  renderOne(report, "");
+  if (rows.length === 0) return null;
+  return (
+    <div
+      style={{
+        border: "1px solid var(--border, #3a2f4a)",
+        borderLeft: `3px solid ${report.ok ? "#3ddc84" : "#e0453a"}`,
+        borderRadius: 8,
+        padding: "8px 14px",
+        margin: "0 0 12px",
+        background: "var(--surface-1, #1a1420)",
+      }}
+    >
+      <div style={{ fontSize: 11, color: "var(--text-3, #8a8398)", marginBottom: 2 }}>
+        canon level validate · {report.ok ? "playable" : "NOT playable as-is"} —
+        reachability simulated under this level's own physics
+      </div>
+      <ul style={{ margin: 0, paddingLeft: 18 }}>{rows}</ul>
     </div>
   );
 }

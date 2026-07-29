@@ -3,6 +3,8 @@
 // (built by scratchpad/build_mockdata.py from an actual platformer pack). NOT
 // bundled in production — main.tsx only imports this behind the env flag.
 
+import { DB_NESTING } from "./dbNesting";
+
 type Ref = { type_id: string; id: string; name: string };
 type JsonMap = Record<string, unknown>;
 
@@ -23,7 +25,35 @@ type MockData = {
   audioJson?: JsonMap;
   bundles: Record<string, unknown>;
   dbTypes?: Record<string, unknown>;
+  dbSchemas?: Record<string, unknown>;
 };
+
+// Fallback roll-table schemas so the schema editor demos without a rebuilt
+// mockdata.json (native serves the real files via `canon db schema`).
+const FALLBACK_SCHEMAS: Record<string, unknown> = {
+  enemy: {
+    schema_version: "8",
+    entity_type: "enemy",
+    fields: {
+      archetype: { choices: [["patroller", 5], ["sentry", 1], ["swimmer", 3], ["flyer", 2], ["hopper", 4]] },
+      rarity: { choices: [["common", 3], ["uncommon", 2], ["rare", 1]] },
+      size: { choices: [[1.0, 4], [1.5, 2], [2.0, 1]] },
+      hp: { lookup: [[1.0, [4, 6]], [1.5, [7, 12]], [2.0, [13, 18]]], depends_on: "size", lookup_ranges: true },
+      speed: { lookup: [["patroller", 2], ["sentry", 0], ["swimmer", 2], ["flyer", 2], ["hopper", 4]], depends_on: "archetype" },
+      patrol_range: { range: [3, 8] },
+    },
+  },
+  item: {
+    schema_version: "3",
+    entity_type: "item",
+    fields: {
+      kind: { choices: [["coin", 6], ["heal", 3], ["shield", 1], ["double_jump", 1], ["run_boost", 1]] },
+      rarity: { choices: [["common", 3], ["uncommon", 2], ["rare", 1]] },
+      coin_value: { lookup: [["coin", 1], ["heal", 0], ["shield", 0], ["double_jump", 0], ["run_boost", 0]], depends_on: "kind" },
+    },
+  },
+};
+
 
 // typeId → [refs field, entity-json field]
 const TYPE_KEYS: Record<string, [keyof MockData, keyof MockData]> = {
@@ -203,6 +233,198 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
     }
     case "db_complete":
       return { id: String(args.id), row: {}, warnings: ["mock: native runs canon"] };
+    case "db_update": {
+      // Mock: apply the flat-routed edit in memory so the UI round-trips;
+      // native runs `canon db update` (rehash + user_edited + journal).
+      const t = String(args.entityType);
+      const id = String(args.id);
+      const set = (args.set as Record<string, unknown>) ?? {};
+      if (t === "tile") {
+        const [stageId, tileName] = id.split("/");
+        const tilesets = (d.tilesetJson ?? {}) as Record<string, { stage_id?: string; slots?: Record<string, unknown>[] }>;
+        const manifest = Object.values(tilesets).find((m) => m?.stage_id === stageId);
+        const slots = (manifest?.slots ?? []).filter((s) => s.name === tileName);
+        for (const slot of slots) {
+          if (typeof set.collision === "string") slot.collision = set.collision;
+          if (set.params && typeof set.params === "object") {
+            slot.params = { ...(slot.params as Record<string, unknown>), ...(set.params as Record<string, unknown>) };
+          }
+        }
+        return { stage: stageId, tile: tileName, slots: slots.length, changed: set };
+      }
+      const jmapKey = t === "enemy" ? "enemyJson" : "itemJson";
+      const jmap = ((d[jmapKey as "enemyJson"] as JsonMap) ?? {});
+      const row = jmap[id] as Record<string, unknown> | undefined;
+      if (!row) throw new Error(`devMock: ${t} ${id} not found`);
+      const nesting = DB_NESTING[t] ?? {};
+      const changed: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(set)) {
+        const [container, key] = k.includes(".")
+          ? [k.split(".")[0], k.split(".").slice(1).join(".")]
+          : [nesting[k], k];
+        if (container) {
+          const bucket = ((row[container] as Record<string, unknown>) ??= {});
+          changed[k] = { from: bucket[key], to: v };
+          if (v === null) delete bucket[key];
+          else bucket[key] = v;
+        } else {
+          changed[k] = { from: row[key], to: v };
+          row[key] = v;
+        }
+      }
+      row.status = "user_edited";
+      const ref = refsFor(d, t === "enemy" ? "enemies" : "items").find((r) => r.id === id);
+      if (ref && typeof set.name === "string") ref.name = set.name;
+      return { type: t, id, row, changed, warnings: [] };
+    }
+    case "library_list":
+      return {
+        root: "~/.canon/library (mock)",
+        count: 2,
+        entries: [
+          {
+            library_id: "lib-mock-wisp", ts: "2026-07-22T18:00:00", kind: "enemy_def",
+            name: "Ember Wisp", tags: ["fire", "flyer"],
+            source: { pack: "/mock/plat_other", world: "Cinder Vale", artifact_id: "enemy:ember_wisp", target: "enemy:ember_wisp" },
+            objects: { row: "sha256:mockrow-wisp", sprite: "sha256:mocksprite-wisp" },
+            meta: {}, preview: "sha256:mocksprite-wisp", actor: "cradle:user",
+          },
+          {
+            library_id: "lib-mock-band", ts: "2026-07-21T10:00:00", kind: "backdrop",
+            name: "dusk pines band", tags: [],
+            source: { pack: String(args.project ?? "/mock/this"), world: d.name, artifact_id: "backdrop:s1", target: "backdrop:s1/1" },
+            objects: { art: "sha256:mocksprite-band" },
+            meta: { depth: 0.5 }, preview: "sha256:mocksprite-band", actor: "cradle:user",
+          },
+        ]
+          .filter((e) => !args.kind || e.kind === args.kind)
+          .filter(
+            (e) =>
+              !args.query ||
+              (e.name + " " + e.tags.join(" "))
+                .toLowerCase()
+                .includes(String(args.query).toLowerCase()),
+          )
+          .filter(
+            (e) =>
+              !args.project ||
+              e.source.pack.toLowerCase().includes(String(args.project).toLowerCase()) ||
+              e.source.world.toLowerCase().includes(String(args.project).toLowerCase()),
+          ),
+      };
+    case "library_publish":
+      return {
+        library_id: "lib-mock-new", kind: "enemy_def",
+        name: String(args.target), tags: [],
+        source: { pack: "/mock/this", world: d.name, artifact_id: String(args.target), target: String(args.target) },
+        objects: {}, meta: {}, preview: "", actor: "cradle:user",
+      };
+    case "library_import": {
+      // Mock: land a visible row so the select-after-import flow demos.
+      const id = "ember_wisp";
+      const row = {
+        enemy_id: id, name: "Ember Wisp", archetype: "flyer", size: 1, rarity: "uncommon",
+        status: "user_edited",
+        stats: {
+          hp: 5, damage: 1, speed: 2, flavor: "(imported from the library — mock)",
+          placeholder_color: "#ff7043",
+          library_ref: { library_id: String(args.id), source_pack: "/mock/plat_other", source_artifact: "enemy:ember_wisp" },
+        },
+        behavior: { patrol_range: 5, aggro_range: 0, leash_range: 0 },
+      };
+      ((d.enemyJson as JsonMap) ?? {})[id] = row;
+      const refs = (d.enemies as Ref[]) ?? [];
+      if (!refs.some((r) => r.id === id)) refs.push({ type_id: "enemies", id, name: "Ember Wisp" });
+      return { kind: "enemy_def", id, library_id: String(args.id) };
+    }
+    case "library_cat":
+      return {
+        hash: String(args.hash), size: 68,
+        bytes_b64:
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      };
+    case "asset_assign":
+      return { from: String(args.source), to: String(args.to), sprite_hash: "sha256:mock" };
+    case "asset_lineage": {
+      // Mock: a canned three-node family (generate → edit, plus a sprite
+      // import) so the History tab demos; native derives from the journal.
+      const target = String(args.target);
+      const rowA = "sha256:mockrow-aaaa";
+      const rowB = "sha256:mockrow-bbbb";
+      const spr = "sha256:mocksprite-cccc";
+      return {
+        artifact_id: target,
+        root_id: rowA,
+        requested_node_id: rowB,
+        nodes: [
+          { id: rowA, facet: "row", op: "generate", source: "llm", actor: "canon", ts: "2026-07-20T10:00:00", gen: { llm_model: "claude-haiku", prompt: "Design a small patrolling creature themed to candle-lit woods. Return JSON with name and flavor." }, artifacts: [target], current_of: [], usage: { [target]: ["l1", "l3"] }, detail: {}, depth: 0 },
+          { id: rowB, facet: "row", op: "edit", source: "user", actor: "cradle:user", ts: "2026-07-22T09:00:00", gen: null, artifacts: [target], current_of: [`${target}#row`], usage: { [target]: ["l1", "l3"] }, detail: {}, depth: 1 },
+          { id: spr, facet: "sprite", op: "import", source: "import", actor: "cradle:user", ts: "2026-07-21T12:00:00", gen: null, artifacts: [target], current_of: [`${target}#sprite`], usage: {}, detail: {}, depth: 0 },
+        ],
+        edges: [{ from: rowA, to: rowB, op: "edit", kind: "db_update", actor: "cradle:user", ts: "" }],
+        metadata: { total_nodes: 3, max_depth: 1, pruned: false },
+      };
+    }
+    case "asset_restore":
+      return { artifact_id: String(args.target), kind: "row_restore", pinned: false };
+    case "object_cat": {
+      const h = String(args.hash);
+      if (h.includes("sprite")) {
+        // 1×1 png — enough for the thumbnail pipeline to exercise.
+        return {
+          hash: h, size: 68,
+          bytes_b64:
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+        };
+      }
+      const row = h.includes("aaaa")
+        ? { name: "Original Beast", stats: { hp: 6, speed: 2 } }
+        : { name: "Edited Beast", stats: { hp: 9, speed: 2 } };
+      const b64 = btoa(JSON.stringify(row));
+      return { hash: h, size: b64.length, bytes_b64: b64 };
+    }
+    case "validate_level":
+      // Mock: canned pass — native runs canon's full reachability simulation.
+      return {
+        level_id: String(args.levelId),
+        stage_id: "mock",
+        display_name: "",
+        ok: true,
+        checks: [
+          { name: "terrain", problems: [], notes: ["mock: native runs canon's jump-arc simulation"] },
+          { name: "enemies", problems: [], repairs: [], count: 0 },
+          { name: "items", problems: [], repairs: [], count: 0 },
+        ],
+        movement: {},
+        rooms: [],
+      };
+    case "play_level":
+    case "play_game":
+      return { launched: false, note: "mock: playtesting launches from the native app" };
+    case "db_schema": {
+      const t = String(args.entityType);
+      const schemas = (d.dbSchemas ??= {});
+      const local = schemas[t];
+      return {
+        type: t,
+        source: local ? "pack" : "default",
+        schema: local ?? FALLBACK_SCHEMAS[t] ?? { fields: {} },
+      };
+    }
+    case "db_update_schema": {
+      const t = String(args.entityType);
+      const set = (args.set as { fields?: Record<string, unknown> }) ?? {};
+      const schemas = (d.dbSchemas ??= {});
+      const base = JSON.parse(
+        JSON.stringify(schemas[t] ?? FALLBACK_SCHEMAS[t] ?? { fields: {} }),
+      ) as { fields: Record<string, unknown> };
+      for (const [name, entry] of Object.entries(set.fields ?? {})) {
+        if (entry === null) delete base.fields[name];
+        else base.fields[name] = entry;
+      }
+      schemas[t] = base;
+      return { type: t, source: "pack", schema: base, changed: set.fields ?? {} };
+    }
     case "generate_asset":
       return { target: String(args.target), generated: false, warnings: ["mock: real generation needs the native app"] };
     case "animate_asset":

@@ -13,6 +13,7 @@ import { useStore } from "../store";
 import { api, type EntityRow } from "../lib/invoke";
 import { Portrait } from "./Portrait";
 import { RowEditor } from "./db/RowEditor";
+import { SchemaEditor } from "./db/SchemaEditor";
 import { Icon } from "./start/Icons";
 
 type Row = EntityRow;
@@ -283,6 +284,7 @@ export function EntityTable({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [filter, setFilter] = useState("");
   const [newRowOpen, setNewRowOpen] = useState(false);
+  const [schemaOpen, setSchemaOpen] = useState(false);
   const canCreateRow =
     typeId === "enemies" || isPlatformerItems(typeId, rows);
   const [partition, setPartition] = useState<string | null>(initialPartition ?? null);
@@ -447,6 +449,9 @@ export function EntityTable({
           onCreated={(id) => select({ kind: "entity", typeId, id })}
         />
       )}
+      {schemaOpen && (
+        <SchemaEditor typeId={typeId} onClose={() => setSchemaOpen(false)} />
+      )}
       <div className="entity-table-toolbar">
         <input
           value={filter}
@@ -467,6 +472,16 @@ export function EntityTable({
             style={{ cursor: "pointer" }}
           >
             ＋ new row
+          </button>
+        )}
+        {canCreateRow && (
+          <button
+            className="view-toggle"
+            title="Edit the roll tables bounding generation (saved as a pack-local override)"
+            onClick={() => setSchemaOpen(true)}
+            style={{ cursor: "pointer" }}
+          >
+            ⚙ roll tables
           </button>
         )}
         {sortOptions.length > 1 && (

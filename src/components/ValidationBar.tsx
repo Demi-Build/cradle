@@ -1,15 +1,37 @@
+import { countProblems } from "../lib/validation";
 import { useStore } from "../store";
 
 export function ValidationBar() {
-  const { world } = useStore();
+  const { world, selection, levelValidation } = useStore();
+  const current =
+    selection.kind === "entity" && selection.typeId === "levels"
+      ? levelValidation[selection.id]
+      : undefined;
+  const problemCount = current ? countProblems(current) : 0;
   return (
     <footer className="validation">
       {world ? (
         <>
           <span className="val-item val-pending">Checker: —</span>
-          <span className="val-item val-pending">Validator: —</span>
+          {current ? (
+            <span
+              className="val-item"
+              style={{ color: current.ok ? "#3ddc84" : "#e0453a" }}
+            >
+              Validator: {current.level_id}{" "}
+              {current.ok
+                ? "✓ playable"
+                : `✗ ${problemCount} problem${problemCount === 1 ? "" : "s"}`}
+            </span>
+          ) : (
+            <span className="val-item val-pending">Validator: —</span>
+          )}
           <span className="val-item val-pending">World Editor: —</span>
-          <span className="val-hint">(validation trail wiring lands when canon emits it)</span>
+          <span className="val-hint">
+            {current
+              ? "(canon level validate — reachability simulated under the level's own physics)"
+              : "(validation trail wiring lands when canon emits it)"}
+          </span>
         </>
       ) : (
         <span className="val-hint">No world loaded.</span>

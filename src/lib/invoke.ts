@@ -22,6 +22,26 @@ export type ValidationCheck = {
   notes?: string[];
   count?: number;
 };
+export type GenLevelOpts = {
+  brief?: string;
+  difficulty?: number | null;
+  width?: number | null;
+  height?: number | null;
+  axis?: string | null;
+  enemies?: number | null;
+  items?: number | null;
+  seed?: string | null;
+  llmBackend?: string;
+};
+export type GenLevelResult = {
+  level_id: string;
+  stage_id: string;
+  ok: boolean;
+  repair_count: number;
+  layout_fallback: boolean;
+  seed: string;
+  warnings: string[];
+};
 export type LibraryEntry = {
   library_id: string;
   ts: string;
@@ -95,8 +115,78 @@ export const api = {
     invoke<unknown>("save_level_grids", { path, levelId, collision }),
   createLevel: (path: string, stageId: string, width: number, height: number) =>
     invoke<{ level_id: string }>("create_level", { path, stageId, width, height }),
+  newProject: (
+    parentDir: string,
+    name: string,
+    opts?: {
+      stages?: number;
+      levels?: number;
+      enemies?: number;
+      items?: number;
+      llmBackend?: string;
+      imageBackend?: string;
+      musicBackend?: string;
+      sfxBackend?: string;
+      vlmBackend?: string;
+    },
+  ) =>
+    invoke<{ pack_dir: string; world: string; seed: string }>("new_project", {
+      parentDir,
+      name,
+      stages: opts?.stages ?? null,
+      levels: opts?.levels ?? null,
+      enemies: opts?.enemies ?? null,
+      items: opts?.items ?? null,
+      llmBackend: opts?.llmBackend ?? null,
+      imageBackend: opts?.imageBackend ?? null,
+      musicBackend: opts?.musicBackend ?? null,
+      sfxBackend: opts?.sfxBackend ?? null,
+      vlmBackend: opts?.vlmBackend ?? null,
+    }),
+  regenerateLayout: (
+    path: string,
+    levelId: string,
+    opts: {
+      brief?: string;
+      difficulty?: number | null;
+      width?: number | null;
+      height?: number | null;
+      axis?: string | null;
+      seed?: string | null;
+      llmBackend?: string;
+    },
+  ) =>
+    invoke<GenLevelResult>("regenerate_layout", {
+      path,
+      levelId,
+      brief: opts.brief ?? "",
+      difficulty: opts.difficulty ?? null,
+      width: opts.width ?? null,
+      height: opts.height ?? null,
+      axis: opts.axis ?? null,
+      seed: opts.seed ?? null,
+      llmBackend: opts.llmBackend ?? "fake",
+    }),
   publishLevel: (path: string, levelId: string, position: number | null, remove: boolean) =>
     invoke<unknown>("publish_level", { path, levelId, position, remove }),
+  generateLevel: (path: string, stageId: string, opts: GenLevelOpts) =>
+    invoke<GenLevelResult>("generate_level", {
+      path,
+      stageId,
+      brief: opts.brief ?? "",
+      difficulty: opts.difficulty ?? null,
+      width: opts.width ?? null,
+      height: opts.height ?? null,
+      axis: opts.axis ?? null,
+      enemies: opts.enemies ?? null,
+      items: opts.items ?? null,
+      seed: opts.seed ?? null,
+      llmBackend: opts.llmBackend ?? "fake",
+    }),
+  placeEnemies: (path: string, levelId: string, enemies?: number, seed?: string, llmBackend?: string) =>
+    invoke<GenLevelResult>("place_enemies", { path, levelId, enemies, seed, llmBackend }),
+  placeItems: (path: string, levelId: string, items?: number, seed?: string, llmBackend?: string) =>
+    invoke<GenLevelResult>("place_items", { path, levelId, items, seed, llmBackend }),
   replaceAsset: (path: string, target: string, file: string) =>
     invoke<unknown>("replace_asset", { path, target, file }),
   dbTypes: (path: string) => invoke<unknown>("db_types", { path }),

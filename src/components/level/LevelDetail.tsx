@@ -15,6 +15,7 @@ import { countProblems } from "../../lib/validation";
 import { useStore } from "../../store";
 import { LevelCanvas } from "./LevelCanvas";
 import { PaletteRail } from "./PaletteRail";
+import { RegenerateLayoutModal } from "./RegenerateLayoutModal";
 import type { Brush, LevelBundle, RenderMode, Selection } from "./drawLevel";
 
 const MODES: { id: RenderMode; label: string }[] = [
@@ -125,6 +126,8 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   const [valReport, setValReport] = useState<ValidationReport | null>(null);
   const [validating, setValidating] = useState(false);
   const [playNote, setPlayNote] = useState<string | null>(null);
+  const [placeBackend, setPlaceBackend] = useState<"fake" | "anthropic">("fake");
+  const [regenOpen, setRegenOpen] = useState(false);
 
   // Validation/play notes are per-level — drop them when switching levels.
   useEffect(() => {
@@ -486,6 +489,42 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     }
   };
 
+  // Place enemies/items onto THIS level's current terrain (composable
+  // generation) — grid-driven, so it works on a generated OR a hand-painted
+  // level. Flushes dirty edits first, then reloads the fresh placements.
+  const doPlace = async (kind: "enemies" | "items") => {
+    const paid = placeBackend === "anthropic";
+    if (
+      !window.confirm(
+        `${paid ? "PAID (anthropic — a few cents)" : "FAKE — $0, no API calls"}: ` +
+          `(re)place ${kind} on ${levelId} using its current terrain.\n\nProceed?`,
+      )
+    )
+      return;
+    setPlayNote(null);
+    try {
+      if (!(await doSave())) return;
+      const r =
+        kind === "enemies"
+          ? await api.placeEnemies(worldPath, levelId, undefined, undefined, placeBackend)
+          : await api.placeItems(worldPath, levelId, undefined, undefined, placeBackend);
+      await reload();
+      setPlayNote(
+        `placed ${kind} — ${r.ok ? "valid ✓" : "check Validate"}` +
+          (r.warnings?.length ? ` · ${r.warnings[0]}` : ""),
+      );
+    } catch (e) {
+      setPlayNote(String(e).slice(0, 200));
+    }
+  };
+
+  // Flush pending edits, then open the "regenerate this level's layout" modal
+  // (the LLM rebuilds the terrain; the op reads the level from disk).
+  const openRegen = async () => {
+    if (!(await doSave())) return;
+    setRegenOpen(true);
+  };
+
   const publish = async () => {
     setSave({ status: "saving" });
     try {
@@ -607,6 +646,18 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           () => void doPlay(),
           dirty.size === 0,
         )}
+        {btn("🪄 Layout", () => void openRegen())}
+        {btn("🎲 Enemies", () => void doPlace("enemies"))}
+        {btn("🎲 Items", () => void doPlace("items"))}
+        <select
+          value={placeBackend}
+          onChange={(e) => setPlaceBackend(e.target.value as "fake" | "anthropic")}
+          title="Backend for 🎲 placement"
+          style={{ fontSize: 11, marginLeft: 6 }}
+        >
+          <option value="fake">fake ($0)</option>
+          <option value="anthropic">paid</option>
+        </select>
         <div style={{ display: "inline-flex", border: "1px solid var(--border, #3a2f4a)", borderRadius: 7, overflow: "hidden" }}>
           {MODES.map((m) => (
             <button
@@ -727,6 +778,18 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           </aside>
         )}
       </div>
+      {regenOpen && bundle && (
+        <RegenerateLayoutModal
+          worldPath={worldPath}
+          levelId={levelId}
+          currentBrief={bundle.brief ?? undefined}
+          onClose={() => setRegenOpen(false)}
+          onDone={(note) => {
+            setPlayNote(note);
+            void reload();
+          }}
+        />
+      )}
     </div>
   );
 }

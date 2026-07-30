@@ -9,6 +9,7 @@ export function TopBar() {
   const drawerOpen = useStore((s) => s.drawerOpen);
   const setDrawerOpen = useStore((s) => s.setDrawerOpen);
   const closeWorld = useStore((s) => s.closeWorld);
+  const setNewProjectOpen = useStore((s) => s.setNewProjectOpen);
 
   return (
     <header className="titlebar">
@@ -22,6 +23,14 @@ export function TopBar() {
       </div>
       <div className="spacer" />
       <div className="right">
+        <button
+          className="crumb-link"
+          onClick={() => setNewProjectOpen(true)}
+          title="Create a new platformer project"
+          style={{ marginRight: 4 }}
+        >
+          ＋ New project
+        </button>
         <button
           className={`icon-btn ${drawerOpen ? "on" : ""}`}
           onClick={() => setDrawerOpen(!drawerOpen)}

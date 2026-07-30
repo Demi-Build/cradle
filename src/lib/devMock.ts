@@ -205,6 +205,125 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       if (count) count.count += 1;
       return { level_id: lid, stage_id: stageId, dims: [w, h], draft: true };
     }
+    case "new_project": {
+      // Mock: the browser can't scaffold a real pack — hand back the demo
+      // path so the open-flow works for UI testing. Real scaffold is native.
+      return {
+        pack_dir: "mock://plat_pack",
+        world: String(args.name ?? "My Platformer"),
+        seed: "mock",
+      };
+    }
+    case "generate_level": {
+      // Mock: synthesize a draft like create_level, plus a few placements
+      // copied from the stage template so the Art view shows enemies/items.
+      // Real generation is native only.
+      const stageId = String(args.stageId);
+      const w = Number(args.width ?? 56);
+      const h = Number(args.height ?? 16);
+      const template = Object.values(d.bundles).find(
+        (x) => (x as { stage_id: string }).stage_id === stageId,
+      ) as Record<string, unknown> | undefined;
+      if (!template) throw new Error(`no template bundle for stage ${stageId}`);
+      const nums = d.levels
+        .map((r) => /^l(\d+)$/.exec(r.id))
+        .filter(Boolean)
+        .map((m) => parseInt(m![1], 10));
+      const lid = `l${Math.max(0, ...nums) + 1}`;
+      const tilesByType = template.tiles_by_type as Record<string, { index: number }>;
+      const collision = Array.from({ length: h }, (_, y) =>
+        Array.from({ length: w }, () => (y === h - 2 ? 1 : y === h - 1 ? 3 : 0)),
+      );
+      const tEnts = ((template.entities as unknown[]) ?? []).slice(0, Number(args.enemies ?? 3));
+      const tItems = ((template.items as unknown[]) ?? []).slice(0, Number(args.items ?? 5));
+      d.bundles[lid] = {
+        ...template,
+        level_id: lid,
+        stage_id: stageId,
+        display_name: null,
+        parent_level: null,
+        brief: String(args.brief ?? "Generated in cradle."),
+        layout_fallback: false,
+        grid_width: w,
+        grid_height: h,
+        spawn: [2, h - 3],
+        exit: [w - 1, h - 3],
+        grids: {
+          collision,
+          terrain: collision.map((row) => row.map((t) => tilesByType[String(t)]?.index ?? 0)),
+          background: collision.map((_, y) => Array(w).fill(Math.floor((y * 3) / h))),
+        },
+        hazards: [],
+        triggers: [],
+        foreground: [],
+        entities: tEnts.map((e, i) => ({ ...(e as object), x: 6 + i * 5, y: h - 3 })),
+        items: tItems.map((it, i) => ({ ...(it as object), x: 8 + i * 4, y: h - 4 })),
+      };
+      d.levels.push({ type_id: "levels", id: lid, name: `✎ ${lid}` });
+      d.levelJson[lid] = { level_id: lid, stage_id: stageId, grid_width: w, grid_height: h };
+      const count = d.entity_counts.find((c) => c.type_id === "levels");
+      if (count) count.count += 1;
+      return {
+        level_id: lid, stage_id: stageId, ok: true, repair_count: 0,
+        layout_fallback: false, seed: "mock-seed", warnings: [],
+      };
+    }
+    case "place_enemies":
+    case "place_items": {
+      const lid = String(args.levelId);
+      const b = d.bundles[lid] as Record<string, unknown> | undefined;
+      if (!b) throw new Error(`no level ${lid}`);
+      const template = Object.values(d.bundles).find(
+        (x) => (x as { stage_id: string }).stage_id === b.stage_id,
+      ) as Record<string, unknown> | undefined;
+      const h = Number(b.grid_height ?? 16);
+      if (cmd === "place_enemies") {
+        const tEnts = ((template?.entities as unknown[]) ?? []).slice(0, Number(args.enemies ?? 3));
+        b.entities = tEnts.map((e, i) => ({ ...(e as object), x: 6 + i * 5, y: h - 3 }));
+      } else {
+        const tItems = ((template?.items as unknown[]) ?? []).slice(0, Number(args.items ?? 5));
+        b.items = tItems.map((it, i) => ({ ...(it as object), x: 8 + i * 4, y: h - 4 }));
+      }
+      return {
+        level_id: lid, stage_id: b.stage_id, ok: true, repair_count: 0,
+        layout_fallback: false, seed: "mock-seed", warnings: [],
+      };
+    }
+    case "regenerate_layout": {
+      // Mock: rebuild the level's grid into something visibly structured (not
+      // flat) + clear placements, so the regen shows a change. Native runs the
+      // real generator.
+      const lid = String(args.levelId);
+      const b = d.bundles[lid] as Record<string, unknown> | undefined;
+      if (!b) throw new Error(`no level ${lid}`);
+      const w = Number(b.grid_width ?? 60);
+      const h = Number(b.grid_height ?? 16);
+      const template = Object.values(d.bundles).find(
+        (x) => (x as { stage_id: string }).stage_id === b.stage_id,
+      ) as Record<string, unknown> | undefined;
+      const tilesByType = (template?.tiles_by_type as Record<string, { index: number }>) ?? {};
+      const collision = Array.from({ length: h }, (_, y) =>
+        Array.from({ length: w }, (_, x) => {
+          if (y === h - 1) return 1; // floor
+          if (y === h - 2 && x % 7 !== 0) return 1; // floor with gaps
+          if (y === h - 6 && x % 5 === 0) return 2; // scattered platforms
+          return 0;
+        }),
+      );
+      b.grids = {
+        collision,
+        terrain: collision.map((row) => row.map((t) => tilesByType[String(t)]?.index ?? 0)),
+        background: collision.map((_, y) => Array(w).fill(Math.floor((y * 3) / h))),
+      };
+      b.entities = []; // old placements belonged to the old terrain
+      b.items = [];
+      b.brief = String(args.brief ?? b.brief ?? "");
+      b.layout_fallback = false;
+      return {
+        level_id: lid, stage_id: b.stage_id, ok: true, repair_count: 0,
+        layout_fallback: false, seed: "mock-seed", warnings: [],
+      };
+    }
     case "db_types":
       return { types: d.dbTypes ?? {} };
     case "db_new": {

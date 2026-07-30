@@ -2,14 +2,25 @@ import { useEffect, useState } from "react";
 import { api, type EntityRow } from "../lib/invoke";
 import { useStore } from "../store";
 
-/** Inline "+ New level" form for platformer packs (creates a DRAFT level). */
+/** Inline "+ New level" form: a blank DRAFT to paint, or a generated DRAFT
+ *  (terrain + enemies + items). Either way it lands a draft — publish is a
+ *  separate step. Generation's fake backend is $0; anthropic is paid. */
 function NewLevelForm({ onDone }: { onDone: () => void }) {
   const { worldPath, setEntities, select, setError } = useStore();
   const [stages, setStages] = useState<string[]>([]);
   const [stage, setStage] = useState("");
+  const [mode, setMode] = useState<"blank" | "generate">("blank");
   const [width, setWidth] = useState(60);
   const [height, setHeight] = useState(16);
+  const [brief, setBrief] = useState("");
+  const [difficulty, setDifficulty] = useState(2);
+  const [axis, setAxis] = useState<"horizontal" | "vertical">("horizontal");
+  const [enemies, setEnemies] = useState(3);
+  const [items, setItems] = useState(6);
+  const [seed, setSeed] = useState("");
+  const [backend, setBackend] = useState<"fake" | "anthropic">("fake");
   const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
 
   useEffect(() => {
     api
@@ -22,7 +33,7 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
       .catch(() => {});
   }, [worldPath]);
 
-  const create = async () => {
+  const createBlank = async () => {
     if (!stage) return;
     setBusy(true);
     try {
@@ -37,21 +48,124 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
     }
   };
 
+  const generate = async () => {
+    if (!stage) return;
+    const cost =
+      backend === "fake"
+        ? "Generate with the FAKE backend — $0, no API calls (placeholder layout)."
+        : "Generate with anthropic — PAID (a few cents of LLM calls).";
+    if (
+      !window.confirm(
+        `${cost}\n\nStage ${stage} · difficulty ${difficulty} · ${width}×${height} · ` +
+          `${enemies} enemies · ${items} items.\n\nLands a DRAFT (publish separately). Proceed?`,
+      )
+    )
+      return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const r = await api.generateLevel(worldPath, stage, {
+        brief,
+        difficulty,
+        width,
+        height,
+        axis,
+        enemies,
+        items,
+        seed: seed.trim() || null,
+        llmBackend: backend,
+      });
+      setEntities("levels", await api.listEntities(worldPath, "levels"));
+      select({ kind: "entity", typeId: "levels", id: r.level_id });
+      if (r.layout_fallback)
+        setNote(`${r.level_id}: FALLBACK layout (not a designed level) — regenerate or edit.`);
+      else if (!r.ok) setNote(`${r.level_id}: generated, but Validate flags issues.`);
+      else if (r.warnings?.length) setNote(`${r.level_id}: ${r.warnings[0]}`);
+      else onDone();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const field: React.CSSProperties = { width: 52, fontSize: 11 };
+  const tab = (m: "blank" | "generate"): React.CSSProperties => ({
+    fontSize: 11,
+    padding: "2px 8px",
+    cursor: "pointer",
+    borderRadius: 5,
+    border: "1px solid var(--border, #3a2f4a)",
+    background: mode === m ? "var(--accent, #b98a3a)" : "transparent",
+    color: mode === m ? "#1a1420" : "var(--text-2, #d9cfe8)",
+  });
   return (
     <div style={{ padding: "6px 10px 8px 26px", display: "flex", flexDirection: "column", gap: 5 }}>
+      <div style={{ display: "flex", gap: 4 }}>
+        <button style={tab("blank")} onClick={() => setMode("blank")}>blank</button>
+        <button style={tab("generate")} onClick={() => setMode("generate")}>generate</button>
+      </div>
       <select value={stage} onChange={(e) => setStage(e.target.value)} style={{ fontSize: 11 }}>
         {stages.map((s) => (
           <option key={s} value={s}>{s}</option>
         ))}
       </select>
+      {mode === "generate" && (
+        <textarea
+          placeholder="brief — what this level should feel like"
+          value={brief}
+          onChange={(e) => setBrief(e.target.value)}
+          rows={2}
+          style={{ fontSize: 11, resize: "vertical" }}
+        />
+      )}
       <div style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 11 }}>
         W <input type="number" min={8} value={width} onChange={(e) => setWidth(+e.target.value)} style={field} />
         H <input type="number" min={8} value={height} onChange={(e) => setHeight(+e.target.value)} style={field} />
       </div>
-      <button onClick={create} disabled={busy || !stage} style={{ fontSize: 11, cursor: "pointer" }}>
-        {busy ? "creating…" : "create draft"}
+      {mode === "generate" && (
+        <>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 11 }}>
+            <label>diff
+              <select value={difficulty} onChange={(e) => setDifficulty(+e.target.value)} style={{ fontSize: 11, marginLeft: 3 }}>
+                <option value={1}>1</option>
+                <option value={2}>2</option>
+                <option value={3}>3</option>
+              </select>
+            </label>
+            <label>axis
+              <select value={axis} onChange={(e) => setAxis(e.target.value as "horizontal" | "vertical")} style={{ fontSize: 11, marginLeft: 3 }}>
+                <option value="horizontal">horiz</option>
+                <option value="vertical">vert</option>
+              </select>
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 11 }}>
+            enemies <input type="number" min={0} value={enemies} onChange={(e) => setEnemies(+e.target.value)} style={{ ...field, width: 40 }} />
+            items <input type="number" min={0} value={items} onChange={(e) => setItems(+e.target.value)} style={{ ...field, width: 40 }} />
+          </div>
+          <input
+            placeholder="seed (optional — blank = varied)"
+            value={seed}
+            onChange={(e) => setSeed(e.target.value)}
+            style={{ fontSize: 11 }}
+          />
+          <label style={{ fontSize: 11 }}>backend
+            <select value={backend} onChange={(e) => setBackend(e.target.value as "fake" | "anthropic")} style={{ fontSize: 11, marginLeft: 3 }}>
+              <option value="fake">fake ($0)</option>
+              <option value="anthropic">anthropic (paid)</option>
+            </select>
+          </label>
+        </>
+      )}
+      <button
+        onClick={mode === "blank" ? createBlank : generate}
+        disabled={busy || !stage}
+        style={{ fontSize: 11, cursor: "pointer" }}
+      >
+        {busy ? (mode === "blank" ? "creating…" : "generating…") : mode === "blank" ? "create draft" : "generate draft"}
       </button>
+      {note && <div style={{ fontSize: 10, color: "var(--text-3, #8a8398)" }}>{note}</div>}
     </div>
   );
 }

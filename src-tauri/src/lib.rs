@@ -162,6 +162,82 @@ fn create_level(path: String, stage_id: String, width: u32, height: u32) -> Resu
     ])
 }
 
+/// Scaffold a fresh platformer project via `canon world new` (the fake
+/// pipeline — $0, no API keys), returning the created pack path for the
+/// frontend to open. The pack dir is `<parent>/<slug(name)>`.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+fn new_project(
+    parent_dir: String,
+    name: String,
+    stages: Option<u32>,
+    levels: Option<u32>,
+    enemies: Option<u32>,
+    items: Option<u32>,
+    llm_backend: Option<String>,
+    image_backend: Option<String>,
+    music_backend: Option<String>,
+    sfx_backend: Option<String>,
+    vlm_backend: Option<String>,
+) -> Result<Value, String> {
+    let slug: String = name
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '_' })
+        .collect();
+    let slug = slug.trim_matches('_');
+    let slug = if slug.is_empty() { "project" } else { slug };
+    let out = std::path::Path::new(&parent_dir).join(slug);
+    let mut args: Vec<String> = vec![
+        "world".into(),
+        "new".into(),
+        out.to_string_lossy().into_owned(),
+        "--name".into(),
+        name,
+    ];
+    if let Some(s) = stages { args.push("--stages".into()); args.push(s.to_string()); }
+    if let Some(l) = levels { args.push("--levels".into()); args.push(l.to_string()); }
+    if let Some(e) = enemies { args.push("--enemies".into()); args.push(e.to_string()); }
+    if let Some(i) = items { args.push("--items".into()); args.push(i.to_string()); }
+    if let Some(b) = llm_backend { args.push("--llm-backend".into()); args.push(b); }
+    if let Some(b) = image_backend { args.push("--image-backend".into()); args.push(b); }
+    if let Some(b) = music_backend { args.push("--music-backend".into()); args.push(b); }
+    if let Some(b) = sfx_backend { args.push("--sfx-backend".into()); args.push(b); }
+    if let Some(b) = vlm_backend { args.push("--vlm-backend".into()); args.push(b); }
+    // Paid backends read their keys from CANON_ENV_FILE (harmless when fake).
+    run_canon_owned(with_env_file(args))
+}
+
+/// Regenerate an existing level's layout in place via `canon level regenerate`
+/// (a flat draft becomes designed, or a level is redesigned). Paid path.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+fn regenerate_layout(
+    path: String,
+    level_id: String,
+    brief: String,
+    difficulty: Option<u32>,
+    width: Option<u32>,
+    height: Option<u32>,
+    axis: Option<String>,
+    seed: Option<String>,
+    llm_backend: Option<String>,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<String> = vec![
+        "level".into(), "regenerate".into(), root,
+        "--level".into(), level_id, "--brief".into(), brief,
+        "--actor".into(), "cradle:user".into(),
+    ];
+    if let Some(d) = difficulty { args.push("--difficulty".into()); args.push(d.to_string()); }
+    if let Some(w) = width { args.push("--width".into()); args.push(w.to_string()); }
+    if let Some(h) = height { args.push("--height".into()); args.push(h.to_string()); }
+    if let Some(a) = axis { args.push("--axis".into()); args.push(a); }
+    if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
+    args.push("--llm-backend".into());
+    args.push(llm_backend.unwrap_or_else(|| "fake".into()));
+    run_canon_owned(with_env_file(args))
+}
+
 /// Insert a level into (or remove it from) the progression via `canon level publish`.
 #[tauri::command]
 fn publish_level(
@@ -184,6 +260,86 @@ fn publish_level(
     }
     let arg_refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
     run_canon(&arg_refs)
+}
+
+/// Generate a whole draft level (terrain + enemies + items) via
+/// `canon level generate`. Paid path — `with_env_file` threads provider keys
+/// for `--llm-backend anthropic`; `fake` is $0. Lands a DRAFT (publish stays
+/// separate).
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+fn generate_level(
+    path: String,
+    stage_id: String,
+    brief: String,
+    difficulty: Option<u32>,
+    width: Option<u32>,
+    height: Option<u32>,
+    axis: Option<String>,
+    enemies: Option<u32>,
+    items: Option<u32>,
+    seed: Option<String>,
+    llm_backend: Option<String>,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<String> = vec![
+        "level".into(), "generate".into(), root,
+        "--stage".into(), stage_id, "--brief".into(), brief,
+        "--actor".into(), "cradle:user".into(),
+    ];
+    if let Some(d) = difficulty { args.push("--difficulty".into()); args.push(d.to_string()); }
+    if let Some(w) = width { args.push("--width".into()); args.push(w.to_string()); }
+    if let Some(h) = height { args.push("--height".into()); args.push(h.to_string()); }
+    if let Some(a) = axis { args.push("--axis".into()); args.push(a); }
+    if let Some(e) = enemies { args.push("--enemies".into()); args.push(e.to_string()); }
+    if let Some(i) = items { args.push("--items".into()); args.push(i.to_string()); }
+    if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
+    args.push("--llm-backend".into());
+    args.push(llm_backend.unwrap_or_else(|| "fake".into()));
+    run_canon_owned(with_env_file(args))
+}
+
+/// Place enemies onto an existing level via `canon level place-enemies`
+/// (works on generated OR hand-painted terrain). Paid path.
+#[tauri::command]
+fn place_enemies(
+    path: String,
+    level_id: String,
+    enemies: Option<u32>,
+    seed: Option<String>,
+    llm_backend: Option<String>,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<String> = vec![
+        "level".into(), "place-enemies".into(), root,
+        "--level".into(), level_id, "--actor".into(), "cradle:user".into(),
+    ];
+    if let Some(e) = enemies { args.push("--enemies".into()); args.push(e.to_string()); }
+    if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
+    args.push("--llm-backend".into());
+    args.push(llm_backend.unwrap_or_else(|| "fake".into()));
+    run_canon_owned(with_env_file(args))
+}
+
+/// Place items onto an existing level via `canon level place-items`. Paid path.
+#[tauri::command]
+fn place_items(
+    path: String,
+    level_id: String,
+    items: Option<u32>,
+    seed: Option<String>,
+    llm_backend: Option<String>,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<String> = vec![
+        "level".into(), "place-items".into(), root,
+        "--level".into(), level_id, "--actor".into(), "cradle:user".into(),
+    ];
+    if let Some(i) = items { args.push("--items".into()); args.push(i.to_string()); }
+    if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
+    args.push("--llm-backend".into());
+    args.push(llm_backend.unwrap_or_else(|| "fake".into()));
+    run_canon_owned(with_env_file(args))
 }
 
 /// Append `--env-file $CANON_ENV_FILE` when the host was launched with one —
@@ -311,7 +467,13 @@ fn play_level(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let repo = canon_repo_root()?;
-    let python = repo.join(".venv").join("bin").join("python");
+    // Windows venvs put the interpreter at .venv\Scripts\python.exe; Unix at
+    // .venv/bin/python. Resolve per-OS so ▶ Play works cross-platform.
+    let python = if cfg!(windows) {
+        repo.join(".venv").join("Scripts").join("python.exe")
+    } else {
+        repo.join(".venv").join("bin").join("python")
+    };
     let script = repo.join("examples").join("platformer_play.py");
     if !python.is_file() {
         return Err(format!("python not found at {}", python.display()));
@@ -678,6 +840,11 @@ pub fn run() {
             generate_asset,
             animate_asset,
             create_level,
+            new_project,
+            regenerate_layout,
+            generate_level,
+            place_enemies,
+            place_items,
             publish_level,
             baseline_level,
             get_bundled_demo_path,

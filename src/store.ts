@@ -72,6 +72,8 @@ type Store = {
   setRoute: (r: Route) => void;
   setTheme: (t: Theme) => void;
   setDrawerOpen: (open: boolean) => void;
+  newProjectOpen: boolean;
+  setNewProjectOpen: (open: boolean) => void;
   playTrack: (track: AudioTrack) => void;
   pauseAudio: () => void;
   resumeAudio: () => void;
@@ -123,6 +125,7 @@ export const useStore = create<Store>((set, get) => ({
   route: "start",
   theme: initialTheme(),
   drawerOpen: false,
+  newProjectOpen: false,
   ...INITIAL_AUDIO_STATE,
   loading: false,
   setWorldPath: (p) => set({ worldPath: p }),
@@ -144,6 +147,7 @@ export const useStore = create<Store>((set, get) => ({
     }),
   select: (s) => set({ selection: s }),
   setError: (e) => set({ error: e }),
+  setNewProjectOpen: (open) => set({ newProjectOpen: open }),
   openLightbox: (img) => set({ lightbox: img }),
   closeLightbox: () => set({ lightbox: null }),
   setRoute: (r) => set({ route: r }),

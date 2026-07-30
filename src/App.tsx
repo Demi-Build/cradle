@@ -8,6 +8,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { StartScreen } from "./components/start/StartScreen";
 import { RecentProjectsPage } from "./components/recents/RecentProjectsPage";
 import { NotesDrawer } from "./components/start/NotesDrawer";
+import { NewProjectModal } from "./components/start/NewProjectModal";
 import { useStore } from "./store";
 import { api } from "./lib/invoke";
 import "./App.css";
@@ -21,6 +22,8 @@ export default function App() {
   const worldPath = useStore((s) => s.worldPath);
   const setEntities = useStore((s) => s.setEntities);
   const select = useStore((s) => s.select);
+  const newProjectOpen = useStore((s) => s.newProjectOpen);
+  const setNewProjectOpen = useStore((s) => s.setNewProjectOpen);
 
   useEffect(() => {
     document.body.setAttribute("data-theme", theme);
@@ -139,8 +142,17 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selection, entities, worldPath, setEntities, select, world]);
 
+  const newProjectModal = newProjectOpen ? (
+    <NewProjectModal onClose={() => setNewProjectOpen(false)} />
+  ) : null;
+
   if (world === null) {
-    return route === "recents" ? <RecentProjectsPage /> : <StartScreen />;
+    return (
+      <>
+        {route === "recents" ? <RecentProjectsPage /> : <StartScreen />}
+        {newProjectModal}
+      </>
+    );
   }
 
   const boundaryKey =
@@ -162,6 +174,7 @@ export default function App() {
       <ValidationBar />
       <Lightbox />
       <NotesDrawer />
+      {newProjectModal}
     </div>
   );
 }

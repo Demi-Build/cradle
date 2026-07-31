@@ -74,6 +74,8 @@ type Store = {
   setDrawerOpen: (open: boolean) => void;
   newProjectOpen: boolean;
   setNewProjectOpen: (open: boolean) => void;
+  dashboardOpen: boolean;
+  setDashboardOpen: (open: boolean) => void;
   playTrack: (track: AudioTrack) => void;
   pauseAudio: () => void;
   resumeAudio: () => void;
@@ -126,6 +128,7 @@ export const useStore = create<Store>((set, get) => ({
   theme: initialTheme(),
   drawerOpen: false,
   newProjectOpen: false,
+  dashboardOpen: false,
   ...INITIAL_AUDIO_STATE,
   loading: false,
   setWorldPath: (p) => set({ worldPath: p }),
@@ -148,6 +151,7 @@ export const useStore = create<Store>((set, get) => ({
   select: (s) => set({ selection: s }),
   setError: (e) => set({ error: e }),
   setNewProjectOpen: (open) => set({ newProjectOpen: open }),
+  setDashboardOpen: (open) => set({ dashboardOpen: open }),
   openLightbox: (img) => set({ lightbox: img }),
   closeLightbox: () => set({ lightbox: null }),
   setRoute: (r) => set({ route: r }),

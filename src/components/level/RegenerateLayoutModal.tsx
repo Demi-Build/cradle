@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { api } from "../../lib/invoke";
+import { useEffect, useState } from "react";
+import { api, type CostEstimate } from "../../lib/invoke";
+import { fmtRange, recordSpend } from "../../lib/cost";
 
 /** Regenerate an EXISTING level's terrain from a brief — turns a flat draft
  *  into a designed level, or redesigns an existing one. Replaces the terrain
@@ -23,12 +24,26 @@ export function RegenerateLayoutModal({
   const [backend, setBackend] = useState<"fake" | "anthropic">("fake");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [est, setEst] = useState<CostEstimate | null>(null);
+
+  // Live estimate — the layout op's price depends only on this level + backend.
+  useEffect(() => {
+    let live = true;
+    setEst(null);
+    api
+      .estimateLevel(worldPath, levelId, "layout", backend)
+      .then((r) => live && setEst(r.estimate))
+      .catch(() => live && setEst(null));
+    return () => {
+      live = false;
+    };
+  }, [worldPath, levelId, backend]);
 
   const run = async () => {
     const paid = backend === "anthropic";
     if (
       !window.confirm(
-        `${paid ? "PAID (anthropic — a few cents)" : "FAKE — $0, no API calls"}: ` +
+        `${paid ? `PAID (anthropic — est. ${fmtRange(est?.total_usd)})` : "FAKE — $0, no API calls"}: ` +
           `regenerate ${levelId}'s layout from your brief.\n\n` +
           "This REPLACES the terrain and CLEARS placements (re-run 🎲 Enemies/Items after). Proceed?",
       )
@@ -42,6 +57,17 @@ export function RegenerateLayoutModal({
         difficulty,
         axis: axis || null,
         llmBackend: backend,
+      });
+      await recordSpend(worldPath, {
+        op: "layout",
+        scope: "level",
+        level_id: levelId,
+        backends: { llm: backend },
+        estimate: est?.total_usd,
+        actual_usd: r.cost?.usd ?? 0,
+        tokens: r.cost
+          ? { input: r.cost.input_tokens, output: r.cost.output_tokens, calls: r.cost.calls }
+          : undefined,
       });
       onDone(
         `layout regenerated — ${r.ok ? "valid ✓" : "check Validate"}` +
@@ -122,6 +148,10 @@ export function RegenerateLayoutModal({
             <option value="anthropic">Claude (paid)</option>
           </select>
         </label>
+        <div style={{ ...row, opacity: 0.85 }}>
+          <span>Estimated cost</span>
+          <strong>{est ? fmtRange(est.total_usd) : "…"}</strong>
+        </div>
         {err && (
           <div style={{ color: "#e0453a", fontSize: 12, marginTop: 6, whiteSpace: "pre-wrap" }}>{err}</div>
         )}

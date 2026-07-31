@@ -74,6 +74,17 @@ export interface LevelBundle {
   items: LevelItem[];
   props: Record<string, string | null>;
   backdrop: { depths: number[]; band_paths_abs: (string | null)[] } | null;
+  // Per-level music (additive): the level's own track, user music sections,
+  // and the stage default it falls back to. Empty music_path → stage default.
+  music_path?: string;
+  music_sections?: {
+    start: number;
+    end: number;
+    music_path?: string;
+    music_hash?: string;
+    name?: string;
+  }[];
+  stage_music?: string;
 }
 
 export type RenderMode = "blocks" | "art" | "overlay";

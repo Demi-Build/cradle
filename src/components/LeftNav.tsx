@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, type EntityRow } from "../lib/invoke";
+import { api, type CostEstimate, type EntityRow } from "../lib/invoke";
+import { fmtRange, recordSpend } from "../lib/cost";
 import { useStore } from "../store";
 
 /** Inline "+ New level" form: a blank DRAFT to paint, or a generated DRAFT
@@ -50,10 +51,19 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
 
   const generate = async () => {
     if (!stage) return;
+    let est: CostEstimate | null = null;
+    if (backend === "anthropic") {
+      try {
+        // A new level has no id yet — price by the form's width.
+        est = (await api.estimateLevel(worldPath, "__preview__", "generate", backend, width)).estimate;
+      } catch {
+        /* estimate is advisory */
+      }
+    }
     const cost =
       backend === "fake"
         ? "Generate with the FAKE backend — $0, no API calls (placeholder layout)."
-        : "Generate with anthropic — PAID (a few cents of LLM calls).";
+        : `Generate with anthropic — PAID (est. ${fmtRange(est?.total_usd)}).`;
     if (
       !window.confirm(
         `${cost}\n\nStage ${stage} · difficulty ${difficulty} · ${width}×${height} · ` +
@@ -74,6 +84,17 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
         items,
         seed: seed.trim() || null,
         llmBackend: backend,
+      });
+      await recordSpend(worldPath, {
+        op: "generate",
+        scope: "level",
+        level_id: r.level_id,
+        backends: { llm: backend },
+        estimate: est?.total_usd,
+        actual_usd: r.cost?.usd ?? 0,
+        tokens: r.cost
+          ? { input: r.cost.input_tokens, output: r.cost.output_tokens, calls: r.cost.calls }
+          : undefined,
       });
       setEntities("levels", await api.listEntities(worldPath, "levels"));
       select({ kind: "entity", typeId: "levels", id: r.level_id });

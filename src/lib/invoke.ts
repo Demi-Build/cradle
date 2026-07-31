@@ -40,7 +40,76 @@ export type GenLevelResult = {
   repair_count: number;
   layout_fallback: boolean;
   seed: string;
+  cost?: OpCost;
   warnings: string[];
+};
+/** Actual measured LLM spend of one op (real returned tokens × price). */
+export type OpCost = {
+  usd: number;
+  input_tokens: number;
+  output_tokens: number;
+  calls: number;
+  backend: string;
+};
+/** A user-authored music region on a level (cells along its layout axis). */
+export type MusicSection = {
+  start: number;
+  end: number;
+  music_path?: string;
+  music_hash?: string;
+  name?: string;
+};
+export type MusicTrack = { path: string; label: string };
+export type MusicGenResult = {
+  level_id: string;
+  stage_id: string;
+  target: string;
+  music_path: string;
+  cost?: OpCost;
+  warnings: string[];
+};
+export type Usd = { best: number; worst: number };
+export type EstimateByTask = {
+  calls: number;
+  model: string;
+  input_tokens_per_call: number;
+  output_tokens_per_call: number;
+  usd: number;
+};
+/** Pre-run cost forecast — backend-aware (fake/none categories priced at $0,
+ *  counts still shown). Same shape from the world and per-level verbs. */
+export type CostEstimate = {
+  scope: string;
+  backends: Record<string, string>;
+  llm: { by_task: Record<string, EstimateByTask>; calls: number; usd: Usd };
+  assets: {
+    images: { count: number; usd: number };
+    music: { count: number; usd: number };
+    sfx: { count: number; usd: number };
+    vlm: { usd?: Usd } & Record<string, unknown>;
+    usd: Usd;
+  };
+  total_usd: Usd;
+  warnings: string[];
+};
+export type SpendEntry = {
+  schema?: string;
+  ts?: string;
+  op: string;
+  scope?: string;
+  level_id?: string;
+  backends?: Record<string, string>;
+  estimate?: Usd;
+  actual_usd?: number;
+  tokens?: { input: number; output: number; calls: number };
+};
+export type SpendByOp = { count: number; actual_usd: number; estimate_usd: number };
+export type SpendSummary = {
+  count: number;
+  total_actual_usd: number;
+  total_estimate_usd: number;
+  by_op: Record<string, SpendByOp>;
+  entries: SpendEntry[];
 };
 export type LibraryEntry = {
   library_id: string;
@@ -187,6 +256,61 @@ export const api = {
     invoke<GenLevelResult>("place_enemies", { path, levelId, enemies, seed, llmBackend }),
   placeItems: (path: string, levelId: string, items?: number, seed?: string, llmBackend?: string) =>
     invoke<GenLevelResult>("place_items", { path, levelId, items, seed, llmBackend }),
+  estimateWorld: (opts: {
+    stages: number;
+    levels: number;
+    enemies: number;
+    items: number;
+    llmBackend: string;
+    imageBackend: string;
+    musicBackend: string;
+    sfxBackend: string;
+    vlmBackend: string;
+  }) =>
+    invoke<{ result: string; estimate: CostEstimate }>("estimate_world", {
+      stages: opts.stages,
+      levels: opts.levels,
+      enemies: opts.enemies,
+      items: opts.items,
+      llmBackend: opts.llmBackend,
+      imageBackend: opts.imageBackend,
+      musicBackend: opts.musicBackend,
+      sfxBackend: opts.sfxBackend,
+      vlmBackend: opts.vlmBackend,
+    }),
+  estimateLevel: (
+    path: string,
+    levelId: string,
+    op: string,
+    llmBackend: string,
+    width?: number,
+  ) =>
+    invoke<{ result: string; estimate: CostEstimate }>("estimate_level", {
+      path,
+      levelId,
+      op,
+      llmBackend,
+      width: width ?? null,
+    }),
+  spendRecord: (path: string, entry: SpendEntry) =>
+    invoke<{ result: string; entry: SpendEntry }>("spend_record", { path, entry }),
+  spendList: (path: string) =>
+    invoke<{ result: string; spend: SpendSummary }>("spend_list", { path }),
+  generateLevelMusic: (
+    path: string,
+    levelId: string,
+    opts: { brief?: string; section?: number | null; musicBackend?: string; seconds?: number | null },
+  ) =>
+    invoke<MusicGenResult>("generate_level_music", {
+      path,
+      levelId,
+      brief: opts.brief ?? "",
+      section: opts.section ?? null,
+      musicBackend: opts.musicBackend ?? "fake",
+      seconds: opts.seconds ?? null,
+    }),
+  listMusicTracks: (path: string) =>
+    invoke<{ tracks: MusicTrack[] }>("list_music_tracks", { path }),
   replaceAsset: (path: string, target: string, file: string) =>
     invoke<unknown>("replace_asset", { path, target, file }),
   dbTypes: (path: string) => invoke<unknown>("db_types", { path }),

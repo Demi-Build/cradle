@@ -125,6 +125,11 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         if (edit.triggers) b.triggers = edit.triggers;
         if (edit.spawn) b.spawn = edit.spawn;
         if (edit.exit) b.exit = edit.exit;
+        if (edit.music_path !== undefined) {
+          b.music_path = edit.music_path;
+          b.music_hash = edit.music_hash ?? "";
+        }
+        if (edit.music_sections) b.music_sections = edit.music_sections;
       }
       return {
         level_id: String(args.levelId),
@@ -569,9 +574,161 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       if (hint.startsWith("/")) return null; // foreign absolute path: no match
       return "/__mockassets__/" + hint;
     }
+    case "generate_level_music": {
+      const lid = String(args.levelId);
+      const b = d.bundles[lid] as Record<string, unknown> | undefined;
+      const stage = b ? String(b.stage_id ?? "s1") : "s1";
+      const section = args.section as number | null | undefined;
+      const rel = `music/${stage}/${lid}/${section != null ? "sec" + section : "theme"}.mp3`;
+      if (b) {
+        if (section == null) {
+          b.music_path = rel;
+        } else {
+          const secs = ((b.music_sections as Record<string, unknown>[]) ?? []).slice();
+          if (secs[section]) secs[section] = { ...secs[section], music_path: rel };
+          b.music_sections = secs;
+        }
+      }
+      return {
+        level_id: lid, stage_id: stage, target: `music:${stage}/${lid}`,
+        music_path: rel,
+        cost: {
+          usd: 0, llm_usd: 0, image_usd: 0, audio_usd: 0,
+          input_tokens: 0, output_tokens: 0, calls: 0,
+          backend: String(args.musicBackend ?? "fake"),
+        },
+        warnings: [],
+      };
+    }
+    case "list_music_tracks": {
+      const seen = new Set<string>();
+      const tracks: { path: string; label: string }[] = [];
+      for (const bb of Object.values(d.bundles) as Record<string, unknown>[]) {
+        const st = String(bb.stage_id ?? "s1");
+        const p = `music/${st}/theme.mp3`;
+        if (!seen.has(p)) { seen.add(p); tracks.push({ path: p, label: `${st}/theme.mp3` }); }
+        if (bb.music_path) {
+          const mp = String(bb.music_path);
+          if (!seen.has(mp)) { seen.add(mp); tracks.push({ path: mp, label: mp.slice("music/".length) }); }
+        }
+      }
+      return { tracks };
+    }
+    case "estimate_world":
+      return {
+        result: "estimate",
+        estimate: mockEstimate("world", {
+          stages: Number(args.stages ?? 3),
+          levels: Number(args.levels ?? 9),
+          enemies: Number(args.enemies ?? 7),
+          items: Number(args.items ?? 5),
+        }, {
+          llm: String(args.llmBackend ?? "fake"),
+          image: String(args.imageBackend ?? "fake"),
+          music: String(args.musicBackend ?? "none"),
+          sfx: String(args.sfxBackend ?? "none"),
+          vlm: String(args.vlmBackend ?? "none"),
+        }),
+      };
+    case "estimate_level":
+      return {
+        result: "estimate",
+        estimate: mockEstimate(String(args.op ?? "generate"), null, {
+          llm: String(args.llmBackend ?? "fake"),
+        }),
+      };
+    case "spend_record": {
+      const entry = (args.entry ?? {}) as Record<string, unknown>;
+      const line = { schema: "cradle-spend/v1", ts: new Date().toISOString(), ...entry };
+      MOCK_SPEND.push(line);
+      return { result: "spend_record", entry: line };
+    }
+    case "spend_list": {
+      const byOp: Record<string, { count: number; actual_usd: number; estimate_usd: number }> = {};
+      let totalActual = 0;
+      let totalEst = 0;
+      for (const e of MOCK_SPEND) {
+        const op = String(e.op ?? e.scope ?? "unknown");
+        const actual = typeof e.actual_usd === "number" ? e.actual_usd : 0;
+        const est = (e.estimate as { best?: number } | undefined)?.best ?? 0;
+        const agg = (byOp[op] ??= { count: 0, actual_usd: 0, estimate_usd: 0 });
+        agg.count += 1;
+        agg.actual_usd += actual;
+        agg.estimate_usd += est;
+        totalActual += actual;
+        totalEst += est;
+      }
+      return {
+        result: "spend_list",
+        spend: {
+          count: MOCK_SPEND.length,
+          total_actual_usd: Number(totalActual.toFixed(6)),
+          total_estimate_usd: Number(totalEst.toFixed(6)),
+          by_op: byOp,
+          entries: MOCK_SPEND,
+        },
+      };
+    }
     default:
       throw new Error(`devMock: unhandled command ${cmd}`);
   }
+}
+
+/** In-memory spend ledger for the browser mock (native writes .canon/spend.jsonl). */
+const MOCK_SPEND: Record<string, unknown>[] = [];
+
+/** A plausible, backend-MASKED cost estimate for the mock — mirrors canon's
+ *  masking (fake/none = $0, counts preserved) so the gate/dashboard UI is
+ *  exercisable in the browser without the native pricing engine. */
+function mockEstimate(
+  scope: string,
+  counts: { stages: number; levels: number; enemies: number; items: number } | null,
+  backends: Record<string, string>,
+): Record<string, unknown> {
+  const paid = (kind: string, v?: string) => {
+    const b = (v ?? "").toLowerCase();
+    if (kind === "llm" || kind === "vlm") return b === "anthropic";
+    if (kind === "image") return ["fal", "retro", "pixellab"].includes(b);
+    if (kind === "music") return b === "lyria";
+    if (kind === "sfx") return b === "elevenlabs";
+    return false;
+  };
+  if (scope === "world" && counts) {
+    const images = counts.stages * 18 + counts.enemies * 6 + counts.items + 8;
+    const llmBest = Number((counts.levels * 0.13 + counts.stages * 0.05).toFixed(4));
+    const imgUsd = paid("image", backends.image) ? Number((images * 0.04).toFixed(4)) : 0;
+    const musicUsd = paid("music", backends.music) ? counts.stages * 0.1 : 0;
+    const sfxUsd = paid("sfx", backends.sfx) ? 4 * 0.05 : 0;
+    const vlmUsd = paid("vlm", backends.vlm) ? Number((counts.levels * 0.03).toFixed(4)) : 0;
+    const llm = paid("llm", backends.llm) ? { best: llmBest, worst: Number((llmBest * 4).toFixed(4)) } : { best: 0, worst: 0 };
+    const assetsBest = imgUsd + musicUsd + sfxUsd + vlmUsd;
+    return {
+      scope, backends,
+      llm: { by_task: {}, calls: counts.levels + counts.stages, usd: llm },
+      assets: {
+        images: { count: images, usd: imgUsd },
+        music: { count: paid("music", backends.music) ? counts.stages : 0, usd: musicUsd },
+        sfx: { count: 4, usd: sfxUsd },
+        vlm: { usd: { best: vlmUsd, worst: vlmUsd } },
+        usd: { best: Number(assetsBest.toFixed(4)), worst: Number(assetsBest.toFixed(4)) },
+      },
+      total_usd: {
+        best: Number((llm.best + assetsBest).toFixed(4)),
+        worst: Number((llm.worst + assetsBest).toFixed(4)),
+      },
+      warnings: [],
+    };
+  }
+  // Per-op: LLM-only, cents.
+  const base: Record<string, number> = { generate: 0.075, layout: 0.064, enemies: 0.005, items: 0.005 };
+  const best = paid("llm", backends.llm) ? (base[scope] ?? 0.03) : 0;
+  return {
+    scope, backends,
+    llm: { by_task: {}, calls: scope === "generate" ? 6 : 1, usd: { best, worst: Number((best * 4).toFixed(4)) } },
+    assets: { images: { count: 0, usd: 0 }, music: { count: 0, usd: 0 }, sfx: { count: 0, usd: 0 }, vlm: {}, usd: { best: 0, worst: 0 } },
+    total_usd: { best, worst: Number((best * 4).toFixed(4)) },
+    warnings: [],
+  };
 }
 
 export function installDevMock(): void {

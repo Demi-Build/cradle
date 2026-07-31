@@ -10,12 +10,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { api, type ValidationReport } from "../../lib/invoke";
+import { api, type CostEstimate, type ValidationReport } from "../../lib/invoke";
+import { fmtRange, recordSpend } from "../../lib/cost";
 import { countProblems } from "../../lib/validation";
 import { useStore } from "../../store";
 import { LevelCanvas } from "./LevelCanvas";
 import { PaletteRail } from "./PaletteRail";
 import { RegenerateLayoutModal } from "./RegenerateLayoutModal";
+import { MusicPanel } from "./MusicPanel";
 import type { Brush, LevelBundle, RenderMode, Selection } from "./drawLevel";
 
 const MODES: { id: RenderMode; label: string }[] = [
@@ -128,6 +130,7 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   const [playNote, setPlayNote] = useState<string | null>(null);
   const [placeBackend, setPlaceBackend] = useState<"fake" | "anthropic">("fake");
   const [regenOpen, setRegenOpen] = useState(false);
+  const [musicOpen, setMusicOpen] = useState(false);
 
   // Validation/play notes are per-level — drop them when switching levels.
   useEffect(() => {
@@ -494,9 +497,17 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   // level. Flushes dirty edits first, then reloads the fresh placements.
   const doPlace = async (kind: "enemies" | "items") => {
     const paid = placeBackend === "anthropic";
+    let est: CostEstimate | null = null;
+    if (paid) {
+      try {
+        est = (await api.estimateLevel(worldPath, levelId, kind, placeBackend)).estimate;
+      } catch {
+        /* estimate is advisory — never block the op on it */
+      }
+    }
     if (
       !window.confirm(
-        `${paid ? "PAID (anthropic — a few cents)" : "FAKE — $0, no API calls"}: ` +
+        `${paid ? `PAID (anthropic — est. ${fmtRange(est?.total_usd)})` : "FAKE — $0, no API calls"}: ` +
           `(re)place ${kind} on ${levelId} using its current terrain.\n\nProceed?`,
       )
     )
@@ -508,6 +519,17 @@ export function LevelDetail({ levelId }: { levelId: string }) {
         kind === "enemies"
           ? await api.placeEnemies(worldPath, levelId, undefined, undefined, placeBackend)
           : await api.placeItems(worldPath, levelId, undefined, undefined, placeBackend);
+      await recordSpend(worldPath, {
+        op: kind,
+        scope: "level",
+        level_id: levelId,
+        backends: { llm: placeBackend },
+        estimate: est?.total_usd,
+        actual_usd: r.cost?.usd ?? 0,
+        tokens: r.cost
+          ? { input: r.cost.input_tokens, output: r.cost.output_tokens, calls: r.cost.calls }
+          : undefined,
+      });
       await reload();
       setPlayNote(
         `placed ${kind} — ${r.ok ? "valid ✓" : "check Validate"}` +
@@ -647,6 +669,7 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           dirty.size === 0,
         )}
         {btn("🪄 Layout", () => void openRegen())}
+        {btn("🎵 Music", () => setMusicOpen(true))}
         {btn("🎲 Enemies", () => void doPlace("enemies"))}
         {btn("🎲 Items", () => void doPlace("items"))}
         <select
@@ -784,6 +807,18 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           levelId={levelId}
           currentBrief={bundle.brief ?? undefined}
           onClose={() => setRegenOpen(false)}
+          onDone={(note) => {
+            setPlayNote(note);
+            void reload();
+          }}
+        />
+      )}
+      {musicOpen && bundle && (
+        <MusicPanel
+          worldPath={worldPath}
+          levelId={levelId}
+          bundle={bundle}
+          onClose={() => setMusicOpen(false)}
           onDone={(note) => {
             setPlayNote(note);
             void reload();

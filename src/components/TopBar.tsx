@@ -10,6 +10,7 @@ export function TopBar() {
   const setDrawerOpen = useStore((s) => s.setDrawerOpen);
   const closeWorld = useStore((s) => s.closeWorld);
   const setNewProjectOpen = useStore((s) => s.setNewProjectOpen);
+  const setDashboardOpen = useStore((s) => s.setDashboardOpen);
 
   return (
     <header className="titlebar">
@@ -23,6 +24,16 @@ export function TopBar() {
       </div>
       <div className="spacer" />
       <div className="right">
+        {world && (
+          <button
+            className="crumb-link"
+            onClick={() => setDashboardOpen(true)}
+            title="Project cost — what this project has spent"
+            style={{ marginRight: 4 }}
+          >
+            💰 Cost
+          </button>
+        )}
         <button
           className="crumb-link"
           onClick={() => setNewProjectOpen(true)}

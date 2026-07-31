@@ -9,6 +9,7 @@ import { StartScreen } from "./components/start/StartScreen";
 import { RecentProjectsPage } from "./components/recents/RecentProjectsPage";
 import { NotesDrawer } from "./components/start/NotesDrawer";
 import { NewProjectModal } from "./components/start/NewProjectModal";
+import { CostDashboard } from "./components/CostDashboard";
 import { useStore } from "./store";
 import { api } from "./lib/invoke";
 import "./App.css";
@@ -23,6 +24,7 @@ export default function App() {
   const setEntities = useStore((s) => s.setEntities);
   const select = useStore((s) => s.select);
   const newProjectOpen = useStore((s) => s.newProjectOpen);
+  const dashboardOpen = useStore((s) => s.dashboardOpen);
   const setNewProjectOpen = useStore((s) => s.setNewProjectOpen);
 
   useEffect(() => {
@@ -175,6 +177,7 @@ export default function App() {
       <Lightbox />
       <NotesDrawer />
       {newProjectModal}
+      {dashboardOpen && <CostDashboard />}
     </div>
   );
 }

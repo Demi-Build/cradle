@@ -299,6 +299,39 @@ fn generate_level(
     run_canon_owned(with_env_file(args))
 }
 
+/// Generate ONE music track for a level (or one of its user music sections)
+/// via `canon level music generate` — Lyria is paid (GOOGLE_API_KEY reaches it
+/// through CANON_ENV_FILE), fake is $0. Returns the actual cost block.
+#[tauri::command]
+fn generate_level_music(
+    path: String,
+    level_id: String,
+    brief: Option<String>,
+    section: Option<u32>,
+    music_backend: Option<String>,
+    seconds: Option<u32>,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<String> = vec![
+        "level".into(), "music".into(), "generate".into(), root,
+        "--level".into(), level_id,
+        "--brief".into(), brief.unwrap_or_default(),
+        "--music-backend".into(), music_backend.unwrap_or_else(|| "fake".into()),
+        "--actor".into(), "cradle:user".into(),
+    ];
+    if let Some(s) = section { args.push("--section".into()); args.push(s.to_string()); }
+    if let Some(sec) = seconds { args.push("--seconds".into()); args.push(sec.to_string()); }
+    run_canon_owned(with_env_file(args))
+}
+
+/// List the pack's existing music tracks (for the 'assign a track' dropdown).
+/// Read-only.
+#[tauri::command]
+fn list_music_tracks(path: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&["level", "music", "list", &root])
+}
+
 /// Place enemies onto an existing level via `canon level place-enemies`
 /// (works on generated OR hand-painted terrain). Paid path.
 #[tauri::command]
@@ -430,6 +463,107 @@ fn canon_repo_root() -> Result<PathBuf, String> {
         .and_then(|v| v.parent()) // repo
         .map(|r| r.to_path_buf())
         .ok_or_else(|| format!("cannot derive the canon repo from CANON_BIN={bin}"))
+}
+
+/// Run a canon verb that imports `examples.*` (the platformer cost estimator
+/// lives there). The `canon` console script can't resolve those modules, so
+/// invoke `python -m canon.cli.main` with the repo checkout as cwd. Blocking +
+/// JSON, same contract as run_canon. Estimate needs no provider keys.
+fn run_canon_module(args: &[&str]) -> Result<Value, String> {
+    let repo = canon_repo_root()?;
+    let python = if cfg!(windows) {
+        repo.join(".venv").join("Scripts").join("python.exe")
+    } else {
+        repo.join(".venv").join("bin").join("python")
+    };
+    if !python.is_file() {
+        return Err(format!("python not found at {}", python.display()));
+    }
+    let output = std::process::Command::new(&python)
+        .current_dir(&repo)
+        .arg("-m")
+        .arg("canon.cli.main")
+        .args(args)
+        .output()
+        .map_err(|e| format!("failed to run python -m canon.cli.main: {}", e))?;
+    if !output.status.success() {
+        return Err(format!(
+            "canon {} estimate failed: {}",
+            args.first().unwrap_or(&""),
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    serde_json::from_slice(&output.stdout).map_err(|e| format!("parse canon output: {}", e))
+}
+
+/// Pre-run cost estimate for a NEW project (world scope) at these counts +
+/// backends. Backend-aware (fake/none = $0) and count-aware. No API keys — it
+/// is pure pricing math, so it runs even without CANON_ENV_FILE.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+fn estimate_world(
+    stages: u32,
+    levels: u32,
+    enemies: u32,
+    items: u32,
+    llm_backend: String,
+    image_backend: String,
+    music_backend: String,
+    sfx_backend: String,
+    vlm_backend: String,
+) -> Result<Value, String> {
+    let (s, l, e, i) = (
+        stages.to_string(),
+        levels.to_string(),
+        enemies.to_string(),
+        items.to_string(),
+    );
+    run_canon_module(&[
+        "world", "estimate", "--stages", &s, "--levels", &l, "--enemies", &e,
+        "--items", &i, "--llm-backend", &llm_backend, "--image-backend",
+        &image_backend, "--music-backend", &music_backend, "--sfx-backend",
+        &sfx_backend, "--vlm-backend", &vlm_backend,
+    ])
+}
+
+/// Pre-run cost estimate for ONE per-level op (generate|layout|enemies|items)
+/// on an existing level. LLM-only; fake = $0.
+#[tauri::command]
+fn estimate_level(
+    path: String,
+    level_id: String,
+    op: String,
+    llm_backend: String,
+    width: Option<u32>,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<String> = vec![
+        "level".into(), "estimate".into(), root, "--level".into(), level_id,
+        "--op".into(), op, "--llm-backend".into(), llm_backend,
+    ];
+    if let Some(w) = width {
+        args.push("--width".into());
+        args.push(w.to_string());
+    }
+    let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    run_canon_module(&refs)
+}
+
+/// Append one paid-op spend entry to the pack's ledger (`canon spend record`) —
+/// cradle records what each op it fired actually cost. Console-script path (the
+/// spend verbs don't touch examples.*).
+#[tauri::command]
+fn spend_record(path: String, entry: Value) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let entry_str = serde_json::to_string(&entry).map_err(|e| e.to_string())?;
+    run_canon(&["spend", "record", &root, "--json", &entry_str])
+}
+
+/// The pack's spend ledger + roll-up for the cost dashboard (`canon spend list`).
+#[tauri::command]
+fn spend_list(path: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&["spend", "list", &root])
 }
 
 /// The PLAT_* hooks turn the play surfaces into scripted/headless sessions
@@ -845,8 +979,14 @@ pub fn run() {
             generate_level,
             place_enemies,
             place_items,
+            generate_level_music,
+            list_music_tracks,
             publish_level,
             baseline_level,
+            estimate_world,
+            estimate_level,
+            spend_record,
+            spend_list,
             get_bundled_demo_path,
         ])
         .run(tauri::generate_context!())

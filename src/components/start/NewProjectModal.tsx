@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useStore } from "../../store";
-import { api } from "../../lib/invoke";
+import { api, type CostEstimate } from "../../lib/invoke";
+import { fmtRange, fmtUsd, recordSpend } from "../../lib/cost";
 
 /** "New platformer project": collect a name + a few counts, pick a parent
  *  folder, then scaffold a populated STARTER via `canon world new` (the fake
@@ -22,6 +23,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
   const [vlm, setVlm] = useState("none");
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [est, setEst] = useState<CostEstimate | null>(null);
 
   const anyPaid =
     llm === "anthropic" ||
@@ -29,6 +31,33 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
     music === "lyria" ||
     sfx === "elevenlabs" ||
     vlm === "anthropic";
+
+  // Live estimate — recompute (debounced) as counts / backends change. The
+  // number reflects the CHOSEN backends: $0 while everything is fake/none, real
+  // dollars as you turn generators on.
+  useEffect(() => {
+    let live = true;
+    const t = setTimeout(() => {
+      api
+        .estimateWorld({
+          stages,
+          levels,
+          enemies,
+          items,
+          llmBackend: llm,
+          imageBackend: image,
+          musicBackend: music,
+          sfxBackend: sfx,
+          vlmBackend: vlm,
+        })
+        .then((r) => live && setEst(r.estimate))
+        .catch(() => live && setEst(null));
+    }, 350);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [stages, levels, enemies, items, llm, image, music, sfx, vlm]);
 
   const create = async () => {
     setErr(null);
@@ -45,6 +74,16 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
       setErr(String(e));
       return;
     }
+    // Paid runs are the real bill — confirm the projected cost before spending.
+    if (
+      anyPaid &&
+      !window.confirm(
+        `This run uses PAID backends.\n\nProjected cost: ${fmtRange(est?.total_usd)} ` +
+          `(${stages} stage(s) · ${levels} level(s) each · ${enemies} enemies · ${items} items).\n\n` +
+          "Actual cost depends on real token/asset usage. Proceed?",
+      )
+    )
+      return;
     setBusy(
       anyPaid
         ? "Generating (paid backends selected — this can take a while)…"
@@ -61,6 +100,24 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
         musicBackend: music,
         sfxBackend: sfx,
         vlmBackend: vlm,
+      });
+      // Record the run's ACTUAL cost from the generated tree's stats (real LLM +
+      // audio/pixellab/retro image spend). Best-effort — a missing stat records 0.
+      let actual = 0;
+      try {
+        const mf = (await api.readWorldJson(r.pack_dir, "manifest.json")) as {
+          generation_stats?: { total_cost_usd?: number };
+        };
+        actual = mf.generation_stats?.total_cost_usd ?? 0;
+      } catch {
+        /* stats optional */
+      }
+      await recordSpend(r.pack_dir, {
+        op: "world",
+        scope: "world",
+        backends: { llm, image, music, sfx, vlm },
+        estimate: est?.total_usd,
+        actual_usd: actual,
       });
       await loadWorldByPath(r.pack_dir);
       onClose();
@@ -187,6 +244,33 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
             Paid backends selected — needs API keys via <code>CANON_ENV_FILE</code> when you launch cradle.
           </div>
         )}
+        <div
+          style={{
+            marginTop: 10,
+            padding: "8px 10px",
+            borderRadius: 8,
+            background: "var(--surface-2, #221a2e)",
+            border: "1px solid var(--border, #3a2f4a)",
+            fontSize: 12,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <span style={{ opacity: 0.8 }}>Estimated cost</span>
+            <strong style={{ fontSize: 15 }}>{est ? fmtRange(est.total_usd) : "…"}</strong>
+          </div>
+          {est && anyPaid && (
+            <div style={{ marginTop: 4, opacity: 0.65, lineHeight: 1.5 }}>
+              LLM {fmtUsd(est.llm.usd.best)} · images {est.assets.images.count}×→
+              {fmtUsd(est.assets.images.usd)} · music {fmtUsd(est.assets.music.usd)} · sfx{" "}
+              {fmtUsd(est.assets.sfx.usd)} · anim {fmtUsd((est.assets.vlm?.usd?.best ?? 0) as number)}
+            </div>
+          )}
+          {est && !anyPaid && (
+            <div style={{ marginTop: 4, opacity: 0.6 }}>
+              $0 — all generators are free ({est.assets.images.count} placeholder images).
+            </div>
+          )}
+        </div>
         {err && (
           <div style={{ color: "#e0453a", fontSize: 12, marginTop: 8, whiteSpace: "pre-wrap" }}>{err}</div>
         )}

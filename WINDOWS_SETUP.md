@@ -39,22 +39,25 @@ Keep both folders side by side (e.g. `C:\dev\canon-ai` and `C:\dev\cradle`).
 
 ## 3. Set up canon (Python) — the editable install matters
 
+Call the venv's own `python.exe` directly — no `activate` step, so PowerShell's
+execution policy can't get in the way.
+
 ```powershell
 cd C:\dev\canon-ai
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
 # EDITABLE install with the platformer + play + cli extras.
 # Editable (-e) is REQUIRED: cradle's generators load code from examples\, which
 # only exists in a source checkout.
-pip install -e ".[cli,platformer,play]"
-# sanity check:
-canon --help
+.\.venv\Scripts\python.exe -m pip install -e ".[cli,platformer,play]"
+# sanity check — should print the canon help:
+.\.venv\Scripts\canon.exe --help
 ```
 
 *(Only if you later want the PAID path — real art / LLM content — also run
-`pip install -e ".[anthropic,images]"` and set your keys in a `.env` file. Not
-needed to try the app.)*
+`.\.venv\Scripts\python.exe -m pip install -e ".[anthropic,images]"` and put your
+keys in a `.env` file, then set `$env:CANON_ENV_FILE` to it. Not needed to try
+the app.)*
 
 ---
 
@@ -83,6 +86,15 @@ npm run tauri dev
 
 The **first** run compiles the Rust side — it can take several minutes. After
 that it's fast.
+
+Those `$env:` vars last only for that PowerShell window, so set them again each
+time (steps 5). To avoid that, set them once for good (then open a **new**
+PowerShell so they take effect):
+
+```powershell
+setx CANON_BIN  "C:\dev\canon-ai\.venv\Scripts\canon.exe"
+setx CANON_REPO "C:\dev\canon-ai"
+```
 
 ---
 

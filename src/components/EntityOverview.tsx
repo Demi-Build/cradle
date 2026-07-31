@@ -11,6 +11,7 @@ import { MonsterStatBlock, MonsterAbilities } from "./monster/MonsterStatBlock";
 import { AudioPlayer } from "./AudioPlayer";
 import { useStore } from "../store";
 import { api } from "../lib/invoke";
+import { fmtUsd, recordSpend } from "../lib/cost";
 import { Icon } from "./start/Icons";
 import { RowEditor } from "./db/RowEditor";
 import { TileSlotEditor } from "./db/TileSlotEditor";
@@ -98,6 +99,7 @@ export function EntityOverview({
   typeId: string;
   entityId: string;
 }) {
+  const worldPath = useStoreWorldPath();
   const name =
     (data.name as string | undefined) ??
     (data.environment_name as string | undefined) ??
@@ -164,6 +166,7 @@ export function EntityOverview({
         {Object.entries(sfx).map(([event, p]) => (
           <AudioPlayer key={event} hint={p} name={`sfx · ${event}`} kind="sfx" />
         ))}
+        <StageAudioReroll worldPath={worldPath} stageId={String(entityId)} />
       </div>
     );
   }
@@ -868,6 +871,86 @@ function RoomHeroImg({
   );
 }
 
+/** Reroll a stage's audio bundle (theme + the fixed SFX set) — music-only,
+ * sfx-only, or both. Paid (Lyria/ElevenLabs) is cost-gated + spend-recorded;
+ * fake is $0. Regenerates the WHOLE stage bundle (per-track is a future). */
+function StageAudioReroll({ worldPath, stageId }: { worldPath: string; stageId: string }) {
+  const select = useStore((s) => s.select);
+  const [music, setMusic] = useState<"none" | "fake" | "lyria">("none");
+  const [sfx, setSfx] = useState<"none" | "fake" | "elevenlabs">("none");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const est = (music === "lyria" ? 0.1 : 0) + (sfx === "elevenlabs" ? 0.2 : 0);
+
+  const run = async () => {
+    if (music === "none" && sfx === "none") {
+      setNote("pick a music and/or sfx backend first");
+      return;
+    }
+    const paid = music === "lyria" || sfx === "elevenlabs";
+    if (
+      !window.confirm(
+        `Regenerate stage audio for ${stageId}?\n\n` +
+          (music !== "none" ? `music: ${music}\n` : "") +
+          (sfx !== "none" ? `sfx: ${sfx}\n` : "") +
+          `${paid ? `Est. ${fmtUsd(est)}` : "$0 (fake)"} · replaces the current tracks. Proceed?`,
+      )
+    )
+      return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const r = (await api.generateAsset(
+        worldPath,
+        `audio:${stageId}`,
+        undefined,
+        music === "none" ? undefined : music,
+        sfx === "none" ? undefined : sfx,
+      )) as { cost?: { usd?: number }; warnings?: string[] };
+      await recordSpend(worldPath, {
+        op: "audio",
+        scope: "stage",
+        level_id: stageId,
+        backends: { music, sfx },
+        estimate: { best: est, worst: est },
+        actual_usd: r.cost?.usd ?? 0,
+      });
+      setNote(r.warnings?.length ? r.warnings[0] : "regenerated ✓");
+      select({ kind: "entity", typeId: "audio", id: stageId });
+    } catch (e) {
+      setNote(String(e).slice(0, 160));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sel: React.CSSProperties = { fontSize: 11, marginLeft: 4 };
+  return (
+    <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
+      <label style={{ fontSize: 12 }}>
+        music
+        <select value={music} onChange={(e) => setMusic(e.target.value as typeof music)} disabled={busy} style={sel}>
+          <option value="none">none</option>
+          <option value="fake">fake ($0)</option>
+          <option value="lyria">Lyria (paid)</option>
+        </select>
+      </label>
+      <label style={{ fontSize: 12 }}>
+        sfx
+        <select value={sfx} onChange={(e) => setSfx(e.target.value as typeof sfx)} disabled={busy} style={sel}>
+          <option value="none">none</option>
+          <option value="fake">fake ($0)</option>
+          <option value="elevenlabs">ElevenLabs (paid)</option>
+        </select>
+      </label>
+      <button onClick={() => void run()} disabled={busy} style={{ fontSize: 12, cursor: "pointer" }}>
+        {busy ? "Regenerating…" : "🔊 Reroll stage audio"}
+      </button>
+      {note && <span style={{ fontSize: 11, color: "var(--text-3, #8a8398)" }}>{note}</span>}
+    </div>
+  );
+}
+
 /** Generation actions for platformer DB entities (canon-backed, confirm-gated
  * — these spend real money on paid backends). */
 function GenActions({
@@ -896,6 +979,7 @@ function GenActions({
     label: string,
     confirmText: string,
     fn: () => Promise<unknown>,
+    spend?: { op: string; backends: Record<string, string> },
   ) => {
     if (!window.confirm(confirmText)) return;
     setBusy(label);
@@ -903,6 +987,17 @@ function GenActions({
     try {
       const result = (await fn()) as Record<string, unknown>;
       const warnings = (result.warnings as string[]) ?? [];
+      // Record the reroll's actual spend when canon returned a cost block.
+      const cost = result.cost as { usd?: number } | undefined;
+      if (spend && cost) {
+        await recordSpend(worldPath, {
+          op: spend.op,
+          scope: "asset",
+          level_id: id,
+          backends: spend.backends,
+          actual_usd: cost.usd ?? 0,
+        });
+      }
       setNote(warnings.length ? warnings[0] : `${label} done ✓`);
       select({ kind: "entity", typeId, id: entityId ?? id });
     } catch (e) {
@@ -951,6 +1046,7 @@ function GenActions({
             "generate sprite",
             `Generate a new sprite for ${id}?\n\nBackend: fal (nano-banana). Rough cost ~$0.04/image. The current sprite is replaced (original stays recoverable in the object store).`,
             () => api.generateAsset(worldPath, target, "fal"),
+            { op: "sprite", backends: { image: "fal" } },
           )
         }
       >
@@ -978,6 +1074,7 @@ function GenActions({
               "animate",
               `Animate ${id} (multi-image path)?\n\nVLM authors a per-state motion spec from the sprite, then one img2img sheet per state (idle/walk/hurt/death…).\nBackends: fal edit + anthropic VLM. Rough cost ~$0.04×states + VLM tokens.`,
               () => api.animateAsset(worldPath, target, "fal", "anthropic"),
+              { op: "animate", backends: { image: "fal", vlm: "anthropic" } },
             )
           }
         >

@@ -452,10 +452,15 @@ fn place_items(
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
-/// Append a per-call prompt override (`--system-prompt` for LLM verbs,
-/// `--prompt` for image/audio verbs) when the user edited it in the UI. An
-/// absent or blank override adds nothing, so the built-in default runs.
-fn with_prompt_override(mut args: Vec<String>, flag: &str, value: Option<String>) -> Vec<String> {
+/// Append `--flag <value>` when the UI actually supplied one. An absent or
+/// blank value adds nothing, so canon's own default applies — which is what a
+/// cleared free-text field (a model name, say) has to mean: passing `--model ""`
+/// would ask the provider for a model literally named "".
+///
+/// The value is forwarded verbatim: the prompt-override contract is byte-for-byte
+/// ("what you saw in the textarea is what the generator got"), so this must not
+/// reshape it. Callers that want whitespace tidied do it at the field.
+fn with_opt(mut args: Vec<String>, flag: &str, value: Option<String>) -> Vec<String> {
     if let Some(text) = value {
         if !text.trim().is_empty() {
             args.push(flag.into());
@@ -463,6 +468,13 @@ fn with_prompt_override(mut args: Vec<String>, flag: &str, value: Option<String>
         }
     }
     args
+}
+
+/// Append a per-call prompt override (`--system-prompt` for LLM verbs,
+/// `--prompt` for image/audio/vlm verbs) when the user edited it in the UI.
+/// Same "blank means default" contract as every other optional flag.
+fn with_prompt_override(args: Vec<String>, flag: &str, value: Option<String>) -> Vec<String> {
+    with_opt(args, flag, value)
 }
 
 /// The provider-key file passed to canon's paid verbs. `CANON_ENV_FILE` wins;
@@ -733,6 +745,33 @@ fn estimate_level(
     if let Some(w) = width {
         args.push("--width".into());
         args.push(w.to_string());
+    }
+    let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    run_canon_module(&refs)
+}
+
+/// Pre-run cost estimate for animating ONE actor. Priced by the actor's real
+/// STATE set (canon reads the row: a hopper's extra `jump`, the player's own
+/// six, an `asymmetric` second facing) — cradle can't compute that itself, so
+/// it asks rather than guessing. fake = $0.
+#[tauri::command]
+fn estimate_animate(
+    path: String,
+    target: String,
+    image_backend: String,
+    vlm_backend: String,
+    vlm_model: Option<String>,
+    reuse_spec: bool,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<String> = vec![
+        "asset".into(), "estimate".into(), root, "--target".into(), target,
+        "--op".into(), "animate".into(), "--image-backend".into(), image_backend,
+        "--vlm-backend".into(), vlm_backend,
+    ];
+    args = with_opt(args, "--vlm-model", vlm_model);
+    if reuse_spec {
+        args.push("--reuse-spec".into());
     }
     let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
     run_canon_module(&refs)
@@ -1077,6 +1116,9 @@ fn generate_asset(
     path: String,
     target: String,
     image_backend: Option<String>,
+    image_model: Option<String>,
+    image_edit_model: Option<String>,
+    image_edit_backend: Option<String>,
     music_backend: Option<String>,
     sfx_backend: Option<String>,
     prompt_override: Option<String>,
@@ -1087,18 +1129,15 @@ fn generate_asset(
         "asset".into(), "generate".into(), root, "--target".into(), target,
         "--actor".into(), "cradle:user".into(),
     ];
-    if let Some(b) = image_backend {
-        args.push("--image-backend".into());
-        args.push(b);
-    }
-    if let Some(b) = music_backend {
-        args.push("--music-backend".into());
-        args.push(b);
-    }
-    if let Some(b) = sfx_backend {
-        args.push("--sfx-backend".into());
-        args.push(b);
-    }
+    // Every flag `canon asset generate` takes, not just the backend names: a
+    // dropped --image-model silently pinned every paid run to the backend's
+    // built-in default, with no way to say so from the UI.
+    args = with_opt(args, "--image-backend", image_backend);
+    args = with_opt(args, "--image-model", image_model);
+    args = with_opt(args, "--image-edit-model", image_edit_model);
+    args = with_opt(args, "--image-edit-backend", image_edit_backend);
+    args = with_opt(args, "--music-backend", music_backend);
+    args = with_opt(args, "--sfx-backend", sfx_backend);
     let args = with_prompt_override(args, "--prompt", prompt_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
@@ -1112,8 +1151,13 @@ fn animate_asset(
     path: String,
     target: String,
     image_backend: Option<String>,
+    image_model: Option<String>,
+    image_edit_model: Option<String>,
+    image_edit_backend: Option<String>,
     vlm_backend: Option<String>,
+    vlm_model: Option<String>,
     reuse_spec: bool,
+    prompt_override: Option<String>,
     job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
@@ -1121,17 +1165,20 @@ fn animate_asset(
         "asset".into(), "animate".into(), root, "--target".into(), target,
         "--actor".into(), "cradle:user".into(),
     ];
-    if let Some(b) = image_backend {
-        args.push("--image-backend".into());
-        args.push(b);
-    }
-    if let Some(b) = vlm_backend {
-        args.push("--vlm-backend".into());
-        args.push(b);
-    }
+    // canon's animate has been fully parameterized for a while; cradle was
+    // forwarding 2 of the 7 knobs, so the edit model and the VLM model were
+    // unreachable from the editor no matter what the user picked.
+    args = with_opt(args, "--image-backend", image_backend);
+    args = with_opt(args, "--image-model", image_model);
+    args = with_opt(args, "--image-edit-model", image_edit_model);
+    args = with_opt(args, "--image-edit-backend", image_edit_backend);
+    args = with_opt(args, "--vlm-backend", vlm_backend);
+    args = with_opt(args, "--vlm-model", vlm_model);
     if reuse_spec {
         args.push("--reuse-spec".into());
     }
+    // The motion-spec authoring prompt (`canon prompt show --kind animate`).
+    let args = with_prompt_override(args, "--prompt", prompt_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
@@ -1243,6 +1290,7 @@ pub fn run() {
             baseline_level,
             estimate_world,
             estimate_level,
+            estimate_animate,
             spend_record,
             spend_list,
             get_bundled_demo_path,

@@ -643,19 +643,33 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         item: "plat:items",
         sprite: "plat:sprite_art",
         music: "plat:audio",
+        animate: "plat:animate",
       };
       const label = LABELS[kind] ?? "plat:layout";
-      if (kind === "sprite" || kind === "music") {
-        return {
-          kind,
-          label,
-          mode: kind === "sprite" ? "image" : "audio",
+      const SINGLE: Record<string, { mode: string; prompt: string }> = {
+        sprite: {
+          mode: "image",
+          prompt: `Single game sprite: ${args.target ?? "the actor"}, full body, side view facing right, centered, isolated on a plain solid white background. No shadow, no text. (mock)`,
+        },
+        music: {
+          mode: "audio",
           prompt:
-            kind === "sprite"
-              ? `Single game sprite: ${args.target ?? "the actor"}, full body, side view facing right, centered, isolated on a plain solid white background. No shadow, no text. (mock)`
-              : "Looping instrumental theme for a retro platformer level. Melodic, atmospheric, seamless loop, no vocals. (mock)",
-        };
-      }
+            "Looping instrumental theme for a retro platformer level. Melodic, atmospheric, seamless loop, no vocals. (mock)",
+        },
+        // The motion-SPEC authoring prompt — one VLM call per actor, not the
+        // per-state sheet prompts (those aren't editable; see PromptKind).
+        animate: {
+          mode: "vlm",
+          prompt:
+            `### TASK: plat_animate\n### ACTOR: ${args.target ?? "enemy:<id>"}\n\n` +
+            "You are a 2D sprite animator. The attached image is the ACTUAL generated " +
+            "sprite for this character — describe how THIS character moves in each state.\n\n" +
+            'States to author: "idle", "walk", "hurt", "death"\n' +
+            'For each: "frames" (2-6) and a short "motion" phrase.\n\n' +
+            'Respond with a bare JSON object, no prose, no fences. (mock)',
+        },
+      };
+      if (SINGLE[kind]) return { kind, label, ...SINGLE[kind] };
       return {
         kind,
         label,
@@ -817,6 +831,19 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
           llm: String(args.llmBackend ?? "fake"),
         }),
       };
+    case "estimate_animate": {
+      // Mock: the native verb reads the actor's REAL state set. Here the id is
+      // all we have, so stand in with the enemy vocabulary (idle/walk/hurt/
+      // death) and the player's six — still priced BY STATE, never by frames.
+      const states = String(args.target ?? "").startsWith("player") ? 6 : 4;
+      return {
+        result: "estimate",
+        estimate: mockAnimateEstimate(states, {
+          image: String(args.imageBackend ?? "fake"),
+          vlm: String(args.vlmBackend ?? "none"),
+        }, Boolean(args.reuseSpec)),
+      };
+    }
     case "spend_record": {
       const entry = (args.entry ?? {}) as Record<string, unknown>;
       const line = { schema: "cradle-spend/v1", ts: new Date().toISOString(), ...entry };
@@ -979,6 +1006,40 @@ function mockEstimate(
     assets: { images: { count: 0, usd: 0 }, music: { count: 0, usd: 0 }, sfx: { count: 0, usd: 0 }, vlm: {}, usd: { best: 0, worst: 0 } },
     total_usd: { best, worst: Number((best * 4).toFixed(4)) },
     warnings: [],
+  };
+}
+
+/** One actor's animation: one img2img edit per state (per facing, but the mock
+ *  has no `asymmetric` flag to read) + the single VLM authoring call, which
+ *  `--reuse-spec` skips. Same shape as the native `asset estimate` reply. */
+function mockAnimateEstimate(
+  states: number,
+  backends: Record<string, string>,
+  reuseSpec: boolean,
+): Record<string, unknown> {
+  const imgUsd = ["fal", "retro", "pixellab"].includes((backends.image ?? "").toLowerCase())
+    ? Number((states * 0.04).toFixed(4))
+    : 0;
+  const vlmUsd = !reuseSpec && backends.vlm === "anthropic" ? 0.0081 : 0;
+  const total = Number((imgUsd + vlmUsd).toFixed(4));
+  return {
+    scope: "animate",
+    backends,
+    llm: { by_task: {}, calls: 0, usd: { best: 0, worst: 0 } },
+    assets: {
+      images: { count: states, usd: imgUsd },
+      music: { count: 0, usd: 0 },
+      sfx: { count: 0, usd: 0 },
+      vlm: reuseSpec
+        ? {}
+        : { model: "mock-vlm", animation_authoring: 1, usd: { best: vlmUsd, worst: vlmUsd } },
+      usd: { best: total, worst: total },
+    },
+    total_usd: { best: total, worst: total },
+    warnings: [
+      `animate prices ${states} edit(s) (${states} state(s) x 1 facing(s)); ` +
+        "a sprite-drift retry can add up to one extra edit per state. (mock)",
+    ],
   };
 }
 

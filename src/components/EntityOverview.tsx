@@ -12,9 +12,10 @@ import { AudioPlayer } from "./AudioPlayer";
 import { useStore } from "../store";
 import { api } from "../lib/invoke";
 import { fmtUsd } from "../lib/cost";
-import { enqueueJob } from "../lib/jobs";
+import { enqueueJob, missingKeysFor } from "../lib/jobs";
 import { Icon } from "./start/Icons";
 import { PromptOverride } from "./PromptOverride";
+import { AnimateModal } from "./AnimateModal";
 import { RowEditor } from "./db/RowEditor";
 import { TileSlotEditor } from "./db/TileSlotEditor";
 
@@ -930,13 +931,11 @@ function StageAudioReroll({ worldPath, stageId }: { worldPath: string; stageId: 
         estimate: { best: est, worst: est },
       },
       (jobId) =>
-        api.generateAsset(
-          worldPath,
-          `audio:${stageId}`,
+        api.generateAsset(worldPath, `audio:${stageId}`, {
+          musicBackend: music === "none" ? undefined : music,
+          sfxBackend: sfx === "none" ? undefined : sfx,
           jobId,
-          music === "none" ? undefined : music,
-          sfx === "none" ? undefined : sfx,
-        ),
+        }),
     );
     setBusy(false);
     setNote("stage audio queued — watch ⚙ Jobs");
@@ -971,40 +970,6 @@ function StageAudioReroll({ worldPath, stageId }: { worldPath: string; stageId: 
 
 /** Generation actions for platformer DB entities (canon-backed, confirm-gated
  * — these spend real money on paid backends). */
-/** The env-var each paid backend needs, by the backend id the ops take. */
-const BACKEND_KEYS: Record<string, string> = {
-  fal: "FAL_KEY",
-  anthropic: "ANTHROPIC_API_KEY",
-  lyria: "GOOGLE_API_KEY",
-  elevenlabs: "ELEVENLABS_API_KEY",
-  pixellab: "PIXELLAB_API_KEY",
-  retro: "RD_API_KEY",
-};
-
-/** A human explanation when a job's backends need keys cradle can't supply,
- *  or null when it's good to go. Free backends (fake/none) never need one. */
-async function missingKeysFor(
-  backends: Record<string, string>,
-): Promise<string | null> {
-  const needed = [...new Set(Object.values(backends))]
-    .map((b) => BACKEND_KEYS[b])
-    .filter((k): k is string => Boolean(k));
-  if (!needed.length) return null;
-  try {
-    const { env_file, keys } = await api.providerKeys();
-    const absent = needed.filter((k) => !keys.includes(k));
-    if (!absent.length) return null;
-    return (
-      `missing ${absent.join(", ")} — ` +
-      (env_file
-        ? `not found in ${env_file}`
-        : "cradle found no env file; set CANON_ENV_FILE, or put a .env beside the canon repo")
-    );
-  } catch {
-    return null; // can't tell (browser mock) — let the job try.
-  }
-}
-
 function GenActions({
   typeId,
   data,
@@ -1021,6 +986,7 @@ function GenActions({
   const [note, setNote] = useState<string | null>(null);
   // Hooks stay ABOVE the `!id` early return (Rules of Hooks).
   const [editing, setEditing] = useState(false);
+  const [animating, setAnimating] = useState(false);
   // Per-call prompt overrides ("✎ Edit prompt"): one for the sprite IMAGE
   // prompt, one for the row-authoring SYSTEM prompt. null = built-in default.
   const [spritePrompt, setSpritePrompt] = useState<string | null>(null);
@@ -1148,9 +1114,11 @@ function GenActions({
             `Generate a new sprite for ${id}?\n\nBackend: fal (nano-banana). Rough cost ~$0.04/image. The current sprite is replaced (original stays recoverable in the object store).`,
             { op: "sprite", backends: { image: "fal" } },
             (jobId) =>
-              api.generateAsset(
-                worldPath, target, jobId, "fal", undefined, undefined, spritePrompt,
-              ),
+              api.generateAsset(worldPath, target, {
+                imageBackend: "fal",
+                promptOverride: spritePrompt,
+                jobId,
+              }),
           )
         }
       >
@@ -1175,20 +1143,12 @@ function GenActions({
           {busy === "LLM re-complete" ? "…" : "✍️ LLM re-complete"}
         </button>
       )}
+      {/* Animate opens a gate rather than firing: the op takes seven knobs
+          (two image models, the edit backend, the VLM + its model, --reuse-spec,
+          the authoring prompt) and the old one-click reached none of them. */}
       {(kind === "enemy" || kind === "player") && (
-        <button
-          style={btn}
-          disabled={!!busy}
-          onClick={() =>
-            runJob(
-              "animate",
-              `Animate ${id} (multi-image path)?\n\nVLM authors a per-state motion spec from the sprite, then one img2img sheet per state (idle/walk/hurt/death…).\nBackends: fal edit + anthropic VLM. Rough cost ~$0.04×states + VLM tokens.`,
-              { op: "animate", backends: { image: "fal", vlm: "anthropic" } },
-              (jobId) => api.animateAsset(worldPath, target, jobId, "fal", "anthropic"),
-            )
-          }
-        >
-          {busy === "animate" ? "…" : "🎬 Animate"}
+        <button style={btn} disabled={!!busy} onClick={() => setAnimating(true)}>
+          🎬 Animate…
         </button>
       )}
       {/* Watch the animation in the SAME surfaces that render the game —
@@ -1254,6 +1214,16 @@ function GenActions({
           editId={id}
           onClose={() => setEditing(false)}
           onCreated={(rid) => select({ kind: "entity", typeId, id: rid })}
+        />
+      )}
+      {animating && (
+        <AnimateModal
+          worldPath={worldPath}
+          target={target}
+          actorId={entityId ?? id}
+          typeId={typeId}
+          onClose={() => setAnimating(false)}
+          onQueued={setNote}
         />
       )}
     </div>

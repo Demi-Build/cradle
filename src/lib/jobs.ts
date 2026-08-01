@@ -5,6 +5,57 @@ import { recordJob, recordSpend } from "./cost";
 /** Metadata for a new job — everything except the fields enqueueJob fills in. */
 export type JobMeta = Omit<Job, "id" | "status" | "ts">;
 
+/** The env vars each paid backend needs, by the backend id the ops take.
+ *
+ *  A backend lists ALTERNATIVE key sets: it is satisfied when every var in ANY
+ *  one set is present. canon's `_build_backend` / `build_*_producer` accept
+ *  exactly these alternatives, and it raises at CONSTRUCTION time — before any
+ *  generation — so the pre-flight below can be an exact mirror rather than a
+ *  guess. (Flattening fal and pixellab to one var each used to reject a
+ *  perfectly good `FAL_KEY_ID`/`PIXELLAB_SECRET` setup.) */
+export const BACKEND_KEYS: Record<string, string[][]> = {
+  fal: [["FAL_KEY"], ["FAL_KEY_ID", "FAL_KEY_SECRET"]],
+  anthropic: [["ANTHROPIC_API_KEY"]],
+  lyria: [["GOOGLE_API_KEY"]],
+  elevenlabs: [["ELEVENLABS_API_KEY"]],
+  pixellab: [["PIXELLAB_SECRET"], ["PIXELLAB_API_KEY"]],
+  retro: [["RD_API_KEY"]],
+};
+
+/** A human explanation when a job's backends need keys cradle can't supply,
+ *  or null when it's good to go. Free backends (fake/none) never need one.
+ *
+ *  Lives beside enqueueJob because every paid gate wants it BEFORE it spends a
+ *  confirm: without the pre-flight the job queues, the user approves a price,
+ *  and it then dies deep in the backend with "needs FAL_KEY" — which says
+ *  nothing about WHERE cradle looked for it. */
+export async function missingKeysFor(
+  backends: Record<string, string>,
+): Promise<string | null> {
+  const needed = [...new Set(Object.values(backends))]
+    .map((b) => BACKEND_KEYS[b])
+    .filter((sets): sets is string[][] => Boolean(sets));
+  if (!needed.length) return null;
+  try {
+    const { env_file, keys } = await api.providerKeys();
+    // Unsatisfied backends only: every alternative set is missing a var.
+    // Report the FIRST set of each — the canonical spelling — so the message
+    // names one concrete thing to set instead of every accepted permutation.
+    const absent = needed
+      .filter((sets) => !sets.some((set) => set.every((k) => keys.includes(k))))
+      .map((sets) => sets[0].join(" + "));
+    if (!absent.length) return null;
+    return (
+      `missing ${absent.join(", ")} — ` +
+      (env_file
+        ? `not found in ${env_file}`
+        : "cradle found no env file; set CANON_ENV_FILE, or put a .env beside the canon repo")
+    );
+  } catch {
+    return null; // can't tell (browser mock) — let the job try.
+  }
+}
+
 /** Payload of a Rust `job-updated` event: only {id, status, result?/error?} —
  *  the frontend holds the rest of the job metadata (keyed by id). */
 export type JobEventPayload = {

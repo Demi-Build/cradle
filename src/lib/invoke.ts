@@ -36,14 +36,25 @@ export type GenLevelOpts = {
   systemOverride?: string | null;
 };
 /** Which generator's prompt to preview / override. */
-export type PromptKind = "layout" | "improve" | "enemy" | "item" | "sprite" | "music";
+export type PromptKind =
+  | "layout"
+  | "improve"
+  | "enemy"
+  | "item"
+  | "sprite"
+  | "music"
+  /** The motion-spec AUTHORING call on the animate path — one VLM call per
+   *  actor. (The per-state img2img SHEET prompt is deliberately not editable:
+   *  it runs once per state per facing and each call carries that state's own
+   *  silhouette contract, so one textarea could neither show nor edit it.) */
+  | "animate";
 /** The default prompt a generator would send (`canon prompt show`).
  *  LLM kinds split system (editable) / user_message (context, rebuilt per call);
- *  image + audio kinds have no such split and carry one `prompt` string. */
+ *  image, audio and vlm kinds have no such split and carry one `prompt` string. */
 export type PromptPreview = {
   kind: PromptKind;
   label: string;
-  mode: "llm" | "image" | "audio";
+  mode: "llm" | "image" | "audio" | "vlm";
   system?: string;
   user_message?: string;
   prompt?: string;
@@ -390,6 +401,26 @@ export const api = {
       llmBackend,
       width: width ?? null,
     }),
+  /** Price ONE actor's animation before firing it. canon resolves the actor's
+   *  real state set (a hopper's extra `jump`, the player's own six, an
+   *  `asymmetric` second facing) — the estimate is BY STATE, since the phase
+   *  issues one img2img edit per state per facing and frame counts only widen
+   *  each sheet. */
+  estimateAnimate: (
+    path: string,
+    target: string,
+    imageBackend: string,
+    vlmBackend: string,
+    opts?: { vlmModel?: string | null; reuseSpec?: boolean },
+  ) =>
+    invoke<{ result: string; estimate: CostEstimate }>("estimate_animate", {
+      path,
+      target,
+      imageBackend,
+      vlmBackend,
+      vlmModel: opts?.vlmModel ?? null,
+      reuseSpec: opts?.reuseSpec ?? false,
+    }),
   spendRecord: (path: string, entry: SpendEntry) =>
     invoke<{ result: string; entry: SpendEntry }>("spend_record", { path, entry }),
   spendList: (path: string) =>
@@ -459,29 +490,68 @@ export const api = {
   dbUpdateSchema: (path: string, entityType: string, set: Record<string, unknown>) =>
     invoke<{ source: string; schema: { fields: Record<string, Record<string, unknown>> } }>(
       "db_update_schema", { path, entityType, set }),
+  /** (Re)generate ONE asset. Every knob `canon asset generate` takes rides the
+   *  opts bag (the generateLevel / generateLevelMusic shape) — a positional
+   *  list stopped scaling once the model names came along. Omitted / blank =
+   *  canon's own default. */
   generateAsset: (
     path: string,
     target: string,
-    jobId: string,
-    imageBackend?: string,
-    musicBackend?: string,
-    sfxBackend?: string,
-    promptOverride?: string | null,
+    opts: {
+      imageBackend?: string;
+      /** Free text — e.g. `fal-ai/nano-banana`. Blank = the backend default. */
+      imageModel?: string | null;
+      imageEditModel?: string | null;
+      imageEditBackend?: string | null;
+      musicBackend?: string;
+      sfxBackend?: string;
+      promptOverride?: string | null;
+      jobId: string;
+    },
   ) =>
     invoke<QueuedAck>("generate_asset", {
-      path, target, imageBackend, musicBackend, sfxBackend,
-      promptOverride: promptOverride ?? null, jobId,
+      path,
+      target,
+      imageBackend: opts.imageBackend,
+      imageModel: opts.imageModel ?? null,
+      imageEditModel: opts.imageEditModel ?? null,
+      imageEditBackend: opts.imageEditBackend ?? null,
+      musicBackend: opts.musicBackend,
+      sfxBackend: opts.sfxBackend,
+      promptOverride: opts.promptOverride ?? null,
+      jobId: opts.jobId,
     }),
+  /** Animate ONE actor (the multi-image path). Same opts shape as
+   *  `generateAsset`, plus the VLM that authors the motion spec, `reuseSpec`
+   *  (re-render from the stored spec — no VLM call) and the authoring-prompt
+   *  override. */
   animateAsset: (
     path: string,
     target: string,
-    jobId: string,
-    imageBackend?: string,
-    vlmBackend?: string,
-    reuseSpec = false,
+    opts: {
+      imageBackend?: string;
+      imageModel?: string | null;
+      imageEditModel?: string | null;
+      imageEditBackend?: string | null;
+      vlmBackend?: string;
+      vlmModel?: string | null;
+      reuseSpec?: boolean;
+      promptOverride?: string | null;
+      jobId: string;
+    },
   ) =>
     invoke<QueuedAck>("animate_asset", {
-      path, target, imageBackend, vlmBackend, reuseSpec, jobId,
+      path,
+      target,
+      imageBackend: opts.imageBackend,
+      imageModel: opts.imageModel ?? null,
+      imageEditModel: opts.imageEditModel ?? null,
+      imageEditBackend: opts.imageEditBackend ?? null,
+      vlmBackend: opts.vlmBackend,
+      vlmModel: opts.vlmModel ?? null,
+      reuseSpec: opts.reuseSpec ?? false,
+      promptOverride: opts.promptOverride ?? null,
+      jobId: opts.jobId,
     }),
   validateLevel: (path: string, levelId: string) =>
     invoke<ValidationReport>("validate_level", { path, levelId }),

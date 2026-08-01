@@ -14,6 +14,7 @@ import { api } from "../lib/invoke";
 import { fmtUsd } from "../lib/cost";
 import { enqueueJob } from "../lib/jobs";
 import { Icon } from "./start/Icons";
+import { PromptOverride } from "./PromptOverride";
 import { RowEditor } from "./db/RowEditor";
 import { TileSlotEditor } from "./db/TileSlotEditor";
 
@@ -344,7 +345,9 @@ export function EntityOverview({
           </div>
           <div className="overview-titleblock">
             <h2 className="overview-name">{name}</h2>
-            {(typeId === "enemies" || (isItem && "item_id" in data)) && (
+            {(typeId === "enemies" ||
+              typeId === "player" ||
+              (isItem && "item_id" in data)) && (
               <GenActions typeId={typeId} data={data} entityId={entityId} />
             )}
             <div className="overview-sub">
@@ -968,6 +971,40 @@ function StageAudioReroll({ worldPath, stageId }: { worldPath: string; stageId: 
 
 /** Generation actions for platformer DB entities (canon-backed, confirm-gated
  * — these spend real money on paid backends). */
+/** The env-var each paid backend needs, by the backend id the ops take. */
+const BACKEND_KEYS: Record<string, string> = {
+  fal: "FAL_KEY",
+  anthropic: "ANTHROPIC_API_KEY",
+  lyria: "GOOGLE_API_KEY",
+  elevenlabs: "ELEVENLABS_API_KEY",
+  pixellab: "PIXELLAB_API_KEY",
+  retro: "RD_API_KEY",
+};
+
+/** A human explanation when a job's backends need keys cradle can't supply,
+ *  or null when it's good to go. Free backends (fake/none) never need one. */
+async function missingKeysFor(
+  backends: Record<string, string>,
+): Promise<string | null> {
+  const needed = [...new Set(Object.values(backends))]
+    .map((b) => BACKEND_KEYS[b])
+    .filter((k): k is string => Boolean(k));
+  if (!needed.length) return null;
+  try {
+    const { env_file, keys } = await api.providerKeys();
+    const absent = needed.filter((k) => !keys.includes(k));
+    if (!absent.length) return null;
+    return (
+      `missing ${absent.join(", ")} — ` +
+      (env_file
+        ? `not found in ${env_file}`
+        : "cradle found no env file; set CANON_ENV_FILE, or put a .env beside the canon repo")
+    );
+  } catch {
+    return null; // can't tell (browser mock) — let the job try.
+  }
+}
+
 function GenActions({
   typeId,
   data,
@@ -984,9 +1021,18 @@ function GenActions({
   const [note, setNote] = useState<string | null>(null);
   // Hooks stay ABOVE the `!id` early return (Rules of Hooks).
   const [editing, setEditing] = useState(false);
-  const kind = typeId === "enemies" ? "enemy" : "item";
+  // Per-call prompt overrides ("✎ Edit prompt"): one for the sprite IMAGE
+  // prompt, one for the row-authoring SYSTEM prompt. null = built-in default.
+  const [spritePrompt, setSpritePrompt] = useState<string | null>(null);
+  const [rowPrompt, setRowPrompt] = useState<string | null>(null);
+  const kind =
+    typeId === "enemies" ? "enemy" : typeId === "player" ? "player" : "item";
   const id = String(
-    (data.enemy_id as string) ?? (data.item_id as string) ?? entityId ?? "",
+    (data.enemy_id as string) ??
+      (data.item_id as string) ??
+      (data.player_id as string) ??
+      entityId ??
+      "",
   );
   // Refresh this entity when its own asset job (sprite/animate) finishes.
   useEffect(() => {
@@ -1001,7 +1047,10 @@ function GenActions({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastCompletedJob]);
   if (!id) return null;
-  const target = `${kind}:${id}`;
+  // The player is a BARE target. "player:player" would still parse canon-side
+  // (the rest is ignored) and then journal under a second artifact id, forking
+  // the player's lineage and breaking its History tab.
+  const target = kind === "player" ? "player" : `${kind}:${id}`;
 
   // Synchronous, non-generation actions (publish snapshot, LLM re-complete a
   // single row) — these return their result inline and refresh on completion.
@@ -1029,6 +1078,14 @@ function GenActions({
     meta: { op: string; backends: Record<string, string> },
     fire: (jobId: string) => Promise<unknown>,
   ) => {
+    // Pre-flight the provider keys. Without this the job is queued, spends a
+    // confirm, and then dies deep in the backend with "needs FAL_KEY" — which
+    // says nothing about WHERE cradle looked for it.
+    const missing = await missingKeysFor(meta.backends);
+    if (missing) {
+      setNote(missing);
+      return;
+    }
     if (!window.confirm(confirmText)) return;
     setBusy(label);
     setNote(null);
@@ -1058,13 +1115,17 @@ function GenActions({
   };
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "6px 0 2px", flexWrap: "wrap" }}>
-      <button
-        style={btn}
-        disabled={!!busy}
-        onClick={() => setEditing(true)}
-      >
-        ✎ Edit row
-      </button>
+      {/* Row ops — the player has no DB row (canon's DB_TYPES is enemy/item
+          only), so these would throw on it. */}
+      {kind !== "player" && (
+        <button
+          style={btn}
+          disabled={!!busy}
+          onClick={() => setEditing(true)}
+        >
+          ✎ Edit row
+        </button>
+      )}
       <button
         style={btn}
         disabled={!!busy}
@@ -1086,26 +1147,35 @@ function GenActions({
             "generate sprite",
             `Generate a new sprite for ${id}?\n\nBackend: fal (nano-banana). Rough cost ~$0.04/image. The current sprite is replaced (original stays recoverable in the object store).`,
             { op: "sprite", backends: { image: "fal" } },
-            (jobId) => api.generateAsset(worldPath, target, jobId, "fal"),
+            (jobId) =>
+              api.generateAsset(
+                worldPath, target, jobId, "fal", undefined, undefined, spritePrompt,
+              ),
           )
         }
       >
         {busy === "generate sprite" ? "…" : "🎨 Generate sprite"}
       </button>
-      <button
-        style={btn}
-        disabled={!!busy}
-        onClick={() =>
-          run(
-            "LLM re-complete",
-            `Re-author ${id}'s name/flavor with the LLM (mechanical stats preserved)?\n\nBackend: anthropic (cheap tier). Rough cost: well under 1¢.`,
-            () => api.dbComplete(worldPath, kind, id, ["archetype", "size", "rarity"]),
-          )
-        }
-      >
-        {busy === "LLM re-complete" ? "…" : "✍️ LLM re-complete"}
-      </button>
-      {kind === "enemy" && (
+      {kind !== "player" && (
+        <button
+          style={btn}
+          disabled={!!busy}
+          onClick={() =>
+            run(
+              "LLM re-complete",
+              `Re-author ${id}'s name/flavor with the LLM (mechanical stats preserved)?\n\nBackend: anthropic (cheap tier). Rough cost: well under 1¢.`,
+              () =>
+                api.dbComplete(
+                  worldPath, kind, id, ["archetype", "size", "rarity"],
+                  undefined, rowPrompt,
+                ),
+            )
+          }
+        >
+          {busy === "LLM re-complete" ? "…" : "✍️ LLM re-complete"}
+        </button>
+      )}
+      {(kind === "enemy" || kind === "player") && (
         <button
           style={btn}
           disabled={!!busy}
@@ -1121,9 +1191,62 @@ function GenActions({
           {busy === "animate" ? "…" : "🎬 Animate"}
         </button>
       )}
+      {/* Watch the animation in the SAME surfaces that render the game —
+          every state side by side, on the game's own frame timing. Both
+          engines, because "does it look right?" means right in BOTH. Native
+          only (each launches a real play surface). */}
+      {(["pygame", "godot"] as const).map((engine) => (
+        <button
+          key={engine}
+          style={btn}
+          disabled={!!busy}
+          title={`Play this actor's animation states in ${engine}`}
+          onClick={() => {
+            setNote(null);
+            void api
+              .previewAnimation(worldPath, target, engine)
+              .then((r) =>
+                setNote(
+                  r.launched
+                    ? `${engine} preview opened — ESC in that window to close`
+                    : (r.note ?? "preview is native-only"),
+                ),
+              )
+              .catch((e) => setNote(String(e).slice(0, 160)));
+          }}
+        >
+          {`▶ Preview (${engine})`}
+        </button>
+      ))}
       {note && (
         <span style={{ fontSize: 11, color: "var(--text-3, #8a8398)" }}>{note}</span>
       )}
+      {/* Per-call prompt editors for the two generators above. Each applies to
+          the NEXT run of its own button; collapsed = the built-in default. */}
+      <div style={{ flexBasis: "100%" }}>
+        <PromptOverride
+          worldPath={worldPath}
+          kind="sprite"
+          ctx={{ target }}
+          value={spritePrompt}
+          onChange={setSpritePrompt}
+          disabled={!!busy}
+          label="✎ Edit sprite prompt (advanced)"
+        />
+        {/* Row authoring is enemy/item only — the player has no DB row, and
+            so no authoring prompt to override. */}
+        {(kind === "enemy" || kind === "item") && (
+          <PromptOverride
+            worldPath={worldPath}
+            kind={kind}
+            ctx={{ target: id }}
+            value={rowPrompt}
+            onChange={setRowPrompt}
+            disabled={!!busy}
+            label="✎ Edit authoring prompt (advanced)"
+          />
+        )}
+      </div>
       {editing && (
         <RowEditor
           typeId={typeId}

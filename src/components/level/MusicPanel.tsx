@@ -4,6 +4,7 @@ import type { LevelBundle } from "./drawLevel";
 import { AudioPlayer } from "../AudioPlayer";
 import { fmtUsd } from "../../lib/cost";
 import { enqueueJob } from "../../lib/jobs";
+import { PromptOverride } from "../PromptOverride";
 
 /** Flat Lyria per-track price for the pre-run gate (matches cost_model's
  *  music_usd_per_track). The RECORDED spend is the op's real returned cost. */
@@ -33,6 +34,7 @@ export function MusicPanel({
   const [brief, setBrief] = useState(bundle.brief ?? "");
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [promptOverride, setPromptOverride] = useState<string | null>(null);
   // Local, editable copy of the level's sections (persisted via Save sections).
   const [sections, setSections] = useState<MusicSection[]>(
     (bundle.music_sections ?? []).map((s) => ({ ...s })),
@@ -98,6 +100,7 @@ export function MusicPanel({
             brief,
             section,
             musicBackend: backend,
+            promptOverride,
             jobId,
           }),
       );
@@ -160,6 +163,14 @@ export function MusicPanel({
             style={{ flex: 1, fontSize: 12 }}
           />
         </div>
+        <PromptOverride
+          worldPath={worldPath}
+          kind="music"
+          ctx={{ levelId, brief }}
+          value={promptOverride}
+          onChange={setPromptOverride}
+          disabled={!!busy}
+        />
 
         <h4 style={h4}>Level track</h4>
         <div style={{ fontSize: 12, marginBottom: 4 }}>

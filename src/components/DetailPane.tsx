@@ -105,13 +105,22 @@ export function DetailPane() {
     const artifactPrefix: Record<string, string> = {
       enemies: "enemy", items: "item", tilesets: "tileset", backdrops: "backdrop",
     };
-    if (artifactPrefix[selection.typeId]) {
+    // The player's artifact id is the BARE string "player" — canon journals it
+    // that way (there is no "player:player"), so a prefixed id would look up an
+    // empty history.
+    const artifactId =
+      selection.typeId === "player"
+        ? "player"
+        : artifactPrefix[selection.typeId]
+          ? `${artifactPrefix[selection.typeId]}:${selection.id}`
+          : null;
+    if (artifactId) {
       tabs.push({
         id: "history",
         label: "History",
         content: (
           <LineagePanel
-            artifactId={`${artifactPrefix[selection.typeId]}:${selection.id}`}
+            artifactId={artifactId}
             typeId={selection.typeId}
             entityId={selection.id}
           />

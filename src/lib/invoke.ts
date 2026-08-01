@@ -32,6 +32,21 @@ export type GenLevelOpts = {
   items?: number | null;
   seed?: string | null;
   llmBackend?: string;
+  /** Edited SYSTEM prompt for the layout agent (this call only). */
+  systemOverride?: string | null;
+};
+/** Which generator's prompt to preview / override. */
+export type PromptKind = "layout" | "improve" | "enemy" | "item" | "sprite" | "music";
+/** The default prompt a generator would send (`canon prompt show`).
+ *  LLM kinds split system (editable) / user_message (context, rebuilt per call);
+ *  image + audio kinds have no such split and carry one `prompt` string. */
+export type PromptPreview = {
+  kind: PromptKind;
+  label: string;
+  mode: "llm" | "image" | "audio";
+  system?: string;
+  user_message?: string;
+  prompt?: string;
 };
 export type GenLevelResult = {
   level_id: string;
@@ -272,6 +287,7 @@ export const api = {
       axis?: string | null;
       seed?: string | null;
       llmBackend?: string;
+      systemOverride?: string | null;
       jobId: string;
     },
   ) =>
@@ -285,6 +301,7 @@ export const api = {
       axis: opts.axis ?? null,
       seed: opts.seed ?? null,
       llmBackend: opts.llmBackend ?? "fake",
+      systemOverride: opts.systemOverride ?? null,
       jobId: opts.jobId,
     }),
   /** Context-aware IMPROVE: the LLM sees the current level + an instruction and
@@ -300,6 +317,7 @@ export const api = {
       rerollPlacements?: boolean;
       seed?: string | null;
       llmBackend?: string;
+      systemOverride?: string | null;
       jobId: string;
     },
   ) =>
@@ -311,6 +329,7 @@ export const api = {
       rerollPlacements: opts.rerollPlacements ?? false,
       seed: opts.seed ?? null,
       llmBackend: opts.llmBackend ?? "fake",
+      systemOverride: opts.systemOverride ?? null,
       jobId: opts.jobId,
     }),
   publishLevel: (path: string, levelId: string, position: number | null, remove: boolean) =>
@@ -328,6 +347,7 @@ export const api = {
       items: opts.items ?? null,
       seed: opts.seed ?? null,
       llmBackend: opts.llmBackend ?? "fake",
+      systemOverride: opts.systemOverride ?? null,
       jobId: opts.jobId,
     }),
   placeEnemies: (path: string, levelId: string, jobId: string, enemies?: number, seed?: string, llmBackend?: string) =>
@@ -386,6 +406,8 @@ export const api = {
       section?: number | null;
       musicBackend?: string;
       seconds?: number | null;
+      /** Edited music prompt (this call only); wins over `brief`. */
+      promptOverride?: string | null;
       jobId: string;
     },
   ) =>
@@ -396,6 +418,7 @@ export const api = {
       section: opts.section ?? null,
       musicBackend: opts.musicBackend ?? "fake",
       seconds: opts.seconds ?? null,
+      promptOverride: opts.promptOverride ?? null,
       jobId: opts.jobId,
     }),
   listMusicTracks: (path: string) =>
@@ -403,10 +426,30 @@ export const api = {
   replaceAsset: (path: string, target: string, file: string) =>
     invoke<unknown>("replace_asset", { path, target, file }),
   dbTypes: (path: string) => invoke<unknown>("db_types", { path }),
-  dbNew: (path: string, entityType: string, fields: Record<string, unknown>, complete: boolean, llmBackend?: string) =>
-    invoke<{ id: string; row: Record<string, unknown> }>("db_new", { path, entityType, fields, complete, llmBackend }),
-  dbComplete: (path: string, entityType: string, id: string, locked: string[], llmBackend?: string) =>
-    invoke<{ id: string; row: Record<string, unknown> }>("db_complete", { path, entityType, id, locked, llmBackend }),
+  dbNew: (
+    path: string,
+    entityType: string,
+    fields: Record<string, unknown>,
+    complete: boolean,
+    llmBackend?: string,
+    systemOverride?: string | null,
+  ) =>
+    invoke<{ id: string; row: Record<string, unknown> }>("db_new", {
+      path, entityType, fields, complete, llmBackend,
+      systemOverride: systemOverride ?? null,
+    }),
+  dbComplete: (
+    path: string,
+    entityType: string,
+    id: string,
+    locked: string[],
+    llmBackend?: string,
+    systemOverride?: string | null,
+  ) =>
+    invoke<{ id: string; row: Record<string, unknown> }>("db_complete", {
+      path, entityType, id, locked, llmBackend,
+      systemOverride: systemOverride ?? null,
+    }),
   dbUpdate: (path: string, entityType: string, id: string, set: Record<string, unknown>) =>
     invoke<{ row?: Record<string, unknown>; changed: Record<string, unknown>; warnings?: string[] }>(
       "db_update", { path, entityType, id, set }),
@@ -423,9 +466,11 @@ export const api = {
     imageBackend?: string,
     musicBackend?: string,
     sfxBackend?: string,
+    promptOverride?: string | null,
   ) =>
     invoke<QueuedAck>("generate_asset", {
-      path, target, imageBackend, musicBackend, sfxBackend, jobId,
+      path, target, imageBackend, musicBackend, sfxBackend,
+      promptOverride: promptOverride ?? null, jobId,
     }),
   animateAsset: (
     path: string,
@@ -440,6 +485,50 @@ export const api = {
     }),
   validateLevel: (path: string, levelId: string) =>
     invoke<ValidationReport>("validate_level", { path, levelId }),
+  /** Which provider keys cradle can hand to canon, and the env file they came
+   *  from. NAMES only — never values. Lets a paid gate refuse up front instead
+   *  of dying at the provider. */
+  providerKeys: () =>
+    invoke<{ env_file: string | null; keys: string[] }>("provider_keys", {}),
+  /** The DEFAULT prompt a generator would send — fills the "✎ Edit prompt"
+   *  textarea. Pure read: no LLM call, no cost, no journal. */
+  previewPrompt: (
+    path: string,
+    kind: PromptKind,
+    opts?: {
+      levelId?: string | null;
+      target?: string | null;
+      instruction?: string | null;
+      brief?: string | null;
+    },
+  ) =>
+    invoke<PromptPreview>("preview_prompt", {
+      path,
+      kind,
+      levelId: opts?.levelId ?? null,
+      target: opts?.target ?? null,
+      instruction: opts?.instruction ?? null,
+      brief: opts?.brief ?? null,
+    }),
+  /** Open the ANIMATION VIEWER on one actor — every state playing side by side
+   *  in a surface that renders the game, so the art can be judged where it
+   *  ships. `target` is `enemy:<id>` | `item:<id>` | `player` | `all` (`all`
+   *  is pygame-only). `engine` picks which surface; run both to compare them.
+   *  Native only. */
+  previewAnimation: (
+    path: string,
+    target: string,
+    engine: "pygame" | "godot" = "pygame",
+  ) =>
+    engine === "godot"
+      ? invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>(
+          "play_game",
+          { path, levelId: null, animTarget: target },
+        )
+      : invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>(
+          "play_level",
+          { path, levelId: "l1", plain: false, animTarget: target },
+        ),
   playLevel: (path: string, levelId: string, plain = false) =>
     invoke<{ launched: boolean; engine?: string; note?: string }>("play_level", { path, levelId, plain }),
   playGame: (path: string, levelId?: string) =>

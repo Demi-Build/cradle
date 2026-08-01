@@ -82,19 +82,57 @@ function jsonFor(d: MockData, typeId: string): JsonMap {
   return keys ? ((d[keys[1]] as JsonMap | undefined) ?? {}) : {};
 }
 
+// The PLAYER has no row file in any pack — Rust synthesizes one from
+// sprite/player/. Mirror that here so nav/buttons are exercisable headless.
+// (public/__mockassets__ points at a real pack, so the portrait resolves.)
+const MOCK_PLAYER_ROW: JsonMap = {
+  player: {
+    player_id: "player",
+    artifact_id: "player",
+    name: "Player",
+    kind: "player",
+    sprite_path: "sprite/player/base.png",
+    animation_states: ["idle", "walk", "jump", "fall", "land", "skid"],
+  },
+};
+const MOCK_PLAYER_REF: Ref[] = [
+  { type_id: "player", id: "player", name: "Player" },
+];
+
 function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unknown {
   switch (cmd) {
     case "load_world":
-      return { path: String(args.path ?? "mock://pack"), name: d.name, entity_counts: d.entity_counts };
+      return {
+        path: String(args.path ?? "mock://pack"),
+        name: d.name,
+        // Splice the synthesized player in after levels, matching the Rust
+        // registry order so the ACTORS group renders contiguously.
+        entity_counts: d.entity_counts.some((c) => c.type_id === "player")
+          ? d.entity_counts
+          : [
+              ...d.entity_counts.slice(0, 1),
+              { type_id: "player", count: 1 },
+              ...d.entity_counts.slice(1),
+            ],
+      };
     case "list_entities":
-      return refsFor(d, String(args.typeId));
+      return String(args.typeId) === "player"
+        ? MOCK_PLAYER_REF
+        : refsFor(d, String(args.typeId));
     case "list_entity_rows":
-      return refsFor(d, String(args.typeId)).map((r) => ({
+      return (
+        String(args.typeId) === "player" ? MOCK_PLAYER_REF : refsFor(d, String(args.typeId))
+      ).map((r) => ({
         id: r.id,
-        data: jsonFor(d, String(args.typeId))[r.id] ?? {},
+        data:
+          String(args.typeId) === "player"
+            ? MOCK_PLAYER_ROW[r.id]
+            : (jsonFor(d, String(args.typeId))[r.id] ?? {}),
       }));
     case "get_entity":
-      return jsonFor(d, String(args.typeId))[String(args.id)] ?? {};
+      return String(args.typeId) === "player"
+        ? (MOCK_PLAYER_ROW[String(args.id)] ?? {})
+        : (jsonFor(d, String(args.typeId))[String(args.id)] ?? {});
     case "export_level": {
       const b = d.bundles[String(args.levelId)] as Record<string, unknown> | undefined;
       if (!b) return null;
@@ -594,9 +632,68 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         movement: {},
         rooms: [],
       };
+    case "preview_prompt": {
+      // Mock: canned prompts standing in for `canon prompt show`. Same SHAPE as
+      // the real verb — LLM kinds split system/user, image+audio carry one.
+      const kind = String(args.kind);
+      const LABELS: Record<string, string> = {
+        layout: "plat:layout",
+        improve: "plat:layout",
+        enemy: "plat:enemies",
+        item: "plat:items",
+        sprite: "plat:sprite_art",
+        music: "plat:audio",
+      };
+      const label = LABELS[kind] ?? "plat:layout";
+      if (kind === "sprite" || kind === "music") {
+        return {
+          kind,
+          label,
+          mode: kind === "sprite" ? "image" : "audio",
+          prompt:
+            kind === "sprite"
+              ? `Single game sprite: ${args.target ?? "the actor"}, full body, side view facing right, centered, isolated on a plain solid white background. No shadow, no text. (mock)`
+              : "Looping instrumental theme for a retro platformer level. Melodic, atmospheric, seamless loop, no vocals. (mock)",
+        };
+      }
+      return {
+        kind,
+        label,
+        mode: "llm",
+        system:
+          "You are a level and content designer for a 2D side-scrolling platformer. " +
+          "You respond ONLY in the exact format the task requests — a JSON object or DSL " +
+          "lines — with no prose, no markdown fences, and no commentary. (mock default)",
+        user_message:
+          `### TASK: ${kind}\n### LEVEL: ${args.levelId ?? "l1"}\n` +
+          `Brief: ${args.brief ?? ""}\n` +
+          (args.instruction ? `APPLY THIS CHANGE: ${args.instruction}\n` : "") +
+          "(mock: the real task message is rebuilt from live pack data each call)",
+      };
+    }
     case "play_level":
+      return {
+        launched: false,
+        mode: args.animTarget ? "anim" : "play",
+        note: args.animTarget
+          ? `mock: the animation viewer for ${args.animTarget} opens in the native app`
+          : "mock: playtesting launches from the native app",
+      };
+    case "provider_keys":
+      // Mock: pretend the usual keys are present so paid gates are reachable
+      // headless; the native app reports what it can actually see.
+      return {
+        env_file: "mock://.env",
+        keys: ["ANTHROPIC_API_KEY", "FAL_KEY", "GOOGLE_API_KEY"],
+      };
     case "play_game":
-      return { launched: false, note: "mock: playtesting launches from the native app" };
+      return {
+        launched: false,
+        mode: args.animTarget ? "anim" : "play",
+        note: args.animTarget
+          ? `mock: the Godot animation viewer for ${args.animTarget} opens in the native app`
+          : "mock: playtesting launches from the native app",
+      };
     case "db_schema": {
       const t = String(args.entityType);
       const schemas = (d.dbSchemas ??= {});

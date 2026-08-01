@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type CostEstimate, type EntityRow } from "../lib/invoke";
 import { fmtRange } from "../lib/cost";
 import { enqueueJob } from "../lib/jobs";
+import { PromptOverride } from "./PromptOverride";
 import { useStore } from "../store";
 
 /** Inline "+ New level" form: a blank DRAFT to paint, or a generated DRAFT
@@ -23,6 +24,7 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
   const [backend, setBackend] = useState<"fake" | "anthropic">("fake");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [systemOverride, setSystemOverride] = useState<string | null>(null);
 
   useEffect(() => {
     api
@@ -98,6 +100,7 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
           items,
           seed: seed.trim() || null,
           llmBackend: backend,
+          systemOverride,
           jobId,
         }),
     );
@@ -172,6 +175,14 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
               <option value="anthropic">anthropic (paid)</option>
             </select>
           </label>
+          <PromptOverride
+            worldPath={worldPath}
+            kind="layout"
+            ctx={{ brief }}
+            value={systemOverride}
+            onChange={setSystemOverride}
+            disabled={busy}
+          />
         </>
       )}
       <button
@@ -197,10 +208,20 @@ const TYPE_LABELS: Record<string, string> = {
   music: "Music",
   sfx: "SFX",
   levels: "Levels",
+  player: "Player",
   enemies: "Enemies",
   tilesets: "Tilesets",
   backdrops: "Backdrops",
   audio: "Audio",
+};
+
+/** Types that sit under a shared heading. The hero and the roster are the same
+ *  KIND of thing — animated actors you generate, animate and preview — so they
+ *  read as one group instead of two unrelated rows. A type with no entry here
+ *  renders exactly as before, so MazeWorld packs are untouched. */
+const TYPE_GROUP: Record<string, string> = {
+  player: "Actors",
+  enemies: "Actors",
 };
 
 const PARTITION_FIELD: Record<string, string> = {
@@ -327,11 +348,30 @@ export function LeftNav() {
         </button>
       )}
       <div className="nav-types">
-        {world.entity_counts.map(({ type_id, count }) => {
+        {world.entity_counts.map(({ type_id, count }, i) => {
           const hasPartition = !!PARTITION_FIELD[type_id];
           const parts = partitionCounts[type_id];
+          // Head the group when this type opens one (types arrive in registry
+          // order, so grouped types are already adjacent).
+          const group = TYPE_GROUP[type_id];
+          const opensGroup =
+            !!group && TYPE_GROUP[world.entity_counts[i - 1]?.type_id ?? ""] !== group;
           return (
             <div key={type_id} className="nav-type">
+              {opensGroup && (
+                <div
+                  className="nav-group-label"
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: 0.8,
+                    textTransform: "uppercase",
+                    opacity: 0.55,
+                    padding: "8px 0 2px 6px",
+                  }}
+                >
+                  {group}
+                </div>
+              )}
               <button
                 className={`nav-type-header ${isTypeSelected(type_id) ? "selected" : ""}`}
                 onClick={() => {

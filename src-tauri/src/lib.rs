@@ -240,6 +240,7 @@ fn regenerate_layout(
     axis: Option<String>,
     seed: Option<String>,
     llm_backend: Option<String>,
+    system_override: Option<String>,
     job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
@@ -255,6 +256,7 @@ fn regenerate_layout(
     if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
+    let args = with_prompt_override(args, "--system-prompt", system_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
@@ -276,6 +278,7 @@ fn improve_layout(
     reroll_placements: bool,
     seed: Option<String>,
     llm_backend: Option<String>,
+    system_override: Option<String>,
     job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
@@ -289,6 +292,7 @@ fn improve_layout(
     if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
+    let args = with_prompt_override(args, "--system-prompt", system_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
@@ -336,6 +340,7 @@ fn generate_level(
     items: Option<u32>,
     seed: Option<String>,
     llm_backend: Option<String>,
+    system_override: Option<String>,
     job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
@@ -353,6 +358,7 @@ fn generate_level(
     if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
+    let args = with_prompt_override(args, "--system-prompt", system_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
@@ -370,6 +376,7 @@ fn generate_level_music(
     section: Option<u32>,
     music_backend: Option<String>,
     seconds: Option<u32>,
+    prompt_override: Option<String>,
     job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
@@ -382,6 +389,7 @@ fn generate_level_music(
     ];
     if let Some(s) = section { args.push("--section".into()); args.push(s.to_string()); }
     if let Some(sec) = seconds { args.push("--seconds".into()); args.push(sec.to_string()); }
+    let args = with_prompt_override(args, "--prompt", prompt_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
@@ -444,14 +452,47 @@ fn place_items(
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
-/// Append `--env-file $CANON_ENV_FILE` when the host was launched with one —
-/// canon never auto-reads .env; this is how provider keys reach paid verbs.
-fn with_env_file(mut args: Vec<String>) -> Vec<String> {
+/// Append a per-call prompt override (`--system-prompt` for LLM verbs,
+/// `--prompt` for image/audio verbs) when the user edited it in the UI. An
+/// absent or blank override adds nothing, so the built-in default runs.
+fn with_prompt_override(mut args: Vec<String>, flag: &str, value: Option<String>) -> Vec<String> {
+    if let Some(text) = value {
+        if !text.trim().is_empty() {
+            args.push(flag.into());
+            args.push(text);
+        }
+    }
+    args
+}
+
+/// The provider-key file passed to canon's paid verbs. `CANON_ENV_FILE` wins;
+/// otherwise fall back to `<canon repo>/.env`, which is where the keys live in
+/// a normal two-repo checkout.
+///
+/// canon itself still never auto-reads a .env — it requires an explicit
+/// `--env-file`, and that doctrine is unchanged. This is the HOST deciding
+/// which file to hand it. Without the fallback, launching cradle the ordinary
+/// way (`npm run tauri dev`) silently dropped every key, and paid generation
+/// failed with a provider-level "needs FAL_KEY" that pointed nowhere near the
+/// actual cause.
+fn env_file_path() -> Option<String> {
     if let Ok(env_file) = std::env::var("CANON_ENV_FILE") {
         if !env_file.is_empty() {
-            args.push("--env-file".into());
-            args.push(env_file);
+            return Some(env_file);
         }
+    }
+    let candidate = canon_repo_root().ok()?.join(".env");
+    if candidate.is_file() {
+        return Some(candidate.to_string_lossy().to_string());
+    }
+    None
+}
+
+/// Append `--env-file <resolved>` so provider keys reach paid verbs.
+fn with_env_file(mut args: Vec<String>) -> Vec<String> {
+    if let Some(env_file) = env_file_path() {
+        args.push("--env-file".into());
+        args.push(env_file);
     }
     args
 }
@@ -459,6 +500,40 @@ fn with_env_file(mut args: Vec<String>) -> Vec<String> {
 fn run_canon_owned(args: Vec<String>) -> Result<Value, String> {
     let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
     run_canon(&refs)
+}
+
+/// Which provider keys cradle can actually hand to canon, and from where.
+/// Returns key NAMES only — never values — so the UI can say "fal needs
+/// FAL_KEY and I don't have it" before spending a confirm on a job that is
+/// going to die at the provider.
+#[tauri::command]
+fn provider_keys() -> Value {
+    let mut names: Vec<String> = Vec::new();
+    // Anything already exported to cradle's own environment counts.
+    for (k, v) in std::env::vars() {
+        if !v.is_empty() && (k.ends_with("_API_KEY") || k.starts_with("FAL_KEY")) {
+            names.push(k);
+        }
+    }
+    let resolved = env_file_path();
+    if let Some(ref path) = resolved {
+        if let Ok(text) = std::fs::read_to_string(path) {
+            for line in text.lines() {
+                let line = line.trim().trim_start_matches("export ").trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue;
+                }
+                if let Some((key, value)) = line.split_once('=') {
+                    if !value.trim().trim_matches(['"', '\'']).is_empty() {
+                        names.push(key.trim().to_string());
+                    }
+                }
+            }
+        }
+    }
+    names.sort();
+    names.dedup();
+    serde_json::json!({ "env_file": resolved, "keys": names })
 }
 
 /// Push a job onto the serial queue and emit its `queued` event, returning the
@@ -518,6 +593,7 @@ fn db_new(
     fields: Value,
     complete: bool,
     llm_backend: Option<String>,
+    system_override: Option<String>,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let fields_str = serde_json::to_string(&fields).map_err(|e| e.to_string())?;
@@ -529,6 +605,7 @@ fn db_new(
         args.push("--complete".into());
         args.push("--llm-backend".into());
         args.push(llm_backend.unwrap_or_else(|| "anthropic".into()));
+        args = with_prompt_override(args, "--system-prompt", system_override);
     }
     run_canon_owned(with_env_file(args))
 }
@@ -541,6 +618,7 @@ fn db_complete(
     id: String,
     locked: Vec<String>,
     llm_backend: Option<String>,
+    system_override: Option<String>,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
@@ -553,6 +631,7 @@ fn db_complete(
         args.push("--locked".into());
         args.push(locked.join(","));
     }
+    let args = with_prompt_override(args, "--system-prompt", system_override);
     run_canon_owned(with_env_file(args))
 }
 
@@ -679,10 +758,10 @@ fn spend_list(path: String) -> Result<Value, String> {
 /// The PLAT_* hooks turn the play surfaces into scripted/headless sessions
 /// (capture, trajectory dumps, forced start level, plain rendering) — strip
 /// them all so Play starts from a clean slate, then set only what we mean.
-const PLAT_HOOK_VARS: [&str; 9] = [
+const PLAT_HOOK_VARS: [&str; 10] = [
     "PLAT_CAPTURE", "PLAT_TRAJ", "PLAT_HOLD", "PLAT_HOLD_JUMP_EVERY",
     "PLAT_ACTIONS", "PLAT_CAPTURE_TICKS", "PLAT_CAPTURE_EVERY", "PLAT_LEVEL",
-    "PLAT_PLAIN",
+    "PLAT_PLAIN", "PLAT_ANIM",
 ];
 
 /// Reap the detached child (a dropped Child is never waited on → zombie)
@@ -702,12 +781,16 @@ fn reap_and_notify(app: AppHandle, mut child: std::process::Child, engine: &'sta
 /// Launch the pygame play harness on ONE level, detached — the editor's
 /// "how does this level feel" loop (exact physics parity with godot).
 /// `plain` plays WITHOUT art: palette blocks + placeholder shapes.
+/// `anim_target` (`enemy:<id>` | `item:<id>` | `player` | `all`) opens the
+/// ANIMATION VIEWER instead of the level, so a sprite's states can be judged
+/// in the same surface that renders the game.
 #[tauri::command]
 fn play_level(
     app: AppHandle,
     path: String,
     level_id: String,
     plain: Option<bool>,
+    anim_target: Option<String>,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let repo = canon_repo_root()?;
@@ -737,11 +820,20 @@ fn play_level(
     if plain.unwrap_or(false) {
         cmd.env("PLAT_PLAIN", "1");
     }
+    let previewing = anim_target.as_deref().unwrap_or("").trim().to_string();
+    if !previewing.is_empty() {
+        cmd.env("PLAT_ANIM", &previewing);
+    }
     let child = cmd
         .spawn()
         .map_err(|e| format!("failed to launch play harness: {e}"))?;
     let pid = reap_and_notify(app, child, "pygame");
-    Ok(serde_json::json!({ "launched": true, "engine": "pygame", "pid": pid }))
+    Ok(serde_json::json!({
+        "launched": true,
+        "engine": "pygame",
+        "pid": pid,
+        "mode": if previewing.is_empty() { "play" } else { "anim" },
+    }))
 }
 
 /// Launch the FULL game (splash → world map → progression) in Godot,
@@ -752,6 +844,7 @@ fn play_game(
     app: AppHandle,
     path: String,
     level_id: Option<String>,
+    anim_target: Option<String>,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     // A pack generated without the godot engine has nothing to boot — say
@@ -785,11 +878,18 @@ fn play_game(
             // PLAT_LEVEL boots straight into one level, skipping splash/map.
             cmd.env("PLAT_LEVEL", lid);
         }
+        let previewing = anim_target.as_deref().unwrap_or("").trim().to_string();
+        if !previewing.is_empty() {
+            // PLAT_ANIM opens the animation viewer instead of the game — the
+            // Godot half of "watch it in both surfaces".
+            cmd.env("PLAT_ANIM", &previewing);
+        }
         match cmd.spawn() {
             Ok(child) => {
                 let pid = reap_and_notify(app.clone(), child, "godot");
                 return Ok(serde_json::json!({
-                    "launched": true, "engine": "godot", "pid": pid
+                    "launched": true, "engine": "godot", "pid": pid,
+                    "mode": if previewing.is_empty() { "play" } else { "anim" },
                 }));
             }
             // Every candidate's failure matters — a broken GODOT_BIN is the
@@ -809,6 +909,29 @@ fn play_game(
 fn validate_level(path: String, level_id: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&["level", "validate", &root, "--level", &level_id])
+}
+
+/// The DEFAULT prompt a generator would send, via `canon prompt show` — what
+/// the "✎ Edit prompt" expander fills its textarea with. Pure read (no LLM
+/// call, no cost, no journal), so it stays synchronous instead of queued.
+#[tauri::command]
+fn preview_prompt(
+    path: String,
+    kind: String,
+    level_id: Option<String>,
+    target: Option<String>,
+    instruction: Option<String>,
+    brief: Option<String>,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<String> = vec![
+        "prompt".into(), "show".into(), root, "--kind".into(), kind,
+    ];
+    if let Some(l) = level_id { if !l.is_empty() { args.push("--level".into()); args.push(l); } }
+    if let Some(t) = target { if !t.is_empty() { args.push("--target".into()); args.push(t); } }
+    if let Some(i) = instruction { if !i.is_empty() { args.push("--instruction".into()); args.push(i); } }
+    if let Some(b) = brief { if !b.is_empty() { args.push("--brief".into()); args.push(b); } }
+    run_canon_owned(args)
 }
 
 /// The artifact's family tree (journal + CAS) via `canon asset lineage`.
@@ -956,6 +1079,7 @@ fn generate_asset(
     image_backend: Option<String>,
     music_backend: Option<String>,
     sfx_backend: Option<String>,
+    prompt_override: Option<String>,
     job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
@@ -975,6 +1099,7 @@ fn generate_asset(
         args.push("--sfx-backend".into());
         args.push(b);
     }
+    let args = with_prompt_override(args, "--prompt", prompt_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
@@ -1093,6 +1218,8 @@ pub fn run() {
             play_level,
             play_game,
             validate_level,
+            preview_prompt,
+            provider_keys,
             asset_lineage,
             asset_restore,
             object_cat,

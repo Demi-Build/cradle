@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api, type CostEstimate, type ValidationReport } from "../../lib/invoke";
 import { fmtRange } from "../../lib/cost";
 import { enqueueJob } from "../../lib/jobs";
+import { PromptOverride } from "../PromptOverride";
 import type { LevelBundle } from "./drawLevel";
 
 /** Context-aware IMPROVE — the v2 of 🪄 Regenerate. Unlike regenerate (which is
@@ -31,6 +32,7 @@ export function ImproveLayoutModal({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [est, setEst] = useState<CostEstimate | null>(null);
+  const [systemOverride, setSystemOverride] = useState<string | null>(null);
 
   // Only TERRAIN problems are fed to the improve (it re-authors terrain); count
   // them so the checkbox honestly says what "also fix problems" will address.
@@ -97,6 +99,7 @@ export function ImproveLayoutModal({
           fixProblems,
           rerollPlacements: reroll,
           llmBackend: backend,
+          systemOverride,
           jobId,
         }),
     );
@@ -199,6 +202,14 @@ export function ImproveLayoutModal({
             <option value="anthropic">Claude (paid)</option>
           </select>
         </label>
+        <PromptOverride
+          worldPath={worldPath}
+          kind="improve"
+          ctx={{ levelId, instruction }}
+          value={systemOverride}
+          onChange={setSystemOverride}
+          disabled={busy}
+        />
         <div style={{ ...row, opacity: 0.85 }}>
           <span>Estimated cost</span>
           <strong>{est ? fmtRange(est.total_usd) : "…"}</strong>

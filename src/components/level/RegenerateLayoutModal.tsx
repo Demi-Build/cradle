@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type CostEstimate } from "../../lib/invoke";
 import { fmtRange } from "../../lib/cost";
 import { enqueueJob } from "../../lib/jobs";
+import { PromptOverride } from "../PromptOverride";
 
 /** Regenerate an EXISTING level's terrain from a brief — turns a flat draft
  *  into a designed level, or redesigns an existing one. Replaces the terrain
@@ -26,6 +27,7 @@ export function RegenerateLayoutModal({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [est, setEst] = useState<CostEstimate | null>(null);
+  const [systemOverride, setSystemOverride] = useState<string | null>(null);
 
   // Live estimate — the layout op's price depends only on this level + backend.
   useEffect(() => {
@@ -70,6 +72,7 @@ export function RegenerateLayoutModal({
           difficulty,
           axis: axis || null,
           llmBackend: backend,
+          systemOverride,
           jobId,
         }),
     );
@@ -144,6 +147,14 @@ export function RegenerateLayoutModal({
             <option value="anthropic">Claude (paid)</option>
           </select>
         </label>
+        <PromptOverride
+          worldPath={worldPath}
+          kind="layout"
+          ctx={{ levelId, brief }}
+          value={systemOverride}
+          onChange={setSystemOverride}
+          disabled={busy}
+        />
         <div style={{ ...row, opacity: 0.85 }}>
           <span>Estimated cost</span>
           <strong>{est ? fmtRange(est.total_usd) : "…"}</strong>

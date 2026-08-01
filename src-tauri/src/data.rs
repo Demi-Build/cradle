@@ -77,6 +77,65 @@ fn synthesize_audio_entity(type_id: &str, id: &str, filename: &str) -> Value {
     Value::Object(m)
 }
 
+/// The PLAYER row, synthesized. No pack has a `player.json` — canon keeps the
+/// hero's art under `sprite/player/` and its physics in the manifest, with no
+/// row file anywhere — but canon DOES treat `player` as a first-class asset
+/// target (`asset generate`/`animate`/`replace`, library publish, lineage), so
+/// the editor was the only place it didn't exist.
+///
+/// Shaped like an enemy row (`sprite_path` + `stats.animation`) so every
+/// existing surface — Portrait, the card grid, the animation preview — works
+/// on it unchanged. Same synthesize-a-row precedent as audio above.
+fn synthesize_player_entity(root: &Path) -> Value {
+    let mut m = serde_json::Map::new();
+    m.insert("player_id".into(), Value::String("player".into()));
+    m.insert("artifact_id".into(), Value::String("player".into()));
+    m.insert("name".into(), Value::String("Player".into()));
+    m.insert("kind".into(), Value::String("player".into()));
+    // Empty (not null, not absent) when there is no art: the portrait
+    // resolvers pick the first NON-EMPTY hint, and canon itself writes "" for
+    // "no art" — matching that keeps the loud fallback working.
+    let base = root.join("sprite/player/base.png");
+    m.insert(
+        "sprite_path".into(),
+        Value::String(if base.is_file() { "sprite/player/base.png".into() } else { String::new() }),
+    );
+    if let Some(frames) = read_json_opt(&root.join("sprite/player/frames.json")) {
+        let mut anim = serde_json::Map::new();
+        let states: Vec<Value> = frames
+            .as_object()
+            .map(|o| o.keys().map(|k| Value::String(k.clone())).collect())
+            .unwrap_or_default();
+        anim.insert("states".into(), frames);
+        m.insert("animation_states".into(), Value::Array(states));
+        let mut stats = serde_json::Map::new();
+        stats.insert("animation".into(), Value::Object(anim));
+        m.insert("stats".into(), Value::Object(stats));
+    }
+    if let Some(manifest) = read_json_opt(&root.join("manifest.json")) {
+        if let Some(movement) = manifest.get("movement") {
+            m.insert("movement".into(), movement.clone());
+        }
+    }
+    Value::Object(m)
+}
+
+/// One ref when the pack has player art, none otherwise — a pack generated
+/// without the art track shows `Player (0)`, exactly as `audio` already does.
+fn platformer_player_refs(root: &Path) -> Result<Vec<EntityRef>, String> {
+    let has_art = root.join("sprite/player/base.png").is_file()
+        || root.join("sprite/player/frames.json").is_file();
+    Ok(if has_art {
+        vec![EntityRef {
+            type_id: "player".into(),
+            id: "player".into(),
+            name: Some("Player".into()),
+        }]
+    } else {
+        Vec::new()
+    })
+}
+
 pub fn canon_world_root(input: &Path) -> PathBuf {
     // If the user selected a `/data` subfolder that actually contains world_bible.json,
     // treat the parent as the canonical world root. Otherwise return the path unchanged.
@@ -257,12 +316,13 @@ fn platformer_stage_manifest_refs(
 
 /// The platformer catalog: every browsable type and its refs.
 const PLATFORMER_TYPES: &[&str] = &[
-    "levels", "enemies", "items", "tilesets", "backdrops", "audio",
+    "levels", "player", "enemies", "items", "tilesets", "backdrops", "audio",
 ];
 
 fn platformer_refs(root: &Path, type_id: &str) -> Result<Vec<EntityRef>, String> {
     match type_id {
         "levels" => platformer_level_refs(root),
+        "player" => platformer_player_refs(root),
         "enemies" => platformer_file_db_refs(root, "enemy", "enemies"),
         "items" => platformer_file_db_refs(root, "item", "items"),
         "tilesets" => platformer_stage_manifest_refs(root, "tileset", "tilesets"),
@@ -582,6 +642,9 @@ impl DataSource for LocalFsDataSource {
                     let lp = find_level_json(&root, id)
                         .ok_or_else(|| format!("level {} not found", id))?;
                     return Self::read_json(&lp);
+                }
+                "player" => {
+                    return Ok(synthesize_player_entity(&root));
                 }
                 "enemies" => {
                     return Self::read_json(&root.join("enemy").join(format!("{}.json", id)));

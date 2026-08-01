@@ -44,10 +44,26 @@ export interface SparseEntry {
   params?: Record<string, unknown>;
 }
 
+/** How a level last changed (from the provenance journal) — for the revision chip. */
+export interface LevelLastChange {
+  op: string;
+  source: string;
+  kind: string;
+  actor: string;
+  ts: string;
+  hash: string;
+  label: string;
+}
+
 export interface LevelBundle {
   level_id: string;
   stage_id: string;
   display_name: string | null;
+  /** Content identity of the current state (changes on every real edit); +
+   *  how it last changed. Both from canon's export bundle. */
+  revision?: string;
+  revision_short?: string;
+  last_change?: LevelLastChange | null;
   grid_width: number;
   grid_height: number;
   spawn: [number, number] | null;

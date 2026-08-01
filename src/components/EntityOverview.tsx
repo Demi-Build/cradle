@@ -11,7 +11,8 @@ import { MonsterStatBlock, MonsterAbilities } from "./monster/MonsterStatBlock";
 import { AudioPlayer } from "./AudioPlayer";
 import { useStore } from "../store";
 import { api } from "../lib/invoke";
-import { fmtUsd, recordSpend } from "../lib/cost";
+import { fmtUsd } from "../lib/cost";
+import { enqueueJob } from "../lib/jobs";
 import { Icon } from "./start/Icons";
 import { RowEditor } from "./db/RowEditor";
 import { TileSlotEditor } from "./db/TileSlotEditor";
@@ -882,6 +883,20 @@ function StageAudioReroll({ worldPath, stageId }: { worldPath: string; stageId: 
   const [note, setNote] = useState<string | null>(null);
   const est = (music === "lyria" ? 0.1 : 0) + (sfx === "elevenlabs" ? 0.2 : 0);
 
+  // Refresh this stage's audio view when its reroll job finishes.
+  const lastCompletedJob = useStore((s) => s.lastCompletedJob);
+  useEffect(() => {
+    const c = lastCompletedJob;
+    if (!c || c.targetType !== "audio" || c.target !== stageId) return;
+    if (c.status === "failed") {
+      setNote("failed — see ⚙ Jobs");
+    } else {
+      setNote(c.changed ? "regenerated ✓" : "ran, no change");
+      select({ kind: "entity", typeId: "audio", id: stageId });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastCompletedJob, stageId]);
+
   const run = async () => {
     if (music === "none" && sfx === "none") {
       setNote("pick a music and/or sfx backend first");
@@ -899,29 +914,29 @@ function StageAudioReroll({ worldPath, stageId }: { worldPath: string; stageId: 
       return;
     setBusy(true);
     setNote(null);
-    try {
-      const r = (await api.generateAsset(
-        worldPath,
-        `audio:${stageId}`,
-        undefined,
-        music === "none" ? undefined : music,
-        sfx === "none" ? undefined : sfx,
-      )) as { cost?: { usd?: number }; warnings?: string[] };
-      await recordSpend(worldPath, {
+    // Fire-and-forget background job — the tray tracks it; this view refreshes
+    // via the completion listener above.
+    await enqueueJob(
+      {
         op: "audio",
+        label: `Stage audio · ${stageId}`,
+        target: stageId,
+        targetType: "audio",
         scope: "stage",
-        level_id: stageId,
         backends: { music, sfx },
         estimate: { best: est, worst: est },
-        actual_usd: r.cost?.usd ?? 0,
-      });
-      setNote(r.warnings?.length ? r.warnings[0] : "regenerated ✓");
-      select({ kind: "entity", typeId: "audio", id: stageId });
-    } catch (e) {
-      setNote(String(e).slice(0, 160));
-    } finally {
-      setBusy(false);
-    }
+      },
+      (jobId) =>
+        api.generateAsset(
+          worldPath,
+          `audio:${stageId}`,
+          jobId,
+          music === "none" ? undefined : music,
+          sfx === "none" ? undefined : sfx,
+        ),
+    );
+    setBusy(false);
+    setNote("stage audio queued — watch ⚙ Jobs");
   };
 
   const sel: React.CSSProperties = { fontSize: 11, marginLeft: 4 };
@@ -964,6 +979,7 @@ function GenActions({
 }) {
   const worldPath = useStore((s) => s.worldPath);
   const select = useStore((s) => s.select);
+  const lastCompletedJob = useStore((s) => s.lastCompletedJob);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   // Hooks stay ABOVE the `!id` early return (Rules of Hooks).
@@ -972,32 +988,30 @@ function GenActions({
   const id = String(
     (data.enemy_id as string) ?? (data.item_id as string) ?? entityId ?? "",
   );
+  // Refresh this entity when its own asset job (sprite/animate) finishes.
+  useEffect(() => {
+    const c = lastCompletedJob;
+    if (!c || c.targetType !== typeId || c.target !== (entityId ?? id)) return;
+    if (c.status === "failed") {
+      setNote(`${c.op} failed — see ⚙ Jobs`);
+    } else {
+      setNote(`${c.op} done — ${c.changed ? "updated ✓" : "no change"}`);
+      select({ kind: "entity", typeId, id: entityId ?? id });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastCompletedJob]);
   if (!id) return null;
   const target = `${kind}:${id}`;
 
-  const run = async (
-    label: string,
-    confirmText: string,
-    fn: () => Promise<unknown>,
-    spend?: { op: string; backends: Record<string, string> },
-  ) => {
+  // Synchronous, non-generation actions (publish snapshot, LLM re-complete a
+  // single row) — these return their result inline and refresh on completion.
+  const run = async (label: string, confirmText: string, fn: () => Promise<unknown>) => {
     if (!window.confirm(confirmText)) return;
     setBusy(label);
     setNote(null);
     try {
       const result = (await fn()) as Record<string, unknown>;
       const warnings = (result.warnings as string[]) ?? [];
-      // Record the reroll's actual spend when canon returned a cost block.
-      const cost = result.cost as { usd?: number } | undefined;
-      if (spend && cost) {
-        await recordSpend(worldPath, {
-          op: spend.op,
-          scope: "asset",
-          level_id: id,
-          backends: spend.backends,
-          actual_usd: cost.usd ?? 0,
-        });
-      }
       setNote(warnings.length ? warnings[0] : `${label} done ✓`);
       select({ kind: "entity", typeId, id: entityId ?? id });
     } catch (e) {
@@ -1005,6 +1019,32 @@ function GenActions({
     } finally {
       setBusy(null);
     }
+  };
+
+  // Generation actions that run as background jobs (sprite / animate). The tray
+  // tracks them; the completion listener above re-selects this entity.
+  const runJob = async (
+    label: string,
+    confirmText: string,
+    meta: { op: string; backends: Record<string, string> },
+    fire: (jobId: string) => Promise<unknown>,
+  ) => {
+    if (!window.confirm(confirmText)) return;
+    setBusy(label);
+    setNote(null);
+    await enqueueJob(
+      {
+        op: meta.op,
+        label: `${label} · ${id}`,
+        target: entityId ?? id,
+        targetType: typeId,
+        scope: "asset",
+        backends: meta.backends,
+      },
+      fire,
+    );
+    setBusy(null);
+    setNote(`${label} queued — watch ⚙ Jobs`);
   };
 
   const btn: React.CSSProperties = {
@@ -1042,11 +1082,11 @@ function GenActions({
         style={btn}
         disabled={!!busy}
         onClick={() =>
-          run(
+          runJob(
             "generate sprite",
             `Generate a new sprite for ${id}?\n\nBackend: fal (nano-banana). Rough cost ~$0.04/image. The current sprite is replaced (original stays recoverable in the object store).`,
-            () => api.generateAsset(worldPath, target, "fal"),
             { op: "sprite", backends: { image: "fal" } },
+            (jobId) => api.generateAsset(worldPath, target, jobId, "fal"),
           )
         }
       >
@@ -1070,11 +1110,11 @@ function GenActions({
           style={btn}
           disabled={!!busy}
           onClick={() =>
-            run(
+            runJob(
               "animate",
               `Animate ${id} (multi-image path)?\n\nVLM authors a per-state motion spec from the sprite, then one img2img sheet per state (idle/walk/hurt/death…).\nBackends: fal edit + anthropic VLM. Rough cost ~$0.04×states + VLM tokens.`,
-              () => api.animateAsset(worldPath, target, "fal", "anthropic"),
               { op: "animate", backends: { image: "fal", vlm: "anthropic" } },
+              (jobId) => api.animateAsset(worldPath, target, jobId, "fal", "anthropic"),
             )
           }
         >

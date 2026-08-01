@@ -4,6 +4,7 @@
 // bundled in production — main.tsx only imports this behind the env flag.
 
 import { DB_NESTING } from "./dbNesting";
+import { handleJobEvent } from "./jobs";
 
 type Ref = { type_id: string; id: string; name: string };
 type JsonMap = Record<string, unknown>;
@@ -94,8 +95,13 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       }));
     case "get_entity":
       return jsonFor(d, String(args.typeId))[String(args.id)] ?? {};
-    case "export_level":
-      return d.bundles[String(args.levelId)] ?? null;
+    case "export_level": {
+      const b = d.bundles[String(args.levelId)] as Record<string, unknown> | undefined;
+      if (!b) return null;
+      // Revision is derived from the mutable content (so it changes exactly when
+      // content changes); last_change is stamped by the mutation handlers.
+      return { ...b, ...mockRevision(b), last_change: b._last_change ?? null };
+    }
     case "save_level_edit": {
       // Apply the sparse edit into the stored bundle so the post-save
       // re-export reflects it (native persists via canon apply-edit).
@@ -130,6 +136,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
           b.music_hash = edit.music_hash ?? "";
         }
         if (edit.music_sections) b.music_sections = edit.music_sections;
+        stampChange(b, "Saved edit", "edit", "user");
       }
       return {
         level_id: String(args.levelId),
@@ -160,6 +167,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         b.grids.background = collision.map((row, y) =>
           row.map(() => Math.floor((y * 3) / Math.max(1, collision.length))),
         );
+        stampChange(b as unknown as Record<string, unknown>, "Hand-painted terrain", "edit", "user");
       }
       return { level_id: String(args.levelId), updated: ["collision"], status: "user_edited" };
     }
@@ -268,10 +276,12 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       d.levelJson[lid] = { level_id: lid, stage_id: stageId, grid_width: w, grid_height: h };
       const count = d.entity_counts.find((c) => c.type_id === "levels");
       if (count) count.count += 1;
-      return {
+      stampChange(d.bundles[lid] as Record<string, unknown>, "Generated", "generate", "llm");
+      return simulateJob(args.jobId as string, {
         level_id: lid, stage_id: stageId, ok: true, repair_count: 0,
         layout_fallback: false, seed: "mock-seed", warnings: [],
-      };
+        changed: true, changed_artifacts: [`level:${stageId}/${lid}/collision`],
+      });
     }
     case "place_enemies":
     case "place_items": {
@@ -282,6 +292,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         (x) => (x as { stage_id: string }).stage_id === b.stage_id,
       ) as Record<string, unknown> | undefined;
       const h = Number(b.grid_height ?? 16);
+      const step = cmd === "place_enemies" ? "entities" : "items";
       if (cmd === "place_enemies") {
         const tEnts = ((template?.entities as unknown[]) ?? []).slice(0, Number(args.enemies ?? 3));
         b.entities = tEnts.map((e, i) => ({ ...(e as object), x: 6 + i * 5, y: h - 3 }));
@@ -289,10 +300,15 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         const tItems = ((template?.items as unknown[]) ?? []).slice(0, Number(args.items ?? 5));
         b.items = tItems.map((it, i) => ({ ...(it as object), x: 8 + i * 4, y: h - 4 }));
       }
-      return {
+      stampChange(
+        b, cmd === "place_enemies" ? "Placed enemies" : "Placed items",
+        "generate", "llm",
+      );
+      return simulateJob(args.jobId as string, {
         level_id: lid, stage_id: b.stage_id, ok: true, repair_count: 0,
         layout_fallback: false, seed: "mock-seed", warnings: [],
-      };
+        changed: true, changed_artifacts: [`level:${b.stage_id}/${lid}/${step}`],
+      });
     }
     case "regenerate_layout": {
       // Mock: rebuild the level's grid into something visibly structured (not
@@ -324,10 +340,66 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       b.items = [];
       b.brief = String(args.brief ?? b.brief ?? "");
       b.layout_fallback = false;
-      return {
+      stampChange(b, "Regenerated layout", "regenerate", "llm");
+      return simulateJob(args.jobId as string, {
         level_id: lid, stage_id: b.stage_id, ok: true, repair_count: 0,
         layout_fallback: false, seed: "mock-seed", warnings: [],
+        changed: true, changed_artifacts: [`level:${b.stage_id}/${lid}/collision`],
+      });
+    }
+    case "improve_layout": {
+      // Mock: context-aware improve — RE-AUTHOR the grid (keeping dims) so the
+      // change is visible, VARYING on the instruction so the mock proves it's
+      // guided ("harder" → pits, "easier" → a flat runway). Placements are KEPT
+      // by default (the user's enemies/items survive) or cleared on re-roll, to
+      // mirror the real op. Native runs the real LLM improve.
+      const lid = String(args.levelId);
+      const b = d.bundles[lid] as Record<string, unknown> | undefined;
+      if (!b) throw new Error(`no level ${lid}`);
+      const w = Number(b.grid_width ?? 60);
+      const h = Number(b.grid_height ?? 16);
+      const instr = String(args.instruction ?? "").toLowerCase();
+      const harder = instr.includes("harder");
+      const easier = instr.includes("easier");
+      const template = Object.values(d.bundles).find(
+        (x) => (x as { stage_id: string }).stage_id === b.stage_id,
+      ) as Record<string, unknown> | undefined;
+      const tilesByType = (template?.tiles_by_type as Record<string, { index: number }>) ?? {};
+      const collision = Array.from({ length: h }, (_, y) =>
+        Array.from({ length: w }, (_, x) => {
+          if (y === h - 1) return easier ? 1 : x % 11 !== 0 ? 1 : 0; // floor (pits unless easier)
+          if (y === h - 2) return easier ? 1 : x % 7 !== 0 ? 1 : 0;
+          if (harder && y === h - 5 && x % 9 === 3) return 4; // scattered hazards
+          if (y === h - 6 && x % 5 === 0) return 2; // platforms
+          return 0;
+        }),
+      );
+      // Faithful change signal: re-authoring to the SAME grid (e.g. the same
+      // instruction twice) is a no-op, exactly like canon's idempotent baseline.
+      const prevGrids = b.grids as { collision?: unknown } | undefined;
+      const gridChanged = JSON.stringify(prevGrids?.collision) !== JSON.stringify(collision);
+      const clearedPlacements =
+        !!args.rerollPlacements &&
+        (((b.entities as unknown[]) ?? []).length > 0 || ((b.items as unknown[]) ?? []).length > 0);
+      const changed = gridChanged || clearedPlacements;
+      b.grids = {
+        collision,
+        terrain: collision.map((row) => row.map((t) => tilesByType[String(t)]?.index ?? 0)),
+        background: collision.map((_, y) => Array(w).fill(Math.floor((y * 3) / h))),
       };
+      if (args.rerollPlacements) {
+        b.entities = [];
+        b.items = [];
+      }
+      b.layout_fallback = false;
+      if (changed) stampChange(b, "Improved", "regenerate", "llm");
+      return simulateJob(args.jobId as string, {
+        level_id: lid, stage_id: b.stage_id, ok: true, repair_count: 0,
+        layout_fallback: false, seed: "mock-seed", improved: true, warnings: [],
+        cost: { usd: 0, input_tokens: 0, output_tokens: 0, calls: 1, backend: "fake" },
+        changed,
+        changed_artifacts: changed ? [`level:${b.stage_id}/${lid}/collision`] : [],
+      });
     }
     case "db_types":
       return { types: d.dbTypes ?? {} };
@@ -550,9 +622,19 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       return { type: t, source: "pack", schema: base, changed: set.fields ?? {} };
     }
     case "generate_asset":
-      return { target: String(args.target), generated: false, warnings: ["mock: real generation needs the native app"] };
+      return simulateJob(args.jobId as string, {
+        target: String(args.target), generated: true, changed: true,
+        changed_artifacts: [String(args.target)],
+        cost: { usd: 0, input_tokens: 0, output_tokens: 0, calls: 0, backend: "fake" },
+        warnings: ["mock: real bytes need the native app"],
+      });
     case "animate_asset":
-      return { target: String(args.target), animated: false, states: [], warnings: ["mock: real animation needs the native app"] };
+      return simulateJob(args.jobId as string, {
+        target: String(args.target), animated: true, states: [], changed: true,
+        changed_artifacts: [String(args.target)],
+        cost: { usd: 0, input_tokens: 0, output_tokens: 0, calls: 0, backend: "fake" },
+        warnings: ["mock: real animation needs the native app"],
+      });
     case "replace_asset":
       // Real byte replacement needs the native app (file picker + canon).
       return { target: String(args.target), pinned: false };
@@ -589,7 +671,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
           b.music_sections = secs;
         }
       }
-      return {
+      return simulateJob(args.jobId as string, {
         level_id: lid, stage_id: stage, target: `music:${stage}/${lid}`,
         music_path: rel,
         cost: {
@@ -598,7 +680,8 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
           backend: String(args.musicBackend ?? "fake"),
         },
         warnings: [],
-      };
+        changed: true, changed_artifacts: [`level:${stage}/${lid}/music`],
+      });
     }
     case "list_music_tracks": {
       const seen = new Set<string>();
@@ -643,6 +726,26 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       MOCK_SPEND.push(line);
       return { result: "spend_record", entry: line };
     }
+    case "jobs_record": {
+      const entry = (args.entry ?? {}) as Record<string, unknown>;
+      const line = { schema: "cradle-jobs/v1", ts: new Date().toISOString(), ...entry };
+      MOCK_JOBS.push(line);
+      return { result: "jobs_record", entry: line };
+    }
+    case "jobs_list": {
+      const byOp: Record<string, number> = {};
+      const byStatus: Record<string, number> = {};
+      for (const e of MOCK_JOBS) {
+        const op = String(e.op ?? e.scope ?? "unknown");
+        const status = String(e.status ?? "unknown");
+        byOp[op] = (byOp[op] ?? 0) + 1;
+        byStatus[status] = (byStatus[status] ?? 0) + 1;
+      }
+      return {
+        result: "jobs_list",
+        jobs: { count: MOCK_JOBS.length, by_op: byOp, by_status: byStatus, entries: MOCK_JOBS },
+      };
+    }
     case "spend_list": {
       const byOp: Record<string, { count: number; actual_usd: number; estimate_usd: number }> = {};
       let totalActual = 0;
@@ -676,6 +779,57 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
 
 /** In-memory spend ledger for the browser mock (native writes .canon/spend.jsonl). */
 const MOCK_SPEND: Record<string, unknown>[] = [];
+/** In-memory job ledger for the browser mock (native writes .canon/jobs.jsonl). */
+const MOCK_JOBS: Record<string, unknown>[] = [];
+
+/** FNV-1a → 8 hex; a cheap synchronous content hash for the mock revision id
+ *  (native uses a real sha256 over the level's state files). */
+function hashStr(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+/** A mock revision derived from the bundle's mutable content — changes exactly
+ *  when the content changes (mirrors canon's composite state hash). */
+function mockRevision(b: Record<string, unknown>): { revision: string; revision_short: string } {
+  const content = JSON.stringify([
+    b.grids, b.entities, b.items, b.spawn, b.exit, b.hazards,
+    b.music_path, b.music_sections,
+  ]);
+  const hex = hashStr(content) + hashStr(`${content.length}:${content}`);
+  return { revision: `sha256:${hex}`, revision_short: hex.slice(0, 10) };
+}
+
+/** Record how the mock bundle last changed (the revision chip reads this). */
+function stampChange(
+  b: Record<string, unknown>,
+  label: string,
+  op = "edit",
+  source = "user",
+): void {
+  b._last_change = {
+    op, source, kind: "", actor: "cradle:user",
+    ts: new Date().toISOString(), hash: "", label,
+  };
+}
+
+/** Simulate the background-job lifecycle for the browser mock, which has no
+ *  Tauri event bus. The gen handler has already applied its mutation; here we
+ *  drive the same store transitions the Rust worker + App listener would
+ *  (queued → running → done) via handleJobEvent, then return the queued ack so
+ *  the enqueue call resolves immediately — the tray, badge, change-badge, and
+ *  completion reload are all exercisable headless. */
+function simulateJob(jobId: string | undefined, result: Record<string, unknown>): unknown {
+  const id = String(jobId ?? "");
+  if (!id) return result; // not a queued op (shouldn't happen) — behave synchronously
+  setTimeout(() => void handleJobEvent({ id, status: "running" }), 60);
+  setTimeout(() => void handleJobEvent({ id, status: "done", result }), 320);
+  return { job_id: id, status: "queued" };
+}
 
 /** A plausible, backend-MASKED cost estimate for the mock — mirrors canon's
  *  masking (fake/none = $0, counts preserved) so the gate/dashboard UI is

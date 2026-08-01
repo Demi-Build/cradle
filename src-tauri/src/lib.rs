@@ -10,6 +10,23 @@ struct AppState {
     source: Arc<dyn DataSource>,
 }
 
+/// One generation job for the serial background worker. `args` is the
+/// fully-built canon CLI vector (env-file already appended for paid ops); `id`
+/// is a frontend-generated uuid so `job-updated` events correlate to the
+/// in-memory job holding the tray metadata.
+struct QueuedJob {
+    id: String,
+    args: Vec<String>,
+}
+
+/// Serial job queue: gen commands push here and return immediately so the UI
+/// never blocks on generation; a single worker thread (spawned in `.setup`)
+/// runs them one at a time off the UI thread and emits `job-updated` events.
+/// Serial by construction — one receiver, one worker.
+struct JobQueue {
+    tx: std::sync::Mutex<std::sync::mpsc::Sender<QueuedJob>>,
+}
+
 fn canon(path: String) -> PathBuf {
     canon_world_root(&PathBuf::from(path))
 }
@@ -212,6 +229,8 @@ fn new_project(
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 fn regenerate_layout(
+    app: AppHandle,
+    queue: State<'_, JobQueue>,
     path: String,
     level_id: String,
     brief: String,
@@ -221,6 +240,7 @@ fn regenerate_layout(
     axis: Option<String>,
     seed: Option<String>,
     llm_backend: Option<String>,
+    job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
@@ -235,7 +255,41 @@ fn regenerate_layout(
     if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
-    run_canon_owned(with_env_file(args))
+    enqueue(&app, &queue, job_id, with_env_file(args))
+}
+
+/// Context-aware IMPROVE via `canon level improve`: the layout LLM SEES the
+/// current level (its terrain serialized to text) + an `instruction` and
+/// re-authors it in place, keeping dims/axis. Unlike `regenerate_layout` it is
+/// not blind and does NOT clear placements (kept by default; `reroll_placements`
+/// re-adapts them). `fix_problems` also feeds the level's validation problems to
+/// the model. Paid path — `with_env_file` threads keys for `anthropic`.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+fn improve_layout(
+    app: AppHandle,
+    queue: State<'_, JobQueue>,
+    path: String,
+    level_id: String,
+    instruction: String,
+    fix_problems: bool,
+    reroll_placements: bool,
+    seed: Option<String>,
+    llm_backend: Option<String>,
+    job_id: String,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<String> = vec![
+        "level".into(), "improve".into(), root,
+        "--level".into(), level_id, "--instruction".into(), instruction,
+        "--actor".into(), "cradle:user".into(),
+    ];
+    if fix_problems { args.push("--fix-problems".into()); }
+    if reroll_placements { args.push("--reroll-placements".into()); }
+    if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
+    args.push("--llm-backend".into());
+    args.push(llm_backend.unwrap_or_else(|| "fake".into()));
+    enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
 /// Insert a level into (or remove it from) the progression via `canon level publish`.
@@ -269,6 +323,8 @@ fn publish_level(
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 fn generate_level(
+    app: AppHandle,
+    queue: State<'_, JobQueue>,
     path: String,
     stage_id: String,
     brief: String,
@@ -280,6 +336,7 @@ fn generate_level(
     items: Option<u32>,
     seed: Option<String>,
     llm_backend: Option<String>,
+    job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
@@ -296,20 +353,24 @@ fn generate_level(
     if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
-    run_canon_owned(with_env_file(args))
+    enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
 /// Generate ONE music track for a level (or one of its user music sections)
 /// via `canon level music generate` — Lyria is paid (GOOGLE_API_KEY reaches it
 /// through CANON_ENV_FILE), fake is $0. Returns the actual cost block.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 fn generate_level_music(
+    app: AppHandle,
+    queue: State<'_, JobQueue>,
     path: String,
     level_id: String,
     brief: Option<String>,
     section: Option<u32>,
     music_backend: Option<String>,
     seconds: Option<u32>,
+    job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
@@ -321,7 +382,7 @@ fn generate_level_music(
     ];
     if let Some(s) = section { args.push("--section".into()); args.push(s.to_string()); }
     if let Some(sec) = seconds { args.push("--seconds".into()); args.push(sec.to_string()); }
-    run_canon_owned(with_env_file(args))
+    enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
 /// List the pack's existing music tracks (for the 'assign a track' dropdown).
@@ -335,12 +396,16 @@ fn list_music_tracks(path: String) -> Result<Value, String> {
 /// Place enemies onto an existing level via `canon level place-enemies`
 /// (works on generated OR hand-painted terrain). Paid path.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 fn place_enemies(
+    app: AppHandle,
+    queue: State<'_, JobQueue>,
     path: String,
     level_id: String,
     enemies: Option<u32>,
     seed: Option<String>,
     llm_backend: Option<String>,
+    job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
@@ -351,17 +416,21 @@ fn place_enemies(
     if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
-    run_canon_owned(with_env_file(args))
+    enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
 /// Place items onto an existing level via `canon level place-items`. Paid path.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 fn place_items(
+    app: AppHandle,
+    queue: State<'_, JobQueue>,
     path: String,
     level_id: String,
     items: Option<u32>,
     seed: Option<String>,
     llm_backend: Option<String>,
+    job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
@@ -372,7 +441,7 @@ fn place_items(
     if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
-    run_canon_owned(with_env_file(args))
+    enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
 /// Append `--env-file $CANON_ENV_FILE` when the host was launched with one —
@@ -390,6 +459,47 @@ fn with_env_file(mut args: Vec<String>) -> Vec<String> {
 fn run_canon_owned(args: Vec<String>) -> Result<Value, String> {
     let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
     run_canon(&refs)
+}
+
+/// Push a job onto the serial queue and emit its `queued` event, returning the
+/// job id immediately — the generation runs on the worker thread so the UI
+/// never blocks. `args` must already be fully built (env-file appended).
+fn enqueue(
+    app: &AppHandle,
+    queue: &JobQueue,
+    id: String,
+    args: Vec<String>,
+) -> Result<Value, String> {
+    queue
+        .tx
+        .lock()
+        .map_err(|e| format!("job queue lock poisoned: {e}"))?
+        .send(QueuedJob { id: id.clone(), args })
+        .map_err(|e| format!("job worker is gone: {e}"))?;
+    let _ = app.emit("job-updated", serde_json::json!({ "id": id, "status": "queued" }));
+    Ok(serde_json::json!({ "job_id": id, "status": "queued" }))
+}
+
+/// The serial worker loop (spawned once in `.setup`): runs each queued job to
+/// completion — blocking is fine here, it's off the UI thread — and emits a
+/// terminal `job-updated` carrying the canon result (or the error). Generalizes
+/// `reap_and_notify` (detached spawn + AppHandle + emit) but CAPTURES the output.
+fn run_job_worker(app: AppHandle, rx: std::sync::mpsc::Receiver<QueuedJob>) {
+    for job in rx {
+        let _ = app.emit(
+            "job-updated",
+            serde_json::json!({ "id": job.id, "status": "running" }),
+        );
+        let payload = match run_canon_owned(job.args) {
+            Ok(result) => {
+                serde_json::json!({ "id": job.id, "status": "done", "result": result })
+            }
+            Err(error) => {
+                serde_json::json!({ "id": job.id, "status": "failed", "error": error })
+            }
+        };
+        let _ = app.emit("job-updated", payload);
+    }
 }
 
 /// The generic DB registry (entity types + field specs) for form UIs.
@@ -837,12 +947,16 @@ fn db_update_schema(
 
 /// (Re)generate one asset (sprite/backdrop/audio) via `canon asset generate`.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 fn generate_asset(
+    app: AppHandle,
+    queue: State<'_, JobQueue>,
     path: String,
     target: String,
     image_backend: Option<String>,
     music_backend: Option<String>,
     sfx_backend: Option<String>,
+    job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
@@ -861,17 +975,21 @@ fn generate_asset(
         args.push("--sfx-backend".into());
         args.push(b);
     }
-    run_canon_owned(with_env_file(args))
+    enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
 /// Animate one actor (multi-image path) via `canon asset animate`.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 fn animate_asset(
+    app: AppHandle,
+    queue: State<'_, JobQueue>,
     path: String,
     target: String,
     image_backend: Option<String>,
     vlm_backend: Option<String>,
     reuse_spec: bool,
+    job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
@@ -889,7 +1007,7 @@ fn animate_asset(
     if reuse_spec {
         args.push("--reuse-spec".into());
     }
-    run_canon_owned(with_env_file(args))
+    enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
 /// Replace an asset's bytes with a user-picked PNG via `canon asset replace`
@@ -942,6 +1060,18 @@ pub fn run() {
         .manage(AppState {
             source: Arc::new(LocalFsDataSource),
         })
+        .setup(|app| {
+            // Serial generation queue: one worker thread drains jobs FIFO so paid
+            // ops run off the UI thread. The Sender lives in managed state (app
+            // lifetime), so the worker loop never ends until the app exits.
+            let (tx, rx) = std::sync::mpsc::channel::<QueuedJob>();
+            app.manage(JobQueue {
+                tx: std::sync::Mutex::new(tx),
+            });
+            let handle = app.handle().clone();
+            std::thread::spawn(move || run_job_worker(handle, rx));
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             load_world,
             get_world_bible,
@@ -976,6 +1106,7 @@ pub fn run() {
             create_level,
             new_project,
             regenerate_layout,
+            improve_layout,
             generate_level,
             place_enemies,
             place_items,

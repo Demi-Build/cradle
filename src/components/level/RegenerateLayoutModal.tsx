@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type CostEstimate } from "../../lib/invoke";
-import { fmtRange, recordSpend } from "../../lib/cost";
+import { fmtRange } from "../../lib/cost";
+import { enqueueJob } from "../../lib/jobs";
 
 /** Regenerate an EXISTING level's terrain from a brief — turns a flat draft
  *  into a designed level, or redesigns an existing one. Replaces the terrain
@@ -51,34 +52,29 @@ export function RegenerateLayoutModal({
       return;
     setBusy(true);
     setErr(null);
-    try {
-      const r = await api.regenerateLayout(worldPath, levelId, {
-        brief,
-        difficulty,
-        axis: axis || null,
-        llmBackend: backend,
-      });
-      await recordSpend(worldPath, {
+    // Fire-and-forget background job — the UI stays responsive; the tray tracks
+    // it and the level reloads on completion.
+    await enqueueJob(
+      {
         op: "layout",
+        label: `Regenerate ${levelId}`,
+        target: levelId,
+        targetType: "levels",
         scope: "level",
-        level_id: levelId,
         backends: { llm: backend },
         estimate: est?.total_usd,
-        actual_usd: r.cost?.usd ?? 0,
-        tokens: r.cost
-          ? { input: r.cost.input_tokens, output: r.cost.output_tokens, calls: r.cost.calls }
-          : undefined,
-      });
-      onDone(
-        `layout regenerated — ${r.ok ? "valid ✓" : "check Validate"}` +
-          (r.layout_fallback ? " (fallback)" : "") +
-          " · re-run 🎲 to populate",
-      );
-      onClose();
-    } catch (e) {
-      setErr(String(e).slice(0, 300));
-      setBusy(false);
-    }
+      },
+      (jobId) =>
+        api.regenerateLayout(worldPath, levelId, {
+          brief,
+          difficulty,
+          axis: axis || null,
+          llmBackend: backend,
+          jobId,
+        }),
+    );
+    onDone("layout regenerate queued — watch ⚙ Jobs (re-run 🎲 after)");
+    onClose();
   };
 
   const overlay: React.CSSProperties = {

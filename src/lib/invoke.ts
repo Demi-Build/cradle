@@ -111,6 +111,55 @@ export type SpendSummary = {
   by_op: Record<string, SpendByOp>;
   entries: SpendEntry[];
 };
+/** A background generation job's lifecycle status. `queued`/`running` are live
+ *  (in-memory); `ok`/`no_change`/`failed` are terminal (also written to the
+ *  durable ledger). `ok` = ran and changed something; `no_change` = ran, same. */
+export type JobStatus = "queued" | "running" | "ok" | "no_change" | "failed";
+/** One background generation job the tray tracks. The frontend owns the id +
+ *  metadata; the Rust worker's `job-updated` events carry only {id,status,result}. */
+export type Job = {
+  id: string;
+  op: string; // improve | layout | generate | enemies | items | sprite | animate | music | audio
+  label: string; // human summary, e.g. "Improve l1"
+  target: string; // artifact id to navigate to on View (level id / enemy id / stage id)
+  targetType: string; // nav typeId: levels | enemies | items | audio
+  scope?: string; // level | section | stage | asset
+  backends?: Record<string, string>;
+  estimate?: Usd;
+  status: JobStatus;
+  changed?: boolean;
+  cost?: OpCost;
+  error?: string;
+  result?: Record<string, unknown>; // raw canon op result (carries level_id/id/changed/…)
+  ts: number; // enqueue time (ms)
+  endedAt?: number;
+};
+/** Durable job-ledger entry (`.canon/jobs.jsonl`, written via `canon jobs record`). */
+export type JobEntry = {
+  schema?: string;
+  ts?: string;
+  job_id: string;
+  op: string;
+  scope?: string;
+  target?: string;
+  target_type?: string;
+  status: string;
+  backends?: Record<string, string>;
+  estimate?: Usd;
+  actual_usd?: number;
+  duration_ms?: number;
+  changed?: boolean;
+  changed_artifacts?: string[];
+  error?: string;
+};
+export type JobSummary = {
+  count: number;
+  by_op: Record<string, number>;
+  by_status: Record<string, number>;
+  entries: JobEntry[];
+};
+/** What an enqueuing gen command returns immediately (before the job runs). */
+export type QueuedAck = { job_id: string; status: string };
 export type LibraryEntry = {
   library_id: string;
   ts: string;
@@ -223,9 +272,10 @@ export const api = {
       axis?: string | null;
       seed?: string | null;
       llmBackend?: string;
+      jobId: string;
     },
   ) =>
-    invoke<GenLevelResult>("regenerate_layout", {
+    invoke<QueuedAck>("regenerate_layout", {
       path,
       levelId,
       brief: opts.brief ?? "",
@@ -235,11 +285,38 @@ export const api = {
       axis: opts.axis ?? null,
       seed: opts.seed ?? null,
       llmBackend: opts.llmBackend ?? "fake",
+      jobId: opts.jobId,
+    }),
+  /** Context-aware IMPROVE: the LLM sees the current level + an instruction and
+   *  re-authors it in place (keeps dims/axis). Placements are KEPT by default
+   *  (validate surfaces any that no longer fit) or re-adapted when rerollPlacements.
+   *  Runs as a background job — returns a queued ack, not the result. */
+  improveLevel: (
+    path: string,
+    levelId: string,
+    opts: {
+      instruction: string;
+      fixProblems?: boolean;
+      rerollPlacements?: boolean;
+      seed?: string | null;
+      llmBackend?: string;
+      jobId: string;
+    },
+  ) =>
+    invoke<QueuedAck>("improve_layout", {
+      path,
+      levelId,
+      instruction: opts.instruction,
+      fixProblems: opts.fixProblems ?? false,
+      rerollPlacements: opts.rerollPlacements ?? false,
+      seed: opts.seed ?? null,
+      llmBackend: opts.llmBackend ?? "fake",
+      jobId: opts.jobId,
     }),
   publishLevel: (path: string, levelId: string, position: number | null, remove: boolean) =>
     invoke<unknown>("publish_level", { path, levelId, position, remove }),
-  generateLevel: (path: string, stageId: string, opts: GenLevelOpts) =>
-    invoke<GenLevelResult>("generate_level", {
+  generateLevel: (path: string, stageId: string, opts: GenLevelOpts & { jobId: string }) =>
+    invoke<QueuedAck>("generate_level", {
       path,
       stageId,
       brief: opts.brief ?? "",
@@ -251,11 +328,12 @@ export const api = {
       items: opts.items ?? null,
       seed: opts.seed ?? null,
       llmBackend: opts.llmBackend ?? "fake",
+      jobId: opts.jobId,
     }),
-  placeEnemies: (path: string, levelId: string, enemies?: number, seed?: string, llmBackend?: string) =>
-    invoke<GenLevelResult>("place_enemies", { path, levelId, enemies, seed, llmBackend }),
-  placeItems: (path: string, levelId: string, items?: number, seed?: string, llmBackend?: string) =>
-    invoke<GenLevelResult>("place_items", { path, levelId, items, seed, llmBackend }),
+  placeEnemies: (path: string, levelId: string, jobId: string, enemies?: number, seed?: string, llmBackend?: string) =>
+    invoke<QueuedAck>("place_enemies", { path, levelId, enemies, seed, llmBackend, jobId }),
+  placeItems: (path: string, levelId: string, jobId: string, items?: number, seed?: string, llmBackend?: string) =>
+    invoke<QueuedAck>("place_items", { path, levelId, items, seed, llmBackend, jobId }),
   estimateWorld: (opts: {
     stages: number;
     levels: number;
@@ -296,18 +374,29 @@ export const api = {
     invoke<{ result: string; entry: SpendEntry }>("spend_record", { path, entry }),
   spendList: (path: string) =>
     invoke<{ result: string; spend: SpendSummary }>("spend_list", { path }),
+  jobRecord: (path: string, entry: JobEntry) =>
+    invoke<{ result: string; entry: JobEntry }>("jobs_record", { path, entry }),
+  jobList: (path: string) =>
+    invoke<{ result: string; jobs: JobSummary }>("jobs_list", { path }),
   generateLevelMusic: (
     path: string,
     levelId: string,
-    opts: { brief?: string; section?: number | null; musicBackend?: string; seconds?: number | null },
+    opts: {
+      brief?: string;
+      section?: number | null;
+      musicBackend?: string;
+      seconds?: number | null;
+      jobId: string;
+    },
   ) =>
-    invoke<MusicGenResult>("generate_level_music", {
+    invoke<QueuedAck>("generate_level_music", {
       path,
       levelId,
       brief: opts.brief ?? "",
       section: opts.section ?? null,
       musicBackend: opts.musicBackend ?? "fake",
       seconds: opts.seconds ?? null,
+      jobId: opts.jobId,
     }),
   listMusicTracks: (path: string) =>
     invoke<{ tracks: MusicTrack[] }>("list_music_tracks", { path }),
@@ -327,10 +416,28 @@ export const api = {
   dbUpdateSchema: (path: string, entityType: string, set: Record<string, unknown>) =>
     invoke<{ source: string; schema: { fields: Record<string, Record<string, unknown>> } }>(
       "db_update_schema", { path, entityType, set }),
-  generateAsset: (path: string, target: string, imageBackend?: string, musicBackend?: string, sfxBackend?: string) =>
-    invoke<unknown>("generate_asset", { path, target, imageBackend, musicBackend, sfxBackend }),
-  animateAsset: (path: string, target: string, imageBackend?: string, vlmBackend?: string, reuseSpec = false) =>
-    invoke<unknown>("animate_asset", { path, target, imageBackend, vlmBackend, reuseSpec }),
+  generateAsset: (
+    path: string,
+    target: string,
+    jobId: string,
+    imageBackend?: string,
+    musicBackend?: string,
+    sfxBackend?: string,
+  ) =>
+    invoke<QueuedAck>("generate_asset", {
+      path, target, imageBackend, musicBackend, sfxBackend, jobId,
+    }),
+  animateAsset: (
+    path: string,
+    target: string,
+    jobId: string,
+    imageBackend?: string,
+    vlmBackend?: string,
+    reuseSpec = false,
+  ) =>
+    invoke<QueuedAck>("animate_asset", {
+      path, target, imageBackend, vlmBackend, reuseSpec, jobId,
+    }),
   validateLevel: (path: string, levelId: string) =>
     invoke<ValidationReport>("validate_level", { path, levelId }),
   playLevel: (path: string, levelId: string, plain = false) =>

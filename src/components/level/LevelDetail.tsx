@@ -11,12 +11,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { api, type CostEstimate, type ValidationReport } from "../../lib/invoke";
-import { fmtRange, recordSpend } from "../../lib/cost";
+import { fmtRange } from "../../lib/cost";
+import { enqueueJob } from "../../lib/jobs";
 import { countProblems } from "../../lib/validation";
 import { useStore } from "../../store";
 import { LevelCanvas } from "./LevelCanvas";
 import { PaletteRail } from "./PaletteRail";
 import { RegenerateLayoutModal } from "./RegenerateLayoutModal";
+import { ImproveLayoutModal } from "./ImproveLayoutModal";
 import { MusicPanel } from "./MusicPanel";
 import type { Brush, LevelBundle, RenderMode, Selection } from "./drawLevel";
 
@@ -40,6 +42,18 @@ function resolveAsset(p: string | null, rev = 0): string | null {
     }
   }
   return p;
+}
+
+/** Compact relative time ("just now" / "5m ago" / "3h ago" / "2d ago") from an
+ *  ISO timestamp — for the revision chip's "how long ago it last changed". */
+function relTime(iso: string): string {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return "";
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 45) return "just now";
+  if (s < 3600) return `${Math.round(s / 60)}m ago`;
+  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
 }
 
 function resolveBundleAssets(b: LevelBundle, rev = 0): LevelBundle {
@@ -130,6 +144,7 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   const [playNote, setPlayNote] = useState<string | null>(null);
   const [placeBackend, setPlaceBackend] = useState<"fake" | "anthropic">("fake");
   const [regenOpen, setRegenOpen] = useState(false);
+  const [improveOpen, setImproveOpen] = useState(false);
   const [musicOpen, setMusicOpen] = useState(false);
 
   // Validation/play notes are per-level — drop them when switching levels.
@@ -181,6 +196,27 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     setPainted(new Set());
     setDirty(new Set());
   };
+
+  // When a background generation job that targeted THIS level finishes, refresh
+  // the view and report what happened (changed / no change / failed) — closes
+  // the "did it run / did it update?" gap the old blocking flow left open.
+  const lastCompletedJob = useStore((s) => s.lastCompletedJob);
+  useEffect(() => {
+    const c = lastCompletedJob;
+    if (!c || c.targetType !== "levels" || c.target !== levelId) return;
+    if (c.status === "failed") {
+      setPlayNote(`${c.op} failed — see ⚙ Jobs`);
+      return;
+    }
+    void reload();
+    setPlayNote(
+      c.op === "improve"
+        ? `improved — ${c.changed ? "terrain changed ✓" : "ran, no change"}`
+        : `${c.op} done — ${c.changed ? "updated ✓" : "no change"}`,
+    );
+    // reload/setPlayNote are stable enough; re-run only when a new job completes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastCompletedJob, levelId]);
 
   // Replace an asset's bytes: native file picker → `canon asset replace` →
   // cache-busted reload so the new pixels show at the same paths.
@@ -513,31 +549,25 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     )
       return;
     setPlayNote(null);
-    try {
-      if (!(await doSave())) return;
-      const r =
-        kind === "enemies"
-          ? await api.placeEnemies(worldPath, levelId, undefined, undefined, placeBackend)
-          : await api.placeItems(worldPath, levelId, undefined, undefined, placeBackend);
-      await recordSpend(worldPath, {
+    if (!(await doSave())) return;
+    // Fire-and-forget background job (the tray tracks it; this level reloads on
+    // completion via the job-completion listener below).
+    await enqueueJob(
+      {
         op: kind,
+        label: `Place ${kind} · ${levelId}`,
+        target: levelId,
+        targetType: "levels",
         scope: "level",
-        level_id: levelId,
         backends: { llm: placeBackend },
         estimate: est?.total_usd,
-        actual_usd: r.cost?.usd ?? 0,
-        tokens: r.cost
-          ? { input: r.cost.input_tokens, output: r.cost.output_tokens, calls: r.cost.calls }
-          : undefined,
-      });
-      await reload();
-      setPlayNote(
-        `placed ${kind} — ${r.ok ? "valid ✓" : "check Validate"}` +
-          (r.warnings?.length ? ` · ${r.warnings[0]}` : ""),
-      );
-    } catch (e) {
-      setPlayNote(String(e).slice(0, 200));
-    }
+      },
+      (jobId) =>
+        kind === "enemies"
+          ? api.placeEnemies(worldPath, levelId, jobId, undefined, undefined, placeBackend)
+          : api.placeItems(worldPath, levelId, jobId, undefined, undefined, placeBackend),
+    );
+    setPlayNote(`place ${kind} queued — watch ⚙ Jobs`);
   };
 
   // Flush pending edits, then open the "regenerate this level's layout" modal
@@ -545,6 +575,13 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   const openRegen = async () => {
     if (!(await doSave())) return;
     setRegenOpen(true);
+  };
+
+  // Flush pending edits, then open the context-aware "improve this level" modal
+  // (the LLM sees the current level from disk + an instruction and refines it).
+  const openImprove = async () => {
+    if (!(await doSave())) return;
+    setImproveOpen(true);
   };
 
   const publish = async () => {
@@ -639,6 +676,38 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     <div style={{ padding: 16 }}>
       <div style={{ marginBottom: 12, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
         {chip(bundle.display_name ?? bundle.level_id)}
+        {bundle.revision_short && (
+          <span
+            title={
+              `revision ${bundle.revision}` +
+              (bundle.last_change
+                ? `\nlast change: ${bundle.last_change.label} (${bundle.last_change.source || "?"})` +
+                  (bundle.last_change.actor ? ` by ${bundle.last_change.actor}` : "") +
+                  (bundle.last_change.ts ? ` · ${bundle.last_change.ts}` : "")
+                : "\nno recorded history")
+            }
+            style={{
+              display: "inline-block",
+              fontSize: 12,
+              fontFamily: "var(--font-mono, monospace)",
+              background: "var(--surface-2, #2a2136)",
+              border: "1px solid var(--border, #3a2f4a)",
+              borderRadius: 6,
+              padding: "1px 8px",
+              marginRight: 6,
+              color: "var(--text-3, #9a90ad)",
+            }}
+          >
+            ⬡ {bundle.revision_short}
+            {bundle.last_change && (
+              <span style={{ color: "var(--text-2, #d9cfe8)" }}>
+                {" · "}
+                {bundle.last_change.label}
+                {bundle.last_change.ts ? ` · ${relTime(bundle.last_change.ts)}` : ""}
+              </span>
+            )}
+          </span>
+        )}
         {isDraft && chip("draft — not in world", "#e0a15a")}
         {bundle.parent_level && chip(`secret room of ${bundle.parent_level}`, "#a78bfa")}
         {chip(`${bundle.entities.length} enemies`)}
@@ -669,6 +738,7 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           dirty.size === 0,
         )}
         {btn("🪄 Layout", () => void openRegen())}
+        {btn("✨ Improve", () => void openImprove())}
         {btn("🎵 Music", () => setMusicOpen(true))}
         {btn("🎲 Enemies", () => void doPlace("enemies"))}
         {btn("🎲 Items", () => void doPlace("items"))}
@@ -807,10 +877,19 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           levelId={levelId}
           currentBrief={bundle.brief ?? undefined}
           onClose={() => setRegenOpen(false)}
-          onDone={(note) => {
-            setPlayNote(note);
-            void reload();
-          }}
+          // Runs as a background job — just note it; the completion listener
+          // above reloads this level when the job finishes.
+          onDone={(note) => setPlayNote(note)}
+        />
+      )}
+      {improveOpen && bundle && (
+        <ImproveLayoutModal
+          worldPath={worldPath}
+          levelId={levelId}
+          bundle={bundle}
+          valReport={valReport}
+          onClose={() => setImproveOpen(false)}
+          onDone={(note) => setPlayNote(note)}
         />
       )}
       {musicOpen && bundle && (

@@ -11,6 +11,10 @@ export function TopBar() {
   const closeWorld = useStore((s) => s.closeWorld);
   const setNewProjectOpen = useStore((s) => s.setNewProjectOpen);
   const setDashboardOpen = useStore((s) => s.setDashboardOpen);
+  const setJobsOpen = useStore((s) => s.setJobsOpen);
+  const activeJobs = useStore(
+    (s) => s.jobs.filter((j) => j.status === "queued" || j.status === "running").length,
+  );
 
   return (
     <header className="titlebar">
@@ -24,6 +28,26 @@ export function TopBar() {
       </div>
       <div className="spacer" />
       <div className="right">
+        {world && (
+          <button
+            className="crumb-link"
+            onClick={() => setJobsOpen(true)}
+            title="Background generation jobs — watch them run, jump to results"
+            style={{ marginRight: 4 }}
+          >
+            ⚙ Jobs
+            {activeJobs > 0 && (
+              <span
+                style={{
+                  marginLeft: 5, fontSize: 10, fontWeight: 700, padding: "1px 6px",
+                  borderRadius: 999, background: "var(--accent, #e2b714)", color: "#1a1208",
+                }}
+              >
+                {activeJobs}
+              </span>
+            )}
+          </button>
+        )}
         {world && (
           <button
             className="crumb-link"

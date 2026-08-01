@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { api, type MusicSection, type MusicTrack } from "../../lib/invoke";
 import type { LevelBundle } from "./drawLevel";
 import { AudioPlayer } from "../AudioPlayer";
-import { fmtUsd, recordSpend } from "../../lib/cost";
+import { fmtUsd } from "../../lib/cost";
+import { enqueueJob } from "../../lib/jobs";
 
 /** Flat Lyria per-track price for the pre-run gate (matches cost_model's
  *  music_usd_per_track). The RECORDED spend is the op's real returned cost. */
@@ -80,20 +81,27 @@ export function MusicPanel({
         )
       )
         return;
-      const r = await api.generateLevelMusic(worldPath, levelId, {
-        brief,
-        section,
-        musicBackend: backend,
-      });
-      await recordSpend(worldPath, {
-        op: "music",
-        scope: section == null ? "level" : "section",
-        level_id: levelId,
-        backends: { music: backend },
-        estimate: { best: paid ? MUSIC_TRACK_USD : 0, worst: paid ? MUSIC_TRACK_USD : 0 },
-        actual_usd: r.cost?.usd ?? 0,
-      });
-      onDone(`generated ${r.music_path.split("/").pop()} for ${where}`);
+      // Fire-and-forget background job — the tray tracks it; the level reloads
+      // on completion.
+      await enqueueJob(
+        {
+          op: "music",
+          label: `Music · ${levelId}${section == null ? "" : ` §${section + 1}`}`,
+          target: levelId,
+          targetType: "levels",
+          scope: section == null ? "level" : "section",
+          backends: { music: backend },
+          estimate: { best: paid ? MUSIC_TRACK_USD : 0, worst: paid ? MUSIC_TRACK_USD : 0 },
+        },
+        (jobId) =>
+          api.generateLevelMusic(worldPath, levelId, {
+            brief,
+            section,
+            musicBackend: backend,
+            jobId,
+          }),
+      );
+      onDone(`music queued for ${where} — watch ⚙ Jobs`);
     });
 
   const saveSections = () =>

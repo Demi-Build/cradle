@@ -10,8 +10,10 @@ import { RecentProjectsPage } from "./components/recents/RecentProjectsPage";
 import { NotesDrawer } from "./components/start/NotesDrawer";
 import { NewProjectModal } from "./components/start/NewProjectModal";
 import { CostDashboard } from "./components/CostDashboard";
+import { JobTray } from "./components/JobTray";
 import { useStore } from "./store";
 import { api } from "./lib/invoke";
+import { handleJobEvent, type JobEventPayload } from "./lib/jobs";
 import "./App.css";
 
 export default function App() {
@@ -25,11 +27,30 @@ export default function App() {
   const select = useStore((s) => s.select);
   const newProjectOpen = useStore((s) => s.newProjectOpen);
   const dashboardOpen = useStore((s) => s.dashboardOpen);
+  const jobsOpen = useStore((s) => s.jobsOpen);
   const setNewProjectOpen = useStore((s) => s.setNewProjectOpen);
 
   useEffect(() => {
     document.body.setAttribute("data-theme", theme);
   }, [theme]);
+
+  // Background-job lifecycle: one global listener for the whole app (mounted
+  // once). The browser dev-mock has no native event bus, so it drives the store
+  // directly (the try/catch below just no-ops there).
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        unlisten = await listen<JobEventPayload>("job-updated", (e) => {
+          void handleJobEvent(e.payload);
+        });
+      } catch {
+        /* browser mock — no native events */
+      }
+    })();
+    return () => unlisten?.();
+  }, []);
 
   // Keyboard navigation (tier 1):
   //   ↑ / ↓              cycle within current type; spill to adjacent type at boundary
@@ -178,6 +199,7 @@ export default function App() {
       <NotesDrawer />
       {newProjectModal}
       {dashboardOpen && <CostDashboard />}
+      {jobsOpen && <JobTray />}
     </div>
   );
 }

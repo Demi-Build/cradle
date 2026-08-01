@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { EntityRef, ValidationReport, WorldSummary } from "./lib/invoke";
+import type { EntityRef, Job, ValidationReport, WorldSummary } from "./lib/invoke";
 import { api } from "./lib/invoke";
 import {
   loadRecents,
@@ -16,6 +16,18 @@ export type Selection =
   | { kind: "library" }
   | { kind: "type"; typeId: string; partition?: string }
   | { kind: "entity"; typeId: string; id: string; tab?: string };
+
+/** A just-finished background job, broadcast so open detail views (LevelDetail,
+ *  EntityOverview) can refresh themselves when their artifact was the target. */
+export type CompletedJobSignal = {
+  id: string;
+  op: string;
+  target: string;
+  targetType: string;
+  status: "ok" | "no_change" | "failed";
+  changed: boolean;
+  ts: number;
+};
 
 type EntitiesByType = Record<string, EntityRef[]>;
 
@@ -76,6 +88,15 @@ type Store = {
   setNewProjectOpen: (open: boolean) => void;
   dashboardOpen: boolean;
   setDashboardOpen: (open: boolean) => void;
+  //: Background generation jobs (the queue tray). `jobs` is live in-memory
+  //: state; terminal jobs are also written to the durable ledger.
+  jobsOpen: boolean;
+  setJobsOpen: (open: boolean) => void;
+  jobs: Job[];
+  addJob: (job: Job) => void;
+  updateJob: (id: string, patch: Partial<Job>) => void;
+  lastCompletedJob: CompletedJobSignal | null;
+  setLastCompletedJob: (sig: CompletedJobSignal | null) => void;
   playTrack: (track: AudioTrack) => void;
   pauseAudio: () => void;
   resumeAudio: () => void;
@@ -129,6 +150,9 @@ export const useStore = create<Store>((set, get) => ({
   drawerOpen: false,
   newProjectOpen: false,
   dashboardOpen: false,
+  jobsOpen: false,
+  jobs: [],
+  lastCompletedJob: null,
   ...INITIAL_AUDIO_STATE,
   loading: false,
   setWorldPath: (p) => set({ worldPath: p }),
@@ -138,6 +162,8 @@ export const useStore = create<Store>((set, get) => ({
       entities: {},
       selection: w ? { kind: "bible" } : { kind: "none" },
       levelValidation: {},
+      jobs: [], // jobs are per-pack; a new world starts with an empty tray
+      lastCompletedJob: null,
       ...(w ? {} : INITIAL_AUDIO_STATE),
     }),
   setEntities: (typeId, refs) => set((s) => ({ entities: { ...s.entities, [typeId]: refs } })),
@@ -152,6 +178,13 @@ export const useStore = create<Store>((set, get) => ({
   setError: (e) => set({ error: e }),
   setNewProjectOpen: (open) => set({ newProjectOpen: open }),
   setDashboardOpen: (open) => set({ dashboardOpen: open }),
+  setJobsOpen: (open) => set({ jobsOpen: open }),
+  addJob: (job) => set((s) => ({ jobs: [...s.jobs, job] })),
+  updateJob: (id, patch) =>
+    set((s) => ({
+      jobs: s.jobs.map((j) => (j.id === id ? { ...j, ...patch } : j)),
+    })),
+  setLastCompletedJob: (sig) => set({ lastCompletedJob: sig }),
   openLightbox: (img) => set({ lightbox: img }),
   closeLightbox: () => set({ lightbox: null }),
   setRoute: (r) => set({ route: r }),
@@ -199,6 +232,9 @@ export const useStore = create<Store>((set, get) => ({
       entities: {},
       selection: { kind: "none" },
       levelValidation: {},
+      jobs: [],
+      lastCompletedJob: null,
+      jobsOpen: false,
       route: "start",
       ...INITIAL_AUDIO_STATE,
     }),

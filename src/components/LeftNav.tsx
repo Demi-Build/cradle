@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type CostEstimate, type EntityRow } from "../lib/invoke";
-import { fmtRange, recordSpend } from "../lib/cost";
+import { fmtRange } from "../lib/cost";
+import { enqueueJob } from "../lib/jobs";
 import { useStore } from "../store";
 
 /** Inline "+ New level" form: a blank DRAFT to paint, or a generated DRAFT
@@ -73,41 +74,35 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
       return;
     setBusy(true);
     setNote(null);
-    try {
-      const r = await api.generateLevel(worldPath, stage, {
-        brief,
-        difficulty,
-        width,
-        height,
-        axis,
-        enemies,
-        items,
-        seed: seed.trim() || null,
-        llmBackend: backend,
-      });
-      await recordSpend(worldPath, {
+    // Fire-and-forget background job. The new level's id isn't known until the
+    // job finishes, so App's global job listener opens it + refreshes the nav on
+    // completion; the tray tracks progress. The form just closes.
+    await enqueueJob(
+      {
         op: "generate",
+        label: `Generate in ${stage}`,
+        target: stage, // resolved to the new level id on completion
+        targetType: "levels",
         scope: "level",
-        level_id: r.level_id,
         backends: { llm: backend },
         estimate: est?.total_usd,
-        actual_usd: r.cost?.usd ?? 0,
-        tokens: r.cost
-          ? { input: r.cost.input_tokens, output: r.cost.output_tokens, calls: r.cost.calls }
-          : undefined,
-      });
-      setEntities("levels", await api.listEntities(worldPath, "levels"));
-      select({ kind: "entity", typeId: "levels", id: r.level_id });
-      if (r.layout_fallback)
-        setNote(`${r.level_id}: FALLBACK layout (not a designed level) — regenerate or edit.`);
-      else if (!r.ok) setNote(`${r.level_id}: generated, but Validate flags issues.`);
-      else if (r.warnings?.length) setNote(`${r.level_id}: ${r.warnings[0]}`);
-      else onDone();
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setBusy(false);
-    }
+      },
+      (jobId) =>
+        api.generateLevel(worldPath, stage, {
+          brief,
+          difficulty,
+          width,
+          height,
+          axis,
+          enemies,
+          items,
+          seed: seed.trim() || null,
+          llmBackend: backend,
+          jobId,
+        }),
+    );
+    setBusy(false);
+    onDone();
   };
 
   const field: React.CSSProperties = { width: 52, fontSize: 11 };

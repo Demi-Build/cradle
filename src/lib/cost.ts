@@ -1,4 +1,4 @@
-import { api, type SpendEntry, type Usd } from "./invoke";
+import { api, type JobEntry, type SpendEntry, type Usd } from "./invoke";
 
 /** Money for humans: sub-cent shows 4dp, cents 3dp, dollars 2dp; exact $0 stays "$0". */
 export function fmtUsd(n: number | undefined): string {
@@ -24,5 +24,15 @@ export async function recordSpend(worldPath: string, entry: SpendEntry): Promise
     await api.spendRecord(worldPath, entry);
   } catch (e) {
     console.warn("spend record failed (op still succeeded)", e);
+  }
+}
+
+/** Record a finished background job to the durable ledger — best-effort, same
+ *  as recordSpend: a ledger-write failure never surfaces as a job failure. */
+export async function recordJob(worldPath: string, entry: JobEntry): Promise<void> {
+  try {
+    await api.jobRecord(worldPath, entry);
+  } catch (e) {
+    console.warn("job record failed (job still ran)", e);
   }
 }

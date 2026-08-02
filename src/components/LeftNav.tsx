@@ -320,6 +320,16 @@ export function LeftNav() {
       </button>
       {isPlatformer && (
         <button
+          className={`nav-root ${selection.kind === "worldmap" ? "selected" : ""}`}
+          onClick={() => select({ kind: "worldmap" })}
+          title="The level graph — place levels, group them into areas, wire the paths between them"
+          style={{ fontSize: 12 }}
+        >
+          🗺 WORLD MAP
+        </button>
+      )}
+      {isPlatformer && (
+        <button
           className={`nav-root ${selection.kind === "library" ? "selected" : ""}`}
           onClick={() => select({ kind: "library" })}
           title="The global asset library — publish here from any project, import into this one"

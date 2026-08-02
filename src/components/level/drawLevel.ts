@@ -149,6 +149,8 @@ export interface DrawOpts {
   painted?: Set<string>;
   /** Draw the play bounds: ceiling, floor, kill plane and DROP columns. */
   showBounds?: boolean;
+  /** Cell rulers along the top and left edges (viewport mode only). */
+  showRulers?: boolean;
 }
 
 const PALETTE_KEY: Record<string, string> = {
@@ -265,6 +267,16 @@ export function drawLevel(canvas: HTMLCanvasElement, bundle: LevelBundle, opts: 
   if (opts.showGrid || mode === "overlay") drawGrid(ctx, W, H, scale);
   if (opts.showBounds) drawBounds(ctx, bundle, scale);
 
+  // Rulers last, in SCREEN space: they must stay pinned to the canvas edges
+  // and keep a constant type size while the world pans and zooms beneath, so
+  // they can't be drawn under the camera transform like everything above.
+  if (opts.showRulers && cam) {
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawRulers(ctx, bundle, scale, cam);
+    ctx.restore();
+  }
+
   // Selection highlight — a dashed amber box on the selected handle's cell.
   if (opts.selection) {
     const sel = levelHandles(bundle).find(
@@ -279,6 +291,77 @@ export function drawLevel(canvas: HTMLCanvasElement, bundle: LevelBundle, opts: 
       ctx.restore();
     }
   }
+}
+
+// --- rulers --------------------------------------------------------------
+
+const RULER_T = 17; // top gutter
+const RULER_L = 26; // left gutter
+
+/** Tile rulers along the top and left edges, labelled in CELLS.
+ *
+ *  Drawn in SCREEN space with the camera applied by hand, so the labels stay
+ *  upright and legible at any zoom while still pointing at the right cells.
+ *  The tick interval adapts so labels never collide when zoomed out.
+ */
+function drawRulers(
+  ctx: CanvasRenderingContext2D,
+  bundle: LevelBundle,
+  scale: number,
+  cam: Camera,
+) {
+  const px = scale * cam.zoom; // on-screen size of one cell
+  // Aim for a label roughly every 56px.
+  const stepFor = (n: number) => {
+    for (const s of [1, 2, 5, 10, 20, 25, 50, 100]) if (s * n >= 56) return s;
+    return 100;
+  };
+  const sx = stepFor(px);
+  const sy = stepFor(px);
+  const w = cam.viewW;
+  const h = cam.viewH;
+
+  ctx.save();
+  ctx.font = "9px ui-monospace, monospace";
+  ctx.fillStyle = "rgba(10,11,14,0.72)";
+  ctx.fillRect(0, 0, w, RULER_T);
+  ctx.fillRect(0, 0, RULER_L, h);
+  ctx.strokeStyle = "rgba(232,230,223,0.12)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, RULER_T + 0.5);
+  ctx.lineTo(w, RULER_T + 0.5);
+  ctx.moveTo(RULER_L + 0.5, 0);
+  ctx.lineTo(RULER_L + 0.5, h);
+  ctx.stroke();
+
+  ctx.fillStyle = "#9a988e";
+  ctx.textBaseline = "middle";
+
+  // Columns: world x = cell * scale → screen = (world - ox) * zoom
+  ctx.textAlign = "center";
+  const firstX = Math.max(0, Math.floor(cam.ox / scale / sx) * sx);
+  for (let c = firstX; c <= bundle.grid_width; c += sx) {
+    const x = (c * scale - cam.ox) * cam.zoom;
+    if (x < RULER_L || x > w) continue;
+    ctx.fillText(String(c), x, RULER_T / 2);
+    ctx.fillStyle = "rgba(232,230,223,0.2)";
+    ctx.fillRect(x, RULER_T - 5, 1, 5);
+    ctx.fillStyle = "#9a988e";
+  }
+
+  // Rows
+  ctx.textAlign = "right";
+  const firstY = Math.max(0, Math.floor(cam.oy / scale / sy) * sy);
+  for (let r = firstY; r <= bundle.grid_height; r += sy) {
+    const y = (r * scale - cam.oy) * cam.zoom;
+    if (y < RULER_T || y > h) continue;
+    ctx.fillText(String(r), RULER_L - 6, y);
+    ctx.fillStyle = "rgba(232,230,223,0.2)";
+    ctx.fillRect(RULER_L - 5, y, 5, 1);
+    ctx.fillStyle = "#9a988e";
+  }
+  ctx.restore();
 }
 
 // --- bounds --------------------------------------------------------------

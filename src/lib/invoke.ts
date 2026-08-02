@@ -245,6 +245,44 @@ export type LineageTree = {
   edges: LineageEdge[];
   metadata: { total_nodes: number; max_depth: number; pruned: boolean };
 };
+export type WorldMapNode = {
+  level_id: string;
+  display_name: string | null;
+  stage_id: string;
+  pos: [number, number];
+  /** Present only once a human has placed it. */
+  origin?: "manual";
+  /** `planned` = a draft level: on the map, not yet in the progression. */
+  status?: "planned";
+};
+export type WorldMapEdge = {
+  a: string;
+  b: string;
+  kind: "path" | "one" | "lock" | "new";
+  condition?: string;
+  stop?: string;
+};
+export type WorldMapArea = {
+  stage_id: string;
+  index: number;
+  theme: string;
+  biome: string;
+  level_ids: string[];
+  music: string | null;
+};
+export type WorldMap = {
+  world: string;
+  nodes: WorldMapNode[];
+  edges: WorldMapEdge[];
+  areas: WorldMapArea[];
+  locked: boolean;
+  manual_count: number;
+};
+export type WorldMapEdit = {
+  nodes?: Record<string, { pos: [number, number] } | null>;
+  edges?: WorldMapEdge[];
+  locked?: boolean;
+};
 export type ValidationReport = {
   level_id: string;
   stage_id?: string;
@@ -539,6 +577,13 @@ export const api = {
       vlmBackend: opts.vlmBackend ?? "none",
       reuseSpec: opts.reuseSpec ?? false,
     }),
+  /** The level graph: nodes + typed edges + the areas (stages) they cluster
+   *  under. Pure read. */
+  worldMap: (path: string) => invoke<WorldMap>("world_map", { path }),
+  /** Hand-author the map. Overrides are DURABLE (the map itself is recomputed
+   *  from the seed on every resume). */
+  worldMapEdit: (path: string, edit: WorldMapEdit) =>
+    invoke<{ world_map: string; changed: string[] }>("world_map_edit", { path, edit }),
   validateLevel: (path: string, levelId: string) =>
     invoke<ValidationReport>("validate_level", { path, levelId }),
   /** Which provider keys cradle can hand to canon, and the env file they came

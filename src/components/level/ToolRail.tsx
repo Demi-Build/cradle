@@ -1,5 +1,7 @@
+import { useRef, useState } from "react";
 import { Icon } from "../start/Icons";
 import { Tooltip } from "../Tooltip";
+import { useStore } from "../../store";
 
 /** The level editor's tool rail — a floating cluster over the canvas.
  *
@@ -58,16 +60,81 @@ export function ToolRail({
   onTool,
   showBounds,
   onToggleBounds,
+  showMinimap,
+  onToggleMinimap,
   onOpenMusic,
+  audioOpen,
 }: {
   tool: Tool;
   onTool: (t: Tool) => void;
   showBounds: boolean;
   onToggleBounds: () => void;
+  showMinimap: boolean;
+  onToggleMinimap: () => void;
   onOpenMusic: () => void;
+  audioOpen?: boolean;
 }) {
+  // Drag-to-move. The grip is a dedicated handle rather than the whole rail,
+  // so a click on a tool can never be swallowed as the start of a drag.
+  const pos = useStore((st) => st.layout.toolRailPos);
+  const setLayout = useStore((st) => st.setLayout);
+  const railRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ dx: number; dy: number } | null>(null);
+  const [live, setLive] = useState<{ x: number; y: number } | null>(null);
+  // Mirror of `live` for the pointerup handler. State lags by a render, so a
+  // drag whose last move and release land in the SAME frame would read null
+  // and silently fail to persist.
+  const liveRef = useRef<{ x: number; y: number } | null>(null);
+
+  const onGripDown = (e: React.PointerEvent) => {
+    const rail = railRef.current;
+    const stage = rail?.offsetParent as HTMLElement | null;
+    if (!rail || !stage) return;
+    const r = rail.getBoundingClientRect();
+    const s = stage.getBoundingClientRect();
+    drag.current = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    liveRef.current = { x: r.left - s.left, y: r.top - s.top };
+    setLive(liveRef.current);
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+  };
+  const onGripMove = (e: React.PointerEvent) => {
+    const d = drag.current;
+    const rail = railRef.current;
+    const stage = rail?.offsetParent as HTMLElement | null;
+    if (!d || !rail || !stage) return;
+    const s = stage.getBoundingClientRect();
+    const r = rail.getBoundingClientRect();
+    // Clamp inside the stage so the rail can never be dragged out of reach.
+    const x = Math.max(0, Math.min(s.width - r.width, e.clientX - s.left - d.dx));
+    const y = Math.max(0, Math.min(s.height - r.height, e.clientY - s.top - d.dy));
+    liveRef.current = { x, y };
+    setLive(liveRef.current);
+  };
+  const onGripUp = () => {
+    if (drag.current && liveRef.current) setLayout({ toolRailPos: liveRef.current });
+    drag.current = null;
+  };
+  const placed = live ?? pos;
+  const style: React.CSSProperties = placed
+    ? { left: placed.x, top: placed.y, right: "auto", bottom: "auto" }
+    : {};
+
   return (
-    <div className="tool-rail" role="toolbar" aria-label="Level tools">
+    <div ref={railRef} className="tool-rail" role="toolbar" aria-label="Level tools" style={style}>
+      <span
+        className="tool-grip"
+        title="Drag to move · double-click to reset"
+        onPointerDown={onGripDown}
+        onPointerMove={onGripMove}
+        onPointerUp={onGripUp}
+        onPointerCancel={onGripUp}
+        onDoubleClick={() => {
+          liveRef.current = null;
+          setLive(null);
+          setLayout({ toolRailPos: null });
+        }}
+      />
       {TOOLS.map((t) => (
         <Tooltip key={t.id} title={t.title} hint={t.hint} desc={t.desc}>
           <button
@@ -95,11 +162,29 @@ export function ToolRail({
         </button>
       </Tooltip>
       <Tooltip
+        title="Minimap"
+        desc="Whole-level overview with a draggable viewport — drag it to move the camera."
+      >
+        <button
+          className={showMinimap ? "tool on" : "tool"}
+          aria-label="Minimap"
+          aria-pressed={showMinimap}
+          onClick={onToggleMinimap}
+        >
+          <Icon id="g-grid" size={15} />
+        </button>
+      </Tooltip>
+      <Tooltip
         title="Music regions"
         hint="M"
-        desc="Assign this level's track, or carve it into regions that change the music as the player advances."
+        desc="Show the audio lane — this level's track and the regions that change the music as the player advances."
       >
-        <button className="tool" aria-label="Music regions" onClick={onOpenMusic}>
+        <button
+          className={audioOpen ? "tool on" : "tool"}
+          aria-label="Music regions"
+          aria-pressed={!!audioOpen}
+          onClick={onOpenMusic}
+        >
           <Icon id="g-music" size={15} />
         </button>
       </Tooltip>

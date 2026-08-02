@@ -254,6 +254,16 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       d.levelJson[lid] = { level_id: lid, stage_id: stageId, grid_width: w, grid_height: h };
       const count = d.entity_counts.find((c) => c.type_id === "levels");
       if (count) count.count += 1;
+      // A fresh draft is a PLANNED node on the world map until it's built and
+      // published — mirroring canon's read verb, which surfaces drafts that
+      // aren't in any stage's level list yet.
+      MOCK_WORLD_MAP.nodes.push({
+        level_id: lid,
+        display_name: null as unknown as string,
+        stage_id: stageId,
+        pos: [0.5, 0.5],
+        status: "planned",
+      } as (typeof MOCK_WORLD_MAP.nodes)[number]);
       return { level_id: lid, stage_id: stageId, dims: [w, h], draft: true };
     }
     case "new_project": {
@@ -831,6 +841,68 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
           llm: String(args.llmBackend ?? "fake"),
         }),
       };
+    case "world_map": {
+      // Mock: derive the graph from the mock pack's own levels + stages so the
+      // canvas is exercised against realistic shape (13 levels, 3 stages).
+      if (!MOCK_WORLD_MAP.nodes.length) {
+        const stages = ["ember_grove", "sunken_hollow", "ashen_crags"];
+        const perStage = 3;
+        let i = 0;
+        for (let si = 0; si < stages.length; si++) {
+          for (let li = 1; li <= perStage; li++) {
+            const lid = `l${i + 1}`;
+            MOCK_WORLD_MAP.nodes.push({
+              level_id: lid,
+              display_name: `${si + 1}-${li}`,
+              stage_id: stages[si],
+              pos: [0.05 + i * 0.11, 0.5 + (i % 2 ? 0.14 : -0.14)],
+            });
+            if (i > 0) {
+              MOCK_WORLD_MAP.edges.push({
+                a: `l${i}`, b: lid, kind: "path",
+              });
+            }
+            i++;
+          }
+        }
+        MOCK_WORLD_MAP.areas = stages.map((sid, idx) => ({
+          stage_id: sid, index: idx,
+          theme: ["autumn lantern forest", "flooded hollow", "ashen crags"][idx],
+          biome: ["forest", "caves", "volcanic"][idx],
+          level_ids: MOCK_WORLD_MAP.nodes.filter((n) => n.stage_id === sid).map((n) => n.level_id),
+          music: null,
+        }));
+      }
+      return JSON.parse(JSON.stringify(MOCK_WORLD_MAP));
+    }
+    case "world_map_edit": {
+      const edit = (args.edit ?? {}) as Record<string, unknown>;
+      const changed: string[] = [];
+      if (edit.nodes) {
+        for (const [lid, v] of Object.entries(edit.nodes as Record<string, unknown>)) {
+          const node = MOCK_WORLD_MAP.nodes.find((n) => n.level_id === lid);
+          if (!node) continue;
+          if (v === null) {
+            delete node.origin;
+            changed.push(`unplaced ${lid}`);
+          } else {
+            node.pos = (v as { pos: [number, number] }).pos;
+            node.origin = "manual";
+            changed.push(`placed ${lid}`);
+          }
+        }
+        MOCK_WORLD_MAP.manual_count = MOCK_WORLD_MAP.nodes.filter((n) => n.origin).length;
+      }
+      if (edit.edges) {
+        MOCK_WORLD_MAP.edges = edit.edges as typeof MOCK_WORLD_MAP.edges;
+        changed.push(`${MOCK_WORLD_MAP.edges.length} edge(s)`);
+      }
+      if ("locked" in edit) {
+        MOCK_WORLD_MAP.locked = Boolean(edit.locked);
+        changed.push(MOCK_WORLD_MAP.locked ? "locked" : "unlocked");
+      }
+      return { world_map: changed.length ? "updated" : "no_change", changed };
+    }
     case "estimate_asset":
       return {
         result: "estimate",
@@ -897,6 +969,15 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
 }
 
 /** In-memory spend ledger for the browser mock (native writes .canon/spend.jsonl). */
+const MOCK_WORLD_MAP: {
+  world: string;
+  nodes: { level_id: string; display_name: string | null; stage_id: string; pos: [number, number]; origin?: "manual"; status?: "planned" }[];
+  edges: { a: string; b: string; kind: string; condition?: string; stop?: string }[];
+  areas: { stage_id: string; index: number; theme: string; biome: string; level_ids: string[]; music: string | null }[];
+  locked: boolean;
+  manual_count: number;
+} = { world: "The Wandering Wick", nodes: [], edges: [], areas: [], locked: false, manual_count: 0 };
+
 const MOCK_SPEND: Record<string, unknown>[] = [];
 /** In-memory job ledger for the browser mock (native writes .canon/jobs.jsonl). */
 const MOCK_JOBS: Record<string, unknown>[] = [];

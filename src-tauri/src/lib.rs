@@ -768,6 +768,25 @@ fn estimate_asset(
     run_canon_module(&refs)
 }
 
+/// The level graph (`canon world map`) — nodes, typed edges, areas. Pure read.
+#[tauri::command]
+fn world_map(path: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&["world", "map", &root])
+}
+
+/// Hand-author the world map (`canon world map-edit`). Overrides are DURABLE:
+/// the map is recomputed from the seed on every resume, so without them the
+/// next run would silently revert the layout.
+#[tauri::command]
+fn world_map_edit(path: String, edit: Value) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let edit_str = serde_json::to_string(&edit).map_err(|e| e.to_string())?;
+    run_canon(&[
+        "world", "map-edit", &root, "--json", &edit_str, "--actor", "cradle:user",
+    ])
+}
+
 /// Append one paid-op spend entry to the pack's ledger (`canon spend record`) —
 /// cradle records what each op it fired actually cost. Console-script path (the
 /// spend verbs don't touch examples.*).
@@ -1280,6 +1299,8 @@ pub fn run() {
             estimate_world,
             estimate_level,
             estimate_asset,
+            world_map,
+            world_map_edit,
             spend_record,
             spend_list,
             get_bundled_demo_path,

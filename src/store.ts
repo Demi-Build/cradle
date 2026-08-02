@@ -14,6 +14,7 @@ export type Selection =
   | { kind: "none" }
   | { kind: "bible" }
   | { kind: "library" }
+  | { kind: "worldmap" }
   | { kind: "type"; typeId: string; partition?: string }
   | { kind: "entity"; typeId: string; id: string; tab?: string };
 
@@ -81,6 +82,9 @@ type Store = {
   recents: RecentProject[];
   route: Route;
   theme: Theme;
+  //: Editor layout, persisted app-wide.
+  layout: LayoutPrefs;
+  setLayout: (patch: Partial<LayoutPrefs>) => void;
   drawerOpen: boolean;
   audioTrack: AudioTrack | null;
   audioResolvedSrc: string | null;
@@ -141,6 +145,32 @@ type Store = {
 };
 
 const THEME_KEY = "cradle.theme.v1";
+/** Editor layout preferences — remembered app-wide like the theme, so the
+ *  editor opens the way you left it on every level and every restart. */
+const LAYOUT_KEY = "cradle.layout.v1";
+export type LayoutPrefs = {
+  focusMode: boolean;
+  minimapCollapsed: boolean;
+  /** Tool-rail position within the stage, in px from its top-left. `null` =
+   *  the default bottom-left anchor (which also tracks the floating dock). */
+  toolRailPos: { x: number; y: number } | null;
+};
+const DEFAULT_LAYOUT: LayoutPrefs = {
+  focusMode: false,
+  minimapCollapsed: false,
+  toolRailPos: null,
+};
+function initialLayout(): LayoutPrefs {
+  try {
+    const raw = localStorage.getItem(LAYOUT_KEY);
+    if (raw) {
+      const v = JSON.parse(raw) as Partial<LayoutPrefs>;
+      // Merge over defaults so a pref added later doesn't come back undefined.
+      return { ...DEFAULT_LAYOUT, ...v };
+    }
+  } catch {}
+  return DEFAULT_LAYOUT;
+}
 
 const INITIAL_AUDIO_STATE = {
   audioTrack: null as AudioTrack | null,
@@ -172,6 +202,7 @@ export const useStore = create<Store>((set, get) => ({
   recents: loadRecents(),
   route: "start",
   theme: initialTheme(),
+  layout: initialLayout(),
   drawerOpen: false,
   newProjectOpen: false,
   dashboardOpen: false,
@@ -231,6 +262,14 @@ export const useStore = create<Store>((set, get) => ({
     } catch {}
     set({ theme: t });
   },
+  setLayout: (patch) =>
+    set((st) => {
+      const layout = { ...st.layout, ...patch };
+      try {
+        localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout));
+      } catch {}
+      return { layout };
+    }),
   setDrawerOpen: (open) => set({ drawerOpen: open }),
   playTrack: (track) =>
     set((s) => {

@@ -31,6 +31,8 @@ export default function App() {
   const newProjectOpen = useStore((s) => s.newProjectOpen);
   const dashboardOpen = useStore((s) => s.dashboardOpen);
   const jobsOpen = useStore((s) => s.jobsOpen);
+  const layout = useStore((s) => s.layout);
+  const setLayout = useStore((s) => s.setLayout);
   const setNewProjectOpen = useStore((s) => s.setNewProjectOpen);
 
   useEffect(() => {
@@ -77,6 +79,13 @@ export default function App() {
       if (isShortcut(e, "n") && !inTextField(e)) {
         e.preventDefault();
         useStore.getState().setNewProjectOpen(true);
+        return;
+      }
+      // mod+. toggles focus mode (mod+F is the browser's find).
+      if (isShortcut(e, ".") && !inTextField(e)) {
+        e.preventDefault();
+        const st = useStore.getState();
+        st.setLayout({ focusMode: !st.layout.focusMode });
       }
     };
     window.addEventListener("keydown", onKey);
@@ -131,6 +140,14 @@ export default function App() {
         run: () => setDashboardOpen(true),
       },
       {
+        id: "app.focus",
+        label: layout.focusMode ? "Exit focus mode" : "Focus mode — hide the chrome",
+        group: "View",
+        hint: kbd("."),
+        keywords: "fullscreen zen distraction nav sidebar bigger map",
+        run: () => setLayout({ focusMode: !layout.focusMode }),
+      },
+      {
         id: "app.theme",
         label: theme === "dark" ? "Switch to light theme" : "Switch to dark theme",
         group: "View",
@@ -139,7 +156,7 @@ export default function App() {
     ]);
   }, [
     registerCommands, setNewProjectOpen, setDashboardOpen, setJobsOpen,
-    setTheme, closeWorld, theme, world,
+    setTheme, closeWorld, theme, world, layout, setLayout,
   ]);
 
   // Keyboard navigation (tier 1):
@@ -279,7 +296,7 @@ export default function App() {
         : selection.kind;
 
   return (
-    <div className="app">
+    <div className="app" data-focus={layout.focusMode ? "1" : "0"}>
       <TopBar />
       <div className="app-body">
         <LeftNav />

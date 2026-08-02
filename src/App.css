@@ -116,6 +116,52 @@ code {
 }
 
 /* =========================================================
+   FOCUS MODE — give the map the window
+   The design's "hud" chrome: the nav and the pane's tab header
+   collapse away so the stage takes nearly everything. The
+   titlebar stays (it holds the way back out).
+   ========================================================= */
+.app[data-focus="1"] .app-body {
+  grid-template-columns: 0 1fr;
+}
+.app[data-focus="1"] .leftnav {
+  width: 0;
+  border-right-width: 0;
+  overflow: hidden;
+}
+.app[data-focus="1"] .tabs-header {
+  display: none;
+}
+.app[data-focus="1"] .tabs-body {
+  padding: 10px 14px 12px;
+}
+/* The dock detaches into a centered floating panel over the stage. */
+.app[data-focus="1"] .dockwrap {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  width: min(1420px, calc(100% - 28px));
+  z-index: 6;
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-raised) 94%, transparent);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+.app[data-focus="1"] .dockwrap .dock,
+.app[data-focus="1"] .dockwrap .alane {
+  margin-top: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+.app[data-focus="1"] .dockwrap .alane[data-open="1"] {
+  border-bottom: 1px solid var(--border);
+}
+
+/* =========================================================
    LEFT NAV
 ========================================================= */
 .leftnav {
@@ -1771,12 +1817,407 @@ button.portrait-badge:hover {
 .val-item {
   font-variant-numeric: tabular-nums;
 }
+/* =========================================================
+   LEVEL EDITOR DOCK (design screen 04)
+   The bottom tray: [armed 218px][tabs + swatch strip][tray 372px].
+   Replaces the tall left-hand palette rail so the canvas gets
+   the full width. Values are the handoff's.
+   ========================================================= */
+.dock {
+  flex: none;
+  min-width: 0;
+  /* A FIXED band, so the stage above keeps its height no matter how much the
+     tray has to say. Each pane scrolls internally instead. */
+  height: 182px;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-top: 10px;
+}
+.dock .pane {
+  padding: 10px 13px 12px;
+  min-width: 0;
+  overflow-y: auto;
+}
+.dock .armed {
+  flex: 0 1 218px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+.dock .mid {
+  flex: 1;
+  overflow: hidden;
+}
+.dock .tray {
+  flex: 0 1 372px;
+  border-left: 1px solid var(--border);
+  background: var(--bg-sunken);
+}
+.dock-sect {
+  font-size: 9.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+  color: var(--fg-dim);
+}
+.dock-hint {
+  margin-top: auto;
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  line-height: 1.5;
+}
+.dock-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 9px;
+  flex-wrap: wrap;
+}
+.dock-tabs {
+  display: flex;
+  gap: 2px;
+}
+.dtab {
+  padding: 5px 11px;
+  font-size: 11.5px;
+  font-family: inherit;
+  color: var(--fg-muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.dtab:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.dtab.on {
+  background: var(--bg-hover);
+  color: var(--fg);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.dtab .c {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  margin-left: 6px;
+}
+/* The dock's chips are lowercase data labels, unlike the uppercase
+   type chips elsewhere in the app. */
+.dock .chip {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  color: var(--fg-muted);
+}
+.dock .chip.on {
+  color: var(--accent);
+}
+.strip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+.brush {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 60px;
+  flex: none;
+  cursor: pointer;
+}
+.brush-nm {
+  font-size: 10px;
+  color: var(--fg-muted);
+  text-align: center;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+.brush:hover .brush-nm {
+  color: var(--fg);
+}
+.sw {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+  background-size: cover;
+  background-position: center;
+  image-rendering: pixelated;
+}
+.sw.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px oklch(72% 0.13 78 / 0.3);
+}
+.sw-id {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--fg-dim);
+  text-shadow: 0 1px 2px #000;
+}
+.sw-art {
+  position: absolute;
+  left: 1px;
+  top: 0;
+  font-size: 9px;
+  opacity: 0;
+  cursor: pointer;
+  text-shadow: 0 1px 2px #000;
+}
+.brush:hover .sw-art {
+  opacity: 0.8;
+}
+.dock-tray-empty p {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-dim);
+}
+
+/* Audio lane — collapses to nothing, opens to 112px above the dock. Its
+   horizontal axis is the LEVEL (music here is spatial, not temporal). */
+.alane {
+  flex: none;
+  height: 0;
+  overflow: hidden;
+  /* NO height transition. The design animates it, but this lane sits in a flex
+     column above a canvas that measures its own container: animating height
+     re-lays-out the canvas every frame, which re-measures, which re-renders,
+     which restarts the transition — it never settled and the lane stayed
+     collapsed at its 2px borders. Snapping open costs nothing visually. */
+}
+.alane[data-open="1"] {
+  height: 112px;
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+}
+.alane-inner {
+  display: flex;
+  height: 110px;
+}
+.alane-gut {
+  width: 104px;
+  flex: none;
+  border-right: 1px solid var(--border);
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.alane-r {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+.alane-lanes {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 14px;
+  position: relative;
+}
+.alane-scale {
+  position: relative;
+  height: 12px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--fg-dim);
+}
+.alane-scale span {
+  position: absolute;
+  transform: translateX(-50%);
+}
+.alane-rail {
+  position: relative;
+  height: 30px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+.alane-base {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 9px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.alane-edit {
+  align-self: center;
+  margin-right: 12px;
+}
+.rgn {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.rgn b {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex: none;
+}
+.rgn i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  opacity: 0.72;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rgn.a {
+  background: oklch(72% 0.13 78 / 0.18);
+  border-color: oklch(72% 0.13 78 / 0.55);
+  color: oklch(84% 0.1 78);
+}
+.rgn.b {
+  background: oklch(62% 0.18 25 / 0.15);
+  border-color: oklch(62% 0.18 25 / 0.5);
+  color: oklch(80% 0.13 25);
+}
+.rgn.c {
+  background: oklch(68% 0.13 220 / 0.15);
+  border-color: oklch(68% 0.13 220 / 0.5);
+  color: oklch(82% 0.1 220);
+}
+
+/* Minimap — floating panel, top-right of the stage (design: 334px). */
+.mini {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 3;
+  width: 334px;
+  padding: 7px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-raised) 93%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  /* Never taller than the stage — a tall level in a short window would
+     otherwise run past the canvas and get clipped mid-map. */
+  max-height: calc(100% - 28px);
+  overflow: hidden;
+}
+.mini-lbl {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+.mini-lbl:hover {
+  color: var(--fg-muted);
+}
+.mini-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mini-chev {
+  font-size: 11px;
+  line-height: 1;
+}
+/* Collapsed: the header bar alone, and no bottom gap under it. */
+.mini[data-collapsed="1"] {
+  width: 168px;
+}
+.mini[data-collapsed="1"] .mini-lbl {
+  margin-bottom: 0;
+}
+.mini-map {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #0a0a0d;
+  cursor: grab;
+}
+.mini-map:active {
+  cursor: grabbing;
+}
+.mini-map canvas {
+  image-rendering: pixelated;
+  opacity: 0.85;
+}
+.mini-vp {
+  position: absolute;
+  border: 1.5px solid var(--accent);
+  background: oklch(72% 0.13 78 / 0.13);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.mini-kill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 9%;
+  pointer-events: none;
+  border-top: 1px dashed oklch(62% 0.18 25 / 0.8);
+  background: repeating-linear-gradient(
+    135deg,
+    oklch(62% 0.18 25 / 0.4) 0 1px,
+    transparent 1px 5px
+  );
+}
+
 /* Floating tool rail over the level canvas (design: bottom-left of the stage).
    Panel treatment matches the handoff's floating-panel spec. */
 .tool-rail {
   position: absolute;
   left: 10px;
-  bottom: 10px;
+  bottom: var(--dock-clear, 10px);
   z-index: 3;
   display: flex;
   align-items: center;
@@ -1793,6 +2234,28 @@ button.portrait-badge:hover {
   height: 18px;
   margin: 0 3px;
   background: var(--border-hi);
+}
+/* Drag handle. A dedicated grip, not the whole panel — dragging from the
+   buttons would eat tool clicks. Double-click resets to the anchor. */
+.tool-grip {
+  width: 12px;
+  height: 22px;
+  flex: none;
+  margin-right: 2px;
+  border-radius: 3px;
+  cursor: grab;
+  touch-action: none;
+  background-image: radial-gradient(var(--fg-dim) 1px, transparent 1px);
+  background-size: 4px 5px;
+  background-position: center;
+  opacity: 0.55;
+}
+.tool-grip:hover {
+  opacity: 1;
+  background-color: var(--bg-hover);
+}
+.tool-grip:active {
+  cursor: grabbing;
 }
 
 /* Right-aligned palette affordance in the statusbar. */
@@ -3143,4 +3606,123 @@ button.portrait-badge:hover {
 }
 .lightbox-close:hover {
   background: rgba(0, 0, 0, 0.85);
+}
+
+/* =========================================================
+   WORLD MAP (design screen 05)
+   Two canvas treatments over one graph; areas are the pack's
+   stages, auto-hulled from member node bounds every render.
+   ========================================================= */
+.wm {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.wm-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.wm-meta,
+.wm-prov {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+}
+.wm-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.wm-stage {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+}
+.wm-inspector {
+  width: 308px;
+  flex: none;
+  border-left: 1px solid var(--border);
+  background: var(--bg-raised);
+  padding: 14px 16px;
+  overflow-y: auto;
+}
+.wm-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.wm-sub {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  margin-bottom: 10px;
+}
+.wm-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+.wm-row b {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg);
+  text-align: right;
+}
+.wm-note {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-dim);
+}
+.wm-actions,
+.wm-arealist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.wm-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+.wm-field input {
+  flex: 1;
+  font-size: 12px;
+}
+.wm-saved {
+  margin-top: 14px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ok);
+}
+.wm-zoom {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.wm-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 14px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--fg-dim);
+  pointer-events: none;
 }

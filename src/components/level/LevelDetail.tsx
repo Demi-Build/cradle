@@ -17,11 +17,14 @@ import { countProblems } from "../../lib/validation";
 import { isShortcut, kbd } from "../../lib/keys";
 import { useStore } from "../../store";
 import { LevelCanvas } from "./LevelCanvas";
-import { PaletteRail } from "./PaletteRail";
+import { Dock } from "./Dock";
 import { RegenerateLayoutModal } from "./RegenerateLayoutModal";
 import { ImproveLayoutModal } from "./ImproveLayoutModal";
 import { MusicPanel } from "./MusicPanel";
 import { ToolRail, type Tool } from "./ToolRail";
+import { Minimap } from "./Minimap";
+import { AudioLane } from "./AudioLane";
+import type { CamApi, CamState } from "./LevelCanvas";
 import { floodFill } from "./gridOps";
 import type { Brush, LevelBundle, RenderMode, Selection } from "./drawLevel";
 
@@ -127,6 +130,8 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   const worldPath = useStore((s) => s.worldPath);
   const select = useStore((s) => s.select);
   const setEntities = useStore((s) => s.setEntities);
+  const layout = useStore((s) => s.layout);
+  const setLayout = useStore((s) => s.setLayout);
   const [bundle, setBundle] = useState<LevelBundle | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [mode, setMode] = useState<RenderMode>("art");
@@ -168,6 +173,13 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   const [improveOpen, setImproveOpen] = useState(false);
   const [musicOpen, setMusicOpen] = useState(false);
   const [showBounds, setShowBounds] = useState(false);
+  const [showMinimap, setShowMinimap] = useState(true);
+  const [audioOpen, setAudioOpen] = useState(false);
+  // Camera mirror for the minimap. The canvas keeps the authoritative copy in
+  // a ref (it mutates on every wheel tick); this is a throttled snapshot for
+  // drawing the viewport rectangle.
+  const [cam, setCam] = useState<CamState | null>(null);
+  const camApi = useRef<CamApi | null>(null);
 
   // Validation/play notes are per-level — drop them when switching levels.
   useEffect(() => {
@@ -616,7 +628,13 @@ export function LevelDetail({ levelId }: { levelId: string }) {
 
   // Flush pending edits, then open the context-aware "improve this level" modal
   // (the LLM sees the current level from disk + an instruction and refines it).
+  /** A level that has only ever been CREATED is a flat empty scaffold — there
+   *  is nothing there to improve. Improve applies once a human or the LLM has
+   *  actually built something (generate / paint / place). */
+  const neverBuilt = bundle?.last_change?.op === "create";
+
   const openImprove = async () => {
+    if (neverBuilt) return;
     if (!(await doSave())) return;
     setImproveOpen(true);
   };
@@ -650,6 +668,8 @@ export function LevelDetail({ levelId }: { levelId: string }) {
         label: "Improve this level…",
         group: `Level · ${levelId}`,
         keywords: "llm refine instruction harder easier",
+        enabled: !neverBuilt,
+        disabledReason: "nothing built yet — generate first",
         run: () => void openImprove(),
       },
       {
@@ -669,7 +689,7 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     ]);
     return () => unregisterCommands("level");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [levelId, dirty.size, registerCommands, unregisterCommands]);
+  }, [levelId, dirty.size, neverBuilt, registerCommands, unregisterCommands]);
 
   const publish = async () => {
     setSave({ status: "saving" });
@@ -752,7 +772,7 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   );
 
   return (
-    <div style={{ padding: 16 }}>
+    <div style={{ padding: 16, height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
       <div style={{ marginBottom: 12, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
         {chip(bundle.display_name ?? bundle.level_id)}
         {bundle.revision_short && (
@@ -817,7 +837,19 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           dirty.size === 0,
         )}
         {btn("🪄 Layout", () => void openRegen())}
-        {btn("✨ Improve", () => void openImprove())}
+        <button
+          className="btn"
+          style={{ marginLeft: 8 }}
+          disabled={neverBuilt}
+          title={
+            neverBuilt
+              ? "This level is still an empty scaffold — generate a layout first"
+              : "Re-author the layout from an instruction, keeping its size and axis"
+          }
+          onClick={() => void openImprove()}
+        >
+          ✨ Improve
+        </button>
         {btn("🎵 Music", () => setMusicOpen(true))}
         {btn("🎲 Enemies", () => void doPlace("enemies"))}
         {btn("🎲 Items", () => void doPlace("items"))}
@@ -847,19 +879,41 @@ export function LevelDetail({ levelId }: { levelId: string }) {
         <label style={{ fontSize: 12, userSelect: "none" }}>
           <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> labels
         </label>
+        {btn(
+          layout.focusMode ? "⤢ Exit focus" : "⤢ Focus",
+          () => setLayout({ focusMode: !layout.focusMode }),
+        )}
         {btn(save.status === "saving" ? "Saving…" : "Save", () => void doSave(), dirty.size > 0)}
       </div>
 
       {valReport && <ValidationPanel report={valReport} />}
 
-      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-        <PaletteRail bundle={bundle} brush={brush} onBrush={setBrush} onReplaceArt={replaceArt} />
-
-        <div style={{ flex: 1, minWidth: 0 }}>
+      {/* Fixed-height column, per the design: the stage FLEXES and the dock is
+          pinned beneath it. As a scrolling page the dock fell below the fold. */}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
           {/* The rail floats over the CANVAS, so it anchors to a wrapper that
               spans only the canvas — anchoring to the column would put it on
-              top of the hint row below. */}
-          <div style={{ position: "relative" }}>
+              top of the row below. */}
+          {/* The stage clips its floating panels (design: `.stage{overflow:hidden}`)
+              so a tall minimap can't spill onto the controls below when the
+              window is short. Tooltips are portaled to <body>, so they escape. */}
+          <div
+            style={
+              {
+                position: "relative",
+                flex: 1,
+                minHeight: 0,
+                overflow: "hidden",
+                // In focus mode the dock FLOATS over the stage, so the rail and
+                // the zoom pill have to clear it or they end up underneath.
+                // (The design does this in JS; one variable is enough here.)
+                "--dock-clear": layout.focusMode
+                  ? `${182 + (audioOpen ? 112 : 0) + 18 + 14}px`
+                  : "10px",
+              } as React.CSSProperties
+            }
+          >
             <LevelCanvas
               bundle={bundle}
               scale={26}
@@ -867,6 +921,7 @@ export function LevelDetail({ levelId }: { levelId: string }) {
               showGrid={showGrid}
               showLabels={showLabels}
               showBounds={showBounds}
+              showRulers={showBounds}
               selection={selection}
               brush={brush}
               tool={tool}
@@ -877,22 +932,27 @@ export function LevelDetail({ levelId }: { levelId: string }) {
               onPaint={onPaint}
               onPlace={onPlace}
               onErase={onErase}
+              height="100%"
               onFill={onFill}
+              onCamera={setCam}
+              camApi={camApi}
             />
+            {showMinimap && <Minimap bundle={bundle} cam={cam} camApi={camApi} />}
             <ToolRail
               tool={tool}
               onTool={setTool}
               showBounds={showBounds}
               onToggleBounds={() => setShowBounds((v) => !v)}
-              onOpenMusic={() => setMusicOpen(true)}
+              showMinimap={showMinimap}
+              onToggleMinimap={() => setShowMinimap((v) => !v)}
+              onOpenMusic={() => setAudioOpen((v) => !v)}
+              audioOpen={audioOpen}
             />
           </div>
           <div style={{ margin: "10px 2px 0", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <p style={{ margin: 0, color: "var(--fg-dim)", fontSize: 12, flex: 1, minWidth: 260 }}>
-              {brush
-                ? "Brush armed: left-click/drag paints · right-click/drag erases · Esc to disarm."
-                : `Click to select · drag to move · right-click erases a cell · Delete removes · drag space/scroll pans · ${kbd("S")} saves.`}
-            </p>
+            {/* The interaction hint moved into the dock's armed-brush pane,
+                where it sits beside the thing it describes. */}
+            <span style={{ flex: 1, minWidth: 120 }} />
             <label style={{ fontSize: 12, color: "var(--fg-dim)" }}>
               W{" "}
               <input
@@ -929,33 +989,41 @@ export function LevelDetail({ levelId }: { levelId: string }) {
               </>
             )}
           </div>
-        </div>
 
-        {selection && (
-          <aside
-            style={{
-              width: 250,
-              flexShrink: 0,
-              background: "var(--bg-raised)",
-              border: "1px solid var(--border)",
-              borderRadius: 10,
-              padding: 14,
-              fontSize: 13,
-            }}
-          >
-            <Inspector
-              bundle={bundle}
-              selection={selection}
-              selected={selected}
-              enemyIds={Object.keys(enemyDb)}
-              itemIds={Object.keys(itemDb)}
-              onOpenEntity={(typeId, id) => select({ kind: "entity", typeId, id })}
-              onDelete={() => deleteSelection(selection)}
-              onReplaceArt={replaceArt}
-              onSwitch={(newId) => onSwitch(selection, newId)}
-            />
-          </aside>
-        )}
+          <div className="dockwrap">
+          <AudioLane
+            bundle={bundle}
+            open={audioOpen}
+            onOpenMusic={() => setMusicOpen(true)}
+          />
+
+          {/* The bottom dock: armed brush · palette tabs · contextual tray.
+              The inspector is no longer a third column beside the canvas —
+              it IS the tray pane, so selecting something doesn't shrink the
+              map you're editing. */}
+          <Dock
+            bundle={bundle}
+            brush={brush}
+            onBrush={setBrush}
+            onReplaceArt={replaceArt}
+            tray={
+              selection ? (
+                <Inspector
+                  bundle={bundle}
+                  selection={selection}
+                  selected={selected}
+                  enemyIds={Object.keys(enemyDb)}
+                  itemIds={Object.keys(itemDb)}
+                  onOpenEntity={(typeId, id) => select({ kind: "entity", typeId, id })}
+                  onDelete={() => deleteSelection(selection)}
+                  onReplaceArt={replaceArt}
+                  onSwitch={(newId) => onSwitch(selection, newId)}
+                />
+              ) : undefined
+            }
+          />
+          </div>
+        </div>
       </div>
       {regenOpen && bundle && (
         <RegenerateLayoutModal

@@ -11,6 +11,7 @@ import { hasTreeView, type PuzzleEvent } from "./event/types";
 import { QuestDetail } from "./quest/QuestDetail";
 import { LevelDetail } from "./level/LevelDetail";
 import { LibraryPanel } from "./db/LibraryPanel";
+import { WorldMapView } from "./world/WorldMapView";
 import { LineagePanel } from "./db/LineagePanel";
 import { WorldBibleView } from "./WorldBibleView";
 
@@ -27,7 +28,12 @@ export function DetailPane() {
     setPayload(null);
     setLocalErr(null);
     setActiveTab(selection.kind === "entity" && selection.tab ? selection.tab : "overview");
-    if (!worldPath || selection.kind === "none" || selection.kind === "library")
+    if (
+      !worldPath ||
+      selection.kind === "none" ||
+      selection.kind === "library" ||
+      selection.kind === "worldmap"
+    )
       return;
     setLoading(true);
     (async () => {
@@ -178,6 +184,15 @@ export function DetailPane() {
     return (
       <main className="detail">
         <LibraryPanel />
+      </main>
+    );
+  }
+  // Same as the library: no per-entity payload, so it must render before the
+  // loading/payload guards below.
+  if (selection.kind === "worldmap") {
+    return (
+      <main className="detail">
+        <WorldMapView />
       </main>
     );
   }

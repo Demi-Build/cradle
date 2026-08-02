@@ -8,7 +8,7 @@
 // Overlay buttons: zoom −/+, fit, 1:1. Parent owns the bundle + selection;
 // this component hit-tests through the camera and reports intents.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   collectImageUrls,
   drawLevel,
@@ -28,6 +28,10 @@ interface LevelCanvasProps {
   showGrid?: boolean;
   showLabels?: boolean;
   showBounds?: boolean;
+  showRulers?: boolean;
+  /** CSS height of the viewport. The level editor passes "100%" so the
+   *  canvas flexes and the dock stays pinned below it. */
+  height?: string;
   selection?: Selection | null;
   brush?: Brush | null;
   /** Active tool from the rail. `brush` says WHAT to paint; `tool` says what a
@@ -41,7 +45,16 @@ interface LevelCanvasProps {
   onPlace?: (x: number, y: number) => void;
   onErase?: (x: number, y: number) => void;
   onFill?: (x: number, y: number) => void;
+  /** Reports the live camera after every draw — the minimap draws its
+   *  viewport rectangle from this. */
+  onCamera?: (c: CamState) => void;
+  /** Populated with an imperative handle so the minimap can drive the camera
+   *  without lifting it into state (it mutates on every wheel tick). */
+  camApi?: { current: CamApi | null };
 }
+
+export type CamState = { ox: number; oy: number; zoom: number; viewW: number; viewH: number };
+export type CamApi = { setOrigin: (ox: number, oy: number) => void };
 
 function useImageCache(urls: string[]): Record<string, HTMLImageElement> {
   const [cache, setCache] = useState<Record<string, HTMLImageElement>>({});
@@ -87,6 +100,8 @@ export function LevelCanvas({
   brush = null,
   tool = "select",
   showBounds,
+  showRulers,
+  height = "min(68vh, 820px)",
   painted,
   onSelect,
   onMove,
@@ -95,6 +110,8 @@ export function LevelCanvas({
   onPlace,
   onErase,
   onFill,
+  onCamera,
+  camApi,
 }: LevelCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -107,6 +124,7 @@ export function LevelCanvas({
   // zoomPct mirrors it for the overlay label.
   const cam = useRef({ ox: 0, oy: 0, zoom: 1 });
   const [zoomPct, setZoomPct] = useState(100);
+  const lastCam = useRef<CamState | null>(null);
 
   const worldW = bundle.grid_width * scale;
   const worldH = bundle.grid_height * scale;
@@ -128,20 +146,62 @@ export function LevelCanvas({
     const camera: Camera = { ...cam.current, viewW: viewSize.w, viewH: viewSize.h };
     drawLevel(canvas, bundle, {
       scale, mode, images, showGrid, showLabels, selection, camera, painted,
-      showBounds,
+      showBounds, showRulers,
     });
     setZoomPct(Math.round(cam.current.zoom * 100));
+    // Notify ONLY on a real change. redraw() runs after every render, so
+    // handing out a fresh object each time made the parent's setState see a
+    // new reference forever: render -> redraw -> setCam -> render.
+    const next = { ...cam.current, viewW: viewSize.w, viewH: viewSize.h };
+    const prev = lastCam.current;
+    if (
+      !prev ||
+      prev.ox !== next.ox ||
+      prev.oy !== next.oy ||
+      prev.zoom !== next.zoom ||
+      prev.viewW !== next.viewW ||
+      prev.viewH !== next.viewH
+    ) {
+      lastCam.current = next;
+      onCamera?.(next);
+    }
   };
 
-  // Track the container size.
+  if (camApi) {
+    camApi.current = {
+      setOrigin: (ox, oy) => {
+        cam.current.ox = ox;
+        cam.current.oy = oy;
+        redraw();
+      },
+    };
+  }
+
+  /** Pull the box's real size into state, no-op when unchanged. */
+  const syncViewSize = () => {
+    const box = boxRef.current;
+    if (!box) return;
+    const w = Math.max(80, box.clientWidth);
+    const h = Math.max(80, box.clientHeight);
+    setViewSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+  };
+
+  // Track the container size. BOTH paths are needed:
+  //  · the observer catches window resizes that cause no React render;
+  //  · the layout effect catches layout changes that DO render but that the
+  //    observer misses. It measured once and then went quiet, so the canvas
+  //    stayed at whatever size it happened to see first — invisible while the
+  //    box had a fixed height, obvious once it started flexing under the dock.
+  // Returning the previous object when nothing changed is what stops this
+  // from looping.
+  useLayoutEffect(syncViewSize);
   useEffect(() => {
     const box = boxRef.current;
     if (!box) return;
-    const ro = new ResizeObserver(() => {
-      setViewSize({ w: Math.max(80, box.clientWidth), h: Math.max(80, box.clientHeight) });
-    });
+    const ro = new ResizeObserver(syncViewSize);
     ro.observe(box);
     return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reset camera when switching levels.
@@ -325,7 +385,7 @@ export function LevelCanvas({
       style={{
         position: "relative",
         width: "100%",
-        height: "min(68vh, 820px)",
+        height,
         background: "var(--bg)",
         border: "1px solid var(--border)",
         borderRadius: 8,
@@ -341,7 +401,18 @@ export function LevelCanvas({
         onContextMenu={(e) => e.preventDefault()}
         style={{ display: "block", imageRendering: "pixelated", cursor: "grab", touchAction: "none" }}
       />
-      <div style={{ position: "absolute", right: 10, bottom: 10, display: "flex", gap: 6, alignItems: "center" }}>
+      <div
+        style={{
+          position: "absolute",
+          right: 10,
+          // Same clearance as the tool rail — the floating dock covers the
+          // bottom of the stage in focus mode.
+          bottom: "var(--dock-clear, 10px)",
+          display: "flex",
+          gap: 6,
+          alignItems: "center",
+        }}
+      >
         <button className="btn" onClick={() => setZoom((z) => z / 1.25)} title="Zoom out">−</button>
         <span className="btn" style={{ cursor: "default" }}>{zoomPct}%</span>
         <button className="btn" onClick={() => setZoom((z) => z * 1.25)} title="Zoom in">+</button>

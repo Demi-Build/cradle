@@ -241,9 +241,9 @@ function TabButton({
       onClick={onClick}
       style={{
         cursor: "pointer", fontSize: 12, padding: "4px 12px", borderRadius: 7,
-        border: "1px solid var(--border, #3a2f4a)",
-        background: on ? "var(--accent, #e2b714)" : "transparent",
-        color: on ? "#1a1208" : "var(--text-2, #d9cfe8)",
+        border: "1px solid var(--border)",
+        background: on ? "var(--accent)" : "transparent",
+        color: on ? "var(--accent-ink)" : "var(--fg-muted)",
         fontWeight: on ? 600 : 400,
       }}
     >
@@ -274,11 +274,11 @@ const card: React.CSSProperties = {
   maxWidth: "92vw",
   maxHeight: "86vh",
   overflowY: "auto",
-  background: "var(--surface-1, #1a1522)",
-  border: "1px solid var(--border, #3a2f4a)",
+  background: "var(--bg-raised)",
+  border: "1px solid var(--border)",
   borderRadius: 12,
   padding: 20,
-  color: "var(--text-1, #ece7f5)",
+  color: "var(--fg)",
   boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
 };
 const rowStyle: React.CSSProperties = {
@@ -286,6 +286,6 @@ const rowStyle: React.CSSProperties = {
   alignItems: "center",
   gap: 10,
   padding: "8px 4px",
-  borderBottom: "1px solid var(--border, #2a2336)",
+  borderBottom: "1px solid var(--border)",
   fontSize: 13,
 };

@@ -36,17 +36,45 @@ export type GenLevelOpts = {
   systemOverride?: string | null;
 };
 /** Which generator's prompt to preview / override. */
-export type PromptKind = "layout" | "improve" | "enemy" | "item" | "sprite" | "music";
+export type PromptKind =
+  | "layout" | "improve" | "enemy" | "item" | "sprite" | "animate" | "music";
 /** The default prompt a generator would send (`canon prompt show`).
  *  LLM kinds split system (editable) / user_message (context, rebuilt per call);
- *  image + audio kinds have no such split and carry one `prompt` string. */
+ *  image/audio/vlm kinds have no such split and carry one `prompt` string.
+ *  `vlm` is the animate path's motion-spec AUTHORING prompt — a vision call,
+ *  so it takes the single-prompt shape. */
 export type PromptPreview = {
   kind: PromptKind;
   label: string;
-  mode: "llm" | "image" | "audio";
+  mode: "llm" | "image" | "audio" | "vlm";
   system?: string;
   user_message?: string;
   prompt?: string;
+};
+/** Canon's full `asset generate` knob set. Every field is optional and blank
+ *  values are dropped Rust-side, so `{}` is byte-identical to the old call. */
+export type AssetGenOpts = {
+  imageBackend?: string;
+  imageModel?: string;
+  imageEditModel?: string;
+  imageEditBackend?: string;
+  musicBackend?: string;
+  sfxBackend?: string;
+  promptOverride?: string | null;
+};
+/** Canon's full `asset animate` knob set. NOTE only `fal` and `fake`
+ *  implement ImageEditBackend, so only they can animate — anything else
+ *  draws nothing and still bills the VLM. `promptOverride` edits the motion-
+ *  spec authoring prompt and is inert under `reuseSpec`. */
+export type AnimateOpts = {
+  imageBackend?: string;
+  imageModel?: string;
+  imageEditModel?: string;
+  imageEditBackend?: string;
+  vlmBackend?: string;
+  vlmModel?: string;
+  reuseSpec?: boolean;
+  promptOverride?: string | null;
 };
 export type GenLevelResult = {
   level_id: string;
@@ -463,25 +491,53 @@ export const api = {
     path: string,
     target: string,
     jobId: string,
-    imageBackend?: string,
-    musicBackend?: string,
-    sfxBackend?: string,
-    promptOverride?: string | null,
+    opts: AssetGenOpts = {},
   ) =>
     invoke<QueuedAck>("generate_asset", {
-      path, target, imageBackend, musicBackend, sfxBackend,
-      promptOverride: promptOverride ?? null, jobId,
+      path, target, jobId,
+      imageBackend: opts.imageBackend,
+      imageModel: opts.imageModel ?? null,
+      imageEditModel: opts.imageEditModel ?? null,
+      imageEditBackend: opts.imageEditBackend ?? null,
+      musicBackend: opts.musicBackend,
+      sfxBackend: opts.sfxBackend,
+      promptOverride: opts.promptOverride ?? null,
     }),
   animateAsset: (
     path: string,
     target: string,
     jobId: string,
-    imageBackend?: string,
-    vlmBackend?: string,
-    reuseSpec = false,
+    opts: AnimateOpts = {},
   ) =>
     invoke<QueuedAck>("animate_asset", {
-      path, target, imageBackend, vlmBackend, reuseSpec, jobId,
+      path, target, jobId,
+      imageBackend: opts.imageBackend,
+      imageModel: opts.imageModel ?? null,
+      imageEditModel: opts.imageEditModel ?? null,
+      imageEditBackend: opts.imageEditBackend ?? null,
+      vlmBackend: opts.vlmBackend,
+      vlmModel: opts.vlmModel ?? null,
+      reuseSpec: opts.reuseSpec ?? false,
+      promptOverride: opts.promptOverride ?? null,
+    }),
+  /** Pre-run cost for animating ONE actor — priced BY STATES, not frames.
+   *  `reuseSpec` drops the VLM authoring call from the quote. */
+  estimateAsset: (
+    path: string,
+    target: string,
+    opts: {
+      op?: string;
+      imageBackend?: string;
+      vlmBackend?: string;
+      reuseSpec?: boolean;
+    } = {},
+  ) =>
+    invoke<{ estimate: CostEstimate }>("estimate_asset", {
+      path, target,
+      op: opts.op ?? "animate",
+      imageBackend: opts.imageBackend ?? "fake",
+      vlmBackend: opts.vlmBackend ?? "none",
+      reuseSpec: opts.reuseSpec ?? false,
     }),
   validateLevel: (path: string, levelId: string) =>
     invoke<ValidationReport>("validate_level", { path, levelId }),

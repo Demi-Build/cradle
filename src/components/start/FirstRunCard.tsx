@@ -1,4 +1,5 @@
 import { Branding } from "./BrandMark";
+import { kbd } from "../../lib/keys";
 import { Icon } from "./Icons";
 
 export function FirstRunCard({
@@ -57,7 +58,7 @@ export function FirstRunCard({
           <button className="cta-secondary" onClick={onOpenFromDisk}>
             <Icon id="g-folder" size={14} />
             Open world from disk
-            <span className="kbd">⌘O</span>
+            <span className="kbd">{kbd("O")}</span>
           </button>
           <button className="cta-secondary" onClick={onTryDemo}>
             <Icon id="g-doc" size={14} />

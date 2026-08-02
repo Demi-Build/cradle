@@ -642,19 +642,24 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         enemy: "plat:enemies",
         item: "plat:items",
         sprite: "plat:sprite_art",
+        animate: "plat:sprite_animation",
         music: "plat:audio",
       };
       const label = LABELS[kind] ?? "plat:layout";
-      if (kind === "sprite" || kind === "music") {
-        return {
-          kind,
-          label,
-          mode: kind === "sprite" ? "image" : "audio",
-          prompt:
-            kind === "sprite"
-              ? `Single game sprite: ${args.target ?? "the actor"}, full body, side view facing right, centered, isolated on a plain solid white background. No shadow, no text. (mock)`
-              : "Looping instrumental theme for a retro platformer level. Melodic, atmospheric, seamless loop, no vocals. (mock)",
+      if (kind === "sprite" || kind === "music" || kind === "animate") {
+        const MODES: Record<string, string> = {
+          sprite: "image", music: "audio", animate: "vlm",
         };
+        const PROMPTS: Record<string, string> = {
+          sprite: `Single game sprite: ${args.target ?? "the actor"}, full body, side view facing right, centered, isolated on a plain solid white background. No shadow, no text. (mock)`,
+          music:
+            "Looping instrumental theme for a retro platformer level. Melodic, atmospheric, seamless loop, no vocals. (mock)",
+          // The VLM's motion-spec AUTHORING prompt — one call per run, NOT the
+          // per-state img2img sheet prompt.
+          animate:
+            `### TASK: plat_animate\n### ACTOR: ${args.target ?? "the actor"}\n\nYou are a 2D sprite animator. The attached image is the ACTUAL generated sprite for this character — describe how THIS character moves in each state.\n\nStates to author (use these exact keys):\n  - "idle": at rest / holding position\n  - "walk": actively moving along its path\n  - "hurt": recoiling from a hit\n  - "death": defeated\n  - "jump": the RISING launch\n\nReturn ONE JSON object. (mock)`,
+        };
+        return { kind, label, mode: MODES[kind], prompt: PROMPTS[kind] };
       }
       return {
         kind,
@@ -727,8 +732,17 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       });
     case "animate_asset":
       return simulateJob(args.jobId as string, {
-        target: String(args.target), animated: true, states: [], changed: true,
+        target: String(args.target), animated: true,
+        states: args.reuseSpec ? ["idle", "walk"] : ["idle", "walk", "hurt", "death"],
+        changed: true,
         changed_artifacts: [String(args.target)],
+        // Echo the knobs back so the mock proves the full parameter set
+        // actually reaches the command (the whole point of this change).
+        gen: {
+          image_model: args.imageModel ?? args.imageEditModel ?? "fal-ai/nano-banana",
+          vlm_model: args.vlmModel ?? "claude-sonnet-4-6",
+          reused_spec: Boolean(args.reuseSpec),
+        },
         cost: { usd: 0, input_tokens: 0, output_tokens: 0, calls: 0, backend: "fake" },
         warnings: ["mock: real animation needs the native app"],
       });
@@ -815,6 +829,14 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         result: "estimate",
         estimate: mockEstimate(String(args.op ?? "generate"), null, {
           llm: String(args.llmBackend ?? "fake"),
+        }),
+      };
+    case "estimate_asset":
+      return {
+        result: "estimate",
+        estimate: mockEstimate(String(args.op ?? "animate"), null, {
+          image: String(args.imageBackend ?? "fake"),
+          vlm: args.reuseSpec ? "none" : String(args.vlmBackend ?? "none"),
         }),
       };
     case "spend_record": {
@@ -967,6 +989,30 @@ function mockEstimate(
         best: Number((llm.best + assetsBest).toFixed(4)),
         worst: Number((llm.worst + assetsBest).toFixed(4)),
       },
+      warnings: [],
+    };
+  }
+  if (scope === "animate") {
+    // Mock: 5 states x 1 facing (the canned enemy shape), one image call per
+    // state — priced BY STATES, mirroring the real scope. reuse_spec drops
+    // the vision call, which is passed in as vlm="none".
+    const states = 5;
+    const imgUsd = paid("image", backends.image) ? Number((states * 0.04).toFixed(4)) : 0;
+    const vlmUsd = paid("vlm", backends.vlm) ? 0.0081 : 0;
+    const assetsBest = imgUsd + vlmUsd;
+    return {
+      scope, backends,
+      llm: { by_task: {}, calls: 0, usd: { best: 0, worst: 0 } },
+      assets: {
+        images: { count: states, usd: imgUsd },
+        music: { count: 0, usd: 0 },
+        sfx: { count: 0, usd: 0 },
+        vlm: vlmUsd
+          ? { model: "claude-sonnet-4-6", animation_authoring: 1, usd: { best: vlmUsd, worst: vlmUsd } }
+          : {},
+        usd: { best: assetsBest, worst: assetsBest },
+      },
+      total_usd: { best: assetsBest, worst: assetsBest },
       warnings: [],
     };
   }

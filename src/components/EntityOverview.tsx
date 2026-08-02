@@ -11,10 +11,11 @@ import { MonsterStatBlock, MonsterAbilities } from "./monster/MonsterStatBlock";
 import { AudioPlayer } from "./AudioPlayer";
 import { useStore } from "../store";
 import { api } from "../lib/invoke";
-import { fmtUsd } from "../lib/cost";
+import { fmtRange, fmtUsd } from "../lib/cost";
 import { enqueueJob } from "../lib/jobs";
 import { Icon } from "./start/Icons";
 import { PromptOverride } from "./PromptOverride";
+import { AnimateModal } from "./anim/AnimateModal";
 import { RowEditor } from "./db/RowEditor";
 import { TileSlotEditor } from "./db/TileSlotEditor";
 
@@ -930,13 +931,13 @@ function StageAudioReroll({ worldPath, stageId }: { worldPath: string; stageId: 
         estimate: { best: est, worst: est },
       },
       (jobId) =>
-        api.generateAsset(
-          worldPath,
-          `audio:${stageId}`,
-          jobId,
-          music === "none" ? undefined : music,
-          sfx === "none" ? undefined : sfx,
-        ),
+        api.generateAsset(worldPath, `audio:${stageId}`, jobId, {
+          // Named, because the old positional call put `music` in
+          // imageBackend and `sfx` in musicBackend — so a paid stage-audio
+          // reroll set --image-backend lyria and never --sfx-backend at all.
+          musicBackend: music === "none" ? undefined : music,
+          sfxBackend: sfx === "none" ? undefined : sfx,
+        }),
     );
     setBusy(false);
     setNote("stage audio queued — watch ⚙ Jobs");
@@ -964,7 +965,7 @@ function StageAudioReroll({ worldPath, stageId }: { worldPath: string; stageId: 
       <button onClick={() => void run()} disabled={busy} style={{ fontSize: 12, cursor: "pointer" }}>
         {busy ? "Regenerating…" : "🔊 Reroll stage audio"}
       </button>
-      {note && <span style={{ fontSize: 11, color: "var(--text-3, #8a8398)" }}>{note}</span>}
+      {note && <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>{note}</span>}
     </div>
   );
 }
@@ -1025,6 +1026,7 @@ function GenActions({
   // prompt, one for the row-authoring SYSTEM prompt. null = built-in default.
   const [spritePrompt, setSpritePrompt] = useState<string | null>(null);
   const [rowPrompt, setRowPrompt] = useState<string | null>(null);
+  const [animating, setAnimating] = useState(false);
   const kind =
     typeId === "enemies" ? "enemy" : typeId === "player" ? "player" : "item";
   const id = String(
@@ -1104,22 +1106,13 @@ function GenActions({
     setNote(`${label} queued — watch ⚙ Jobs`);
   };
 
-  const btn: React.CSSProperties = {
-    fontSize: 12,
-    padding: "3px 10px",
-    borderRadius: 6,
-    border: "1px solid var(--border, #3a2f4a)",
-    background: "var(--surface-2, #2a2136)",
-    color: "var(--text-2, #d9cfe8)",
-    cursor: "pointer",
-  };
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "6px 0 2px", flexWrap: "wrap" }}>
       {/* Row ops — the player has no DB row (canon's DB_TYPES is enemy/item
           only), so these would throw on it. */}
       {kind !== "player" && (
         <button
-          style={btn}
+          className="btn"
           disabled={!!busy}
           onClick={() => setEditing(true)}
         >
@@ -1127,7 +1120,7 @@ function GenActions({
         </button>
       )}
       <button
-        style={btn}
+        className="btn"
         disabled={!!busy}
         onClick={() =>
           run(
@@ -1140,7 +1133,7 @@ function GenActions({
         ⬆ Publish
       </button>
       <button
-        style={btn}
+        className="btn"
         disabled={!!busy}
         onClick={() =>
           runJob(
@@ -1148,9 +1141,10 @@ function GenActions({
             `Generate a new sprite for ${id}?\n\nBackend: fal (nano-banana). Rough cost ~$0.04/image. The current sprite is replaced (original stays recoverable in the object store).`,
             { op: "sprite", backends: { image: "fal" } },
             (jobId) =>
-              api.generateAsset(
-                worldPath, target, jobId, "fal", undefined, undefined, spritePrompt,
-              ),
+              api.generateAsset(worldPath, target, jobId, {
+                imageBackend: "fal",
+                promptOverride: spritePrompt,
+              }),
           )
         }
       >
@@ -1158,7 +1152,7 @@ function GenActions({
       </button>
       {kind !== "player" && (
         <button
-          style={btn}
+          className="btn"
           disabled={!!busy}
           onClick={() =>
             run(
@@ -1176,20 +1170,40 @@ function GenActions({
         </button>
       )}
       {(kind === "enemy" || kind === "player") && (
-        <button
-          style={btn}
-          disabled={!!busy}
-          onClick={() =>
-            runJob(
-              "animate",
-              `Animate ${id} (multi-image path)?\n\nVLM authors a per-state motion spec from the sprite, then one img2img sheet per state (idle/walk/hurt/death…).\nBackends: fal edit + anthropic VLM. Rough cost ~$0.04×states + VLM tokens.`,
-              { op: "animate", backends: { image: "fal", vlm: "anthropic" } },
-              (jobId) => api.animateAsset(worldPath, target, jobId, "fal", "anthropic"),
-            )
-          }
-        >
-          {busy === "animate" ? "…" : "🎬 Animate"}
+        <button className="btn" disabled={!!busy} onClick={() => setAnimating(true)}>
+          {busy === "animate" ? "…" : "🎬 Animate…"}
         </button>
+      )}
+      {animating && (
+        <AnimateModal
+          worldPath={worldPath}
+          target={target}
+          name={id}
+          onClose={() => setAnimating(false)}
+          onSubmit={async (o) => {
+            setAnimating(false);
+            // The modal already showed the price, so the confirm only asks
+            // "spend it?" — the design brief's "paid actions read as paid
+            // BEFORE the confirm dialog".
+            await runJob(
+              "animate",
+              `Animate ${id}?\n\n` +
+                `${o.reuseSpec ? "Re-rendering the stored motion spec" : "New motion spec + one sheet per state"}\n` +
+                `Estimated ${fmtRange(o.estimate?.total_usd)} · replaces the current frames (recoverable in the object store). Proceed?`,
+              { op: "animate", backends: o.backends },
+              (jobId) =>
+                api.animateAsset(worldPath, target, jobId, {
+                  imageBackend: o.imageBackend,
+                  imageModel: o.imageModel,
+                  imageEditModel: o.imageEditModel,
+                  vlmBackend: o.vlmBackend,
+                  vlmModel: o.vlmModel,
+                  reuseSpec: o.reuseSpec,
+                  promptOverride: o.promptOverride,
+                }),
+            );
+          }}
+        />
       )}
       {/* Watch the animation in the SAME surfaces that render the game —
           every state side by side, on the game's own frame timing. Both
@@ -1198,7 +1212,7 @@ function GenActions({
       {(["pygame", "godot"] as const).map((engine) => (
         <button
           key={engine}
-          style={btn}
+          className="btn"
           disabled={!!busy}
           title={`Play this actor's animation states in ${engine}`}
           onClick={() => {
@@ -1219,7 +1233,7 @@ function GenActions({
         </button>
       ))}
       {note && (
-        <span style={{ fontSize: 11, color: "var(--text-3, #8a8398)" }}>{note}</span>
+        <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>{note}</span>
       )}
       {/* Per-call prompt editors for the two generators above. Each applies to
           the NEXT run of its own button; collapsed = the built-in default. */}

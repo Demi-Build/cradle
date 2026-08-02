@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { kbd } from "../../lib/keys";
 import type { RecentProject } from "../../lib/recents";
 import { useStore } from "../../store";
 import { Icon } from "./Icons";
@@ -82,7 +83,7 @@ export function RecentsRail({
           <div className="add-stack">
             <Icon id="g-plus" size={18} />
             <span>Open world from disk</span>
-            <span className="kbd">⌘O</span>
+            <span className="kbd">{kbd("O")}</span>
           </div>
         </button>
       </div>

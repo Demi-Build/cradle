@@ -139,11 +139,11 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
   const card: React.CSSProperties = {
     width: 380,
     maxWidth: "90vw",
-    background: "var(--surface-1, #1a1522)",
-    border: "1px solid var(--border, #3a2f4a)",
+    background: "var(--bg-raised)",
+    border: "1px solid var(--border)",
     borderRadius: 12,
     padding: 20,
-    color: "var(--text-1, #ece7f5)",
+    color: "var(--fg)",
     boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
   };
   const row: React.CSSProperties = {
@@ -249,8 +249,8 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
             marginTop: 10,
             padding: "8px 10px",
             borderRadius: 8,
-            background: "var(--surface-2, #221a2e)",
-            border: "1px solid var(--border, #3a2f4a)",
+            background: "var(--bg-sunken)",
+            border: "1px solid var(--border)",
             fontSize: 12,
           }}
         >

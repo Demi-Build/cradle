@@ -34,6 +34,22 @@ type EntitiesByType = Record<string, EntityRef[]>;
 export type LightboxImage = { src: string; alt: string };
 export type Route = "start" | "recents";
 export type Theme = "dark" | "light";
+/** One command-palette entry. `group` heads a section; `hint` renders in the
+ *  row's .kbd when the action also has a direct shortcut. `enabled === false`
+ *  keeps the row VISIBLE but inert — a hidden command is undiscoverable, and
+ *  "why can't I validate?" is answered by seeing it greyed with a reason. */
+export type Command = {
+  id: string;
+  label: string;
+  group: string;
+  run: () => void;
+  hint?: string;
+  /** Extra words that should match this command in search but aren't shown. */
+  keywords?: string;
+  enabled?: boolean;
+  /** Shown instead of running it when `enabled` is false. */
+  disabledReason?: string;
+};
 export type AudioTrack = {
   typeId: string;
   id: string;
@@ -88,6 +104,15 @@ type Store = {
   setNewProjectOpen: (open: boolean) => void;
   dashboardOpen: boolean;
   setDashboardOpen: (open: boolean) => void;
+  //: Command palette. `commands` is a REGISTRY, not a fixed list: whichever
+  //: surface is mounted contributes its own actions under a scope key and
+  //: withdraws them on unmount. The design puts the level editor's secondary
+  //: tools in "⌘K + dock tabs" — one definition, two surfaces.
+  paletteOpen: boolean;
+  setPaletteOpen: (open: boolean) => void;
+  commands: Record<string, Command[]>;
+  registerCommands: (scope: string, cmds: Command[]) => void;
+  unregisterCommands: (scope: string) => void;
   //: Background generation jobs (the queue tray). `jobs` is live in-memory
   //: state; terminal jobs are also written to the durable ledger.
   jobsOpen: boolean;
@@ -150,6 +175,8 @@ export const useStore = create<Store>((set, get) => ({
   drawerOpen: false,
   newProjectOpen: false,
   dashboardOpen: false,
+  paletteOpen: false,
+  commands: {},
   jobsOpen: false,
   jobs: [],
   lastCompletedJob: null,
@@ -178,6 +205,16 @@ export const useStore = create<Store>((set, get) => ({
   setError: (e) => set({ error: e }),
   setNewProjectOpen: (open) => set({ newProjectOpen: open }),
   setDashboardOpen: (open) => set({ dashboardOpen: open }),
+  setPaletteOpen: (open) => set({ paletteOpen: open }),
+  registerCommands: (scope, cmds) =>
+    set((s) => ({ commands: { ...s.commands, [scope]: cmds } })),
+  unregisterCommands: (scope) =>
+    set((s) => {
+      if (!(scope in s.commands)) return {};
+      const next = { ...s.commands };
+      delete next[scope];
+      return { commands: next };
+    }),
   setJobsOpen: (open) => set({ jobsOpen: open }),
   addJob: (job) => set((s) => ({ jobs: [...s.jobs, job] })),
   updateJob: (id, patch) =>
@@ -235,6 +272,9 @@ export const useStore = create<Store>((set, get) => ({
       jobs: [],
       lastCompletedJob: null,
       jobsOpen: false,
+      // Every registered command closes over the world that's going away.
+      paletteOpen: false,
+      commands: {},
       route: "start",
       ...INITIAL_AUDIO_STATE,
     }),

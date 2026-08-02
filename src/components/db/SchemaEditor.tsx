@@ -102,7 +102,7 @@ export function SchemaEditor({
 
   const label: React.CSSProperties = {
     fontSize: 11,
-    color: "var(--text-3, #8a8398)",
+    color: "var(--fg-dim)",
   };
   const num: React.CSSProperties = { width: 64 };
 
@@ -275,8 +275,8 @@ export function SchemaEditor({
         position: "fixed",
         top: 0, right: 0, bottom: 0,
         width: 360,
-        background: "var(--surface-1, #1a1420)",
-        borderLeft: "1px solid var(--border, #3a2f4a)",
+        background: "var(--bg-raised)",
+        borderLeft: "1px solid var(--border)",
         padding: 16,
         overflowY: "auto",
         zIndex: 40,
@@ -291,8 +291,8 @@ export function SchemaEditor({
               fontSize: 10,
               padding: "1px 7px",
               borderRadius: 8,
-              border: "1px solid var(--border, #3a2f4a)",
-              color: source === "pack" ? "var(--accent, #e2b714)" : "var(--text-3, #8a8398)",
+              border: "1px solid var(--border)",
+              color: source === "pack" ? "var(--accent)" : "var(--fg-dim)",
             }}
           >
             {source === "pack" ? "customized" : "default"}
@@ -300,7 +300,7 @@ export function SchemaEditor({
         )}
         <button onClick={onClose} style={{ cursor: "pointer" }}>✕</button>
       </div>
-      <p style={{ fontSize: 11, color: "var(--text-3, #8a8398)", margin: "0 0 8px" }}>
+      <p style={{ fontSize: 11, color: "var(--fg-dim)", margin: "0 0 8px" }}>
         The tables generation rolls from. Edits save as a <b>pack-local
         override</b> and apply to every future roll; existing rows are
         untouched. Canon validates before writing — a choice without its
@@ -309,7 +309,7 @@ export function SchemaEditor({
       {err && (
         <p style={{ color: "#e0453a", fontSize: 12, whiteSpace: "pre-wrap" }}>{err}</p>
       )}
-      {note && <p style={{ color: "var(--accent, #e2b714)", fontSize: 12 }}>{note}</p>}
+      {note && <p style={{ color: "var(--accent)", fontSize: 12 }}>{note}</p>}
       {!fields && !err && <p style={{ fontSize: 12 }}>Loading schema…</p>}
       {fields &&
         fieldNames.map((name) => {
@@ -343,10 +343,10 @@ export function SchemaEditor({
           onClick={save}
           style={{
             cursor: dirty ? "pointer" : "default",
-            background: dirty ? "var(--accent, #e2b714)" : undefined,
-            color: dirty ? "#1a1208" : undefined,
+            background: dirty ? "var(--accent)" : undefined,
+            color: dirty ? "var(--accent-ink)" : undefined,
             fontWeight: 600,
-            border: dirty ? "none" : "1px solid var(--border, #3a2f4a)",
+            border: dirty ? "none" : "1px solid var(--border)",
             borderRadius: 6,
             padding: "4px 12px",
             opacity: dirty ? 1 : 0.6,

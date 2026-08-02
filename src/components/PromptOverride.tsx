@@ -96,7 +96,7 @@ export function PromptOverride({
           style={{
             marginTop: 6,
             padding: 8,
-            border: "1px solid var(--border, #3a2f4a)",
+            border: "1px solid var(--border)",
             borderRadius: 8,
             background: "rgba(0,0,0,0.15)",
           }}

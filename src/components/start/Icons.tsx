@@ -39,6 +39,31 @@ export function IconSymbols() {
         <symbol id="g-plus" viewBox="0 0 16 16">
           <path d="M8 3v10M3 8h10" />
         </symbol>
+        {/* Level-editor tools. Same rules as the rest: 16px box, stroke-only,
+            square caps, no circles — the design rejected blobby iconography. */}
+        <symbol id="g-cursor" viewBox="0 0 16 16">
+          <path d="M3.5 2.5l9 4.5-4 1.2-1.6 3.8z" />
+        </symbol>
+        <symbol id="g-brush" viewBox="0 0 16 16">
+          <path d="M13 3l-6.5 6.5M9.5 4.5l2 2" />
+          <path d="M6.5 9.5l-2.5.8-.8 2.5 2.5-.8z" />
+        </symbol>
+        <symbol id="g-fill" viewBox="0 0 16 16">
+          <path d="M6 2.5l6 6-5 5-6-6z" />
+          <path d="M13.5 11c0 1-.7 1.7-1.5 1.7" />
+        </symbol>
+        <symbol id="g-eraser" viewBox="0 0 16 16">
+          <path d="M9 2.5l4.5 4.5-6 6H4L2.5 11.5z" />
+          <path d="M6 13H14" />
+        </symbol>
+        <symbol id="g-bounds" viewBox="0 0 16 16">
+          <path d="M2 2.5h12M2 13.5h12" />
+          <path d="M2.5 6h4M9.5 6h4M2.5 10h2M7 10h6" />
+        </symbol>
+        <symbol id="g-music" viewBox="0 0 16 16">
+          <path d="M6 12V3.5l7-1.2V11" />
+          <path d="M3 13.5h3V10H3zM10 12.5h3V9h-3z" />
+        </symbol>
         <symbol id="g-x" viewBox="0 0 16 16">
           <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
         </symbol>

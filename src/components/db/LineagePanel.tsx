@@ -175,7 +175,7 @@ export function LineagePanel({
   if (!tree) return <p style={{ fontSize: 13, padding: 16 }}>Loading lineage…</p>;
   if (tree.nodes.length === 0)
     return (
-      <p style={{ fontSize: 13, padding: 16, color: "var(--text-3, #8a8398)" }}>
+      <p style={{ fontSize: 13, padding: 16, color: "var(--fg-dim)" }}>
         No history yet — edits, regenerations, and uploads will appear here.
       </p>
     );
@@ -189,7 +189,7 @@ export function LineagePanel({
     <div style={{ padding: "8px 4px" }}>
       <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
         <strong style={{ fontSize: 14 }}>lineage · {artifactId}</strong>
-        <span style={{ fontSize: 11, color: "var(--text-3, #8a8398)" }}>
+        <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>
           {tree.metadata.total_nodes} version{tree.metadata.total_nodes === 1 ? "" : "s"} —
           nodes are content, edges are the ops between them; restore branches, never deletes
         </span>
@@ -198,10 +198,10 @@ export function LineagePanel({
             (large tree — showing a portion)
           </span>
         )}
-        {note && <span style={{ fontSize: 12, color: "var(--accent, #e2b714)" }}>{note}</span>}
+        {note && <span style={{ fontSize: 12, color: "var(--accent)" }}>{note}</span>}
       </div>
 
-      <div style={{ overflow: "auto", marginTop: 8, border: "1px solid var(--border, #3a2f4a)", borderRadius: 10 }}>
+      <div style={{ overflow: "auto", marginTop: 8, border: "1px solid var(--border)", borderRadius: 10 }}>
         <div style={{ position: "relative", width, height }}>
           <svg
             width={width}
@@ -266,13 +266,13 @@ export function LineagePanel({
                   // inside its card instead of painting over the card below.
                   maxHeight: ROW_H - 16,
                   overflowY: "auto",
-                  background: "var(--surface-1, #1a1420)",
+                  background: "var(--bg-raised)",
                   border: `2px solid ${
                     isRequested
-                      ? "var(--accent, #e2b714)"
+                      ? "var(--accent)"
                       : isCurrent
                         ? "#7bc98a"
-                        : "var(--border, #3a2f4a)"
+                        : "var(--border)"
                   }`,
                   borderRadius: 10,
                   padding: 8,
@@ -282,14 +282,14 @@ export function LineagePanel({
                 <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                   <span
                     style={{
-                      color: OP_TONE[node.op] ?? "var(--text-2, #d9cfe8)",
+                      color: OP_TONE[node.op] ?? "var(--fg-muted)",
                       fontWeight: 700,
                     }}
                   >
                     {node.op}
                   </span>
-                  <span style={{ color: "var(--text-3, #8a8398)" }}>{node.facet}</span>
-                  <span style={{ color: "var(--text-3, #8a8398)", marginLeft: "auto" }}>
+                  <span style={{ color: "var(--fg-dim)" }}>{node.facet}</span>
+                  <span style={{ color: "var(--fg-dim)", marginLeft: "auto" }}>
                     {shortHash(node.id)}
                   </span>
                 </div>
@@ -308,14 +308,14 @@ export function LineagePanel({
                       style={{
                         width: 56, height: 56, display: "inline-flex",
                         alignItems: "center", justifyContent: "center",
-                        background: "var(--surface-2, #2a2136)", borderRadius: 6,
+                        background: "var(--bg-hover)", borderRadius: 6,
                         fontSize: 20,
                       }}
                     >
                       {PNG_FACETS.has(node.facet) ? "🖼" : "📄"}
                     </span>
                   )}
-                  <div style={{ color: "var(--text-3, #8a8398)", lineHeight: 1.5 }}>
+                  <div style={{ color: "var(--fg-dim)", lineHeight: 1.5 }}>
                     <div>{shortTs(node.ts)}</div>
                     <div>{node.actor}</div>
                     {node.gen?.llm_model && <div>{node.gen.llm_model}</div>}
@@ -327,19 +327,19 @@ export function LineagePanel({
                   </div>
                 )}
                 {usageLevels.length > 0 && (
-                  <div style={{ color: "var(--text-3, #8a8398)", marginBottom: 4 }}>
+                  <div style={{ color: "var(--fg-dim)", marginBottom: 4 }}>
                     placed in {usageLevels.join(", ")}
                   </div>
                 )}
                 {node.gen?.prompt && (
                   <details style={{ marginBottom: 4 }}>
-                    <summary style={{ cursor: "pointer", color: "var(--text-3, #8a8398)" }}>
+                    <summary style={{ cursor: "pointer", color: "var(--fg-dim)" }}>
                       🗒 prompt
                     </summary>
                     <div
                       style={{
                         maxHeight: 120, overflow: "auto", whiteSpace: "pre-wrap",
-                        background: "var(--surface-2, #2a2136)", borderRadius: 6,
+                        background: "var(--bg-hover)", borderRadius: 6,
                         padding: 6, marginTop: 4,
                       }}
                     >
@@ -452,7 +452,7 @@ function CompareStrip({
   return (
     <div
       style={{
-        marginTop: 10, border: "1px solid var(--border, #3a2f4a)",
+        marginTop: 10, border: "1px solid var(--border)",
         borderRadius: 10, padding: 12, fontSize: 12,
       }}
     >
@@ -467,11 +467,11 @@ function CompareStrip({
         <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
           <figure style={{ margin: 0, textAlign: "center" }}>
             <img src={thumbs[a.id]} alt="then" style={{ width: 128, imageRendering: "pixelated", background: "#000" }} />
-            <figcaption style={{ color: "var(--text-3, #8a8398)" }}>then</figcaption>
+            <figcaption style={{ color: "var(--fg-dim)" }}>then</figcaption>
           </figure>
           <figure style={{ margin: 0, textAlign: "center" }}>
             <img src={thumbs[b.id]} alt="now" style={{ width: 128, imageRendering: "pixelated", background: "#000" }} />
-            <figcaption style={{ color: "var(--text-3, #8a8398)" }}>now</figcaption>
+            <figcaption style={{ color: "var(--fg-dim)" }}>now</figcaption>
           </figure>
           <figure style={{ margin: 0, textAlign: "center" }}>
             <div style={{ position: "relative", width: 128, height: 128, background: "#000" }}>
@@ -485,7 +485,7 @@ function CompareStrip({
                 }}
               />
             </div>
-            <figcaption style={{ color: "var(--text-3, #8a8398)" }}>
+            <figcaption style={{ color: "var(--fg-dim)" }}>
               onion skin{" "}
               <input
                 type="range"
@@ -501,11 +501,11 @@ function CompareStrip({
       ) : diff === null ? (
         <p>Loading diff…</p>
       ) : diff.length === 0 ? (
-        <p style={{ color: "var(--text-3, #8a8398)" }}>No field differences.</p>
+        <p style={{ color: "var(--fg-dim)" }}>No field differences.</p>
       ) : (
         <table style={{ borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ color: "var(--text-3, #8a8398)", textAlign: "left" }}>
+            <tr style={{ color: "var(--fg-dim)", textAlign: "left" }}>
               <th style={{ padding: "2px 10px 2px 0" }}>field</th>
               <th style={{ padding: "2px 10px 2px 0" }}>then</th>
               <th style={{ padding: "2px 10px 2px 0" }}>now</th>

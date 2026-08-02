@@ -40,7 +40,7 @@ export function TopBar() {
               <span
                 style={{
                   marginLeft: 5, fontSize: 10, fontWeight: 700, padding: "1px 6px",
-                  borderRadius: 999, background: "var(--accent, #e2b714)", color: "#1a1208",
+                  borderRadius: 999, background: "var(--accent)", color: "var(--accent-ink)",
                 }}
               >
                 {activeJobs}

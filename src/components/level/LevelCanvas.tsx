@@ -19,6 +19,7 @@ import {
   type RenderMode,
   type Selection,
 } from "./drawLevel";
+import type { Tool } from "./ToolRail";
 
 interface LevelCanvasProps {
   bundle: LevelBundle;
@@ -26,8 +27,12 @@ interface LevelCanvasProps {
   mode?: RenderMode;
   showGrid?: boolean;
   showLabels?: boolean;
+  showBounds?: boolean;
   selection?: Selection | null;
   brush?: Brush | null;
+  /** Active tool from the rail. `brush` says WHAT to paint; `tool` says what a
+   *  left-click DOES. Right-click erases regardless (user-locked). */
+  tool?: Tool;
   painted?: Set<string>;
   onSelect?: (sel: Selection | null) => void;
   onMove?: (sel: Selection, x: number, y: number) => void;
@@ -35,6 +40,7 @@ interface LevelCanvasProps {
   onPaint?: (x: number, y: number) => void;
   onPlace?: (x: number, y: number) => void;
   onErase?: (x: number, y: number) => void;
+  onFill?: (x: number, y: number) => void;
 }
 
 function useImageCache(urls: string[]): Record<string, HTMLImageElement> {
@@ -79,6 +85,8 @@ export function LevelCanvas({
   showLabels,
   selection = null,
   brush = null,
+  tool = "select",
+  showBounds,
   painted,
   onSelect,
   onMove,
@@ -86,6 +94,7 @@ export function LevelCanvas({
   onPaint,
   onPlace,
   onErase,
+  onFill,
 }: LevelCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -119,6 +128,7 @@ export function LevelCanvas({
     const camera: Camera = { ...cam.current, viewW: viewSize.w, viewH: viewSize.h };
     drawLevel(canvas, bundle, {
       scale, mode, images, showGrid, showLabels, selection, camera, painted,
+      showBounds,
     });
     setZoomPct(Math.round(cam.current.zoom * 100));
   };
@@ -212,6 +222,18 @@ export function LevelCanvas({
       onErase?.(cell.x, cell.y);
       return;
     }
+    // The ERASE tool makes left-click do what right-click always does.
+    if (tool === "erase") {
+      stroke.current = "erase";
+      onErase?.(cell.x, cell.y);
+      return;
+    }
+    // FILL is a single click, never a drag — flooding on pointer-move would
+    // repaint the whole region on every pixel of travel.
+    if (tool === "fill" && brush?.kind === "tile") {
+      onFill?.(cell.x, cell.y);
+      return;
+    }
     // An armed brush takes priority over select/pan.
     if (brush) {
       if (brush.kind === "tile") {
@@ -297,16 +319,6 @@ export function LevelCanvas({
     redraw();
   };
 
-  const btn: React.CSSProperties = {
-    background: "var(--surface-2, #2a2136)",
-    border: "1px solid var(--border, #3a2f4a)",
-    color: "var(--text-2, #d9cfe8)",
-    borderRadius: 6,
-    fontSize: 12,
-    padding: "2px 8px",
-    cursor: "pointer",
-  };
-
   return (
     <div
       ref={boxRef}
@@ -314,8 +326,8 @@ export function LevelCanvas({
         position: "relative",
         width: "100%",
         height: "min(68vh, 820px)",
-        background: "var(--surface-0, #0e0a12)",
-        border: "1px solid var(--border, #3a2f4a)",
+        background: "var(--bg)",
+        border: "1px solid var(--border)",
         borderRadius: 8,
         overflow: "hidden",
       }}
@@ -330,11 +342,11 @@ export function LevelCanvas({
         style={{ display: "block", imageRendering: "pixelated", cursor: "grab", touchAction: "none" }}
       />
       <div style={{ position: "absolute", right: 10, bottom: 10, display: "flex", gap: 6, alignItems: "center" }}>
-        <button style={btn} onClick={() => setZoom((z) => z / 1.25)} title="Zoom out">−</button>
-        <span style={{ ...btn, cursor: "default" }}>{zoomPct}%</span>
-        <button style={btn} onClick={() => setZoom((z) => z * 1.25)} title="Zoom in">+</button>
-        <button style={btn} onClick={fit} title="Fit level in view">fit</button>
-        <button style={btn} onClick={() => setZoom(() => 1)} title="Actual size">1:1</button>
+        <button className="btn" onClick={() => setZoom((z) => z / 1.25)} title="Zoom out">−</button>
+        <span className="btn" style={{ cursor: "default" }}>{zoomPct}%</span>
+        <button className="btn" onClick={() => setZoom((z) => z * 1.25)} title="Zoom in">+</button>
+        <button className="btn" onClick={fit} title="Fit level in view">fit</button>
+        <button className="btn" onClick={() => setZoom(() => 1)} title="Actual size">1:1</button>
       </div>
     </div>
   );

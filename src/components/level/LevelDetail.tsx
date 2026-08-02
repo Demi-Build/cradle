@@ -14,12 +14,15 @@ import { api, type CostEstimate, type ValidationReport } from "../../lib/invoke"
 import { fmtRange } from "../../lib/cost";
 import { enqueueJob } from "../../lib/jobs";
 import { countProblems } from "../../lib/validation";
+import { isShortcut, kbd } from "../../lib/keys";
 import { useStore } from "../../store";
 import { LevelCanvas } from "./LevelCanvas";
 import { PaletteRail } from "./PaletteRail";
 import { RegenerateLayoutModal } from "./RegenerateLayoutModal";
 import { ImproveLayoutModal } from "./ImproveLayoutModal";
 import { MusicPanel } from "./MusicPanel";
+import { ToolRail, type Tool } from "./ToolRail";
+import { floodFill } from "./gridOps";
 import type { Brush, LevelBundle, RenderMode, Selection } from "./drawLevel";
 
 const MODES: { id: RenderMode; label: string }[] = [
@@ -130,7 +133,25 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   const [showGrid, setShowGrid] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
   const [selection, setSelection] = useState<Selection | null>(null);
-  const [brush, setBrush] = useState<Brush | null>(null);
+  const [brush, setBrushState] = useState<Brush | null>(null);
+  // The tool rail makes the editor's previously-IMPLICIT mode visible: "select"
+  // used to mean "no brush armed" and nothing on screen said so. Tool and brush
+  // stay coupled — arming a palette entry switches to Paint, choosing Select
+  // disarms — so the rail always reflects what a click will actually do.
+  const [tool, setToolState] = useState<Tool>("select");
+  const setBrush = (b: Brush | null) => {
+    setBrushState(b);
+    if (b) setToolState(b.kind === "eraser" ? "erase" : "paint");
+    else setToolState("select");
+  };
+  const setTool = (t: Tool) => {
+    setToolState(t);
+    if (t === "select") setBrushState(null);
+    // Erase reuses the existing eraser brush so the palette row and the tool
+    // are the same state, not two competing ones.
+    else if (t === "erase") setBrushState({ kind: "eraser" });
+    else if (brush?.kind === "eraser") setBrushState(null);
+  };
   const [painted, setPainted] = useState<Set<string>>(new Set());
   const [dirty, setDirty] = useState<Set<DirtyLayer>>(new Set());
   const [save, setSave] = useState<SaveState>({ status: "idle" });
@@ -146,6 +167,7 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   const [regenOpen, setRegenOpen] = useState(false);
   const [improveOpen, setImproveOpen] = useState(false);
   const [musicOpen, setMusicOpen] = useState(false);
+  const [showBounds, setShowBounds] = useState(false);
 
   // Validation/play notes are per-level — drop them when switching levels.
   useEffect(() => {
@@ -324,6 +346,21 @@ export function LevelDetail({ levelId }: { levelId: string }) {
 
   const onPaint = (x: number, y: number) => {
     if (brush?.kind === "tile") paintTile(x, y, brush.tileType);
+  };
+
+  /** Flood-fill the connected run of same-typed cells with the armed tile. */
+  const onFill = (x: number, y: number) => {
+    const b = bundleRef.current;
+    if (!b || brush?.kind !== "tile") return;
+    const touched = floodFill(b.grids.collision, x, y, brush.tileType);
+    if (!touched.length) return;
+    markDirty("grids");
+    setPainted((p) => {
+      const next = new Set(p);
+      for (const k of touched) next.add(k);
+      return next;
+    });
+    setBundleSynced({ ...b });
   };
 
   const onPlace = (x: number, y: number) => {
@@ -584,6 +621,56 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     setImproveOpen(true);
   };
 
+  // The design moves the secondary tools into "⌘K + dock tabs". Registering
+  // them here means ONE definition serves both surfaces — the toolbar buttons
+  // and the palette call the same handlers. Withdrawn on unmount so a closed
+  // level never leaves stale commands (they close over this level's state).
+  const registerCommands = useStore((s) => s.registerCommands);
+  const unregisterCommands = useStore((s) => s.unregisterCommands);
+  useEffect(() => {
+    registerCommands("level", [
+      {
+        id: "level.save",
+        label: "Save this level",
+        group: `Level · ${levelId}`,
+        hint: kbd("S"),
+        enabled: dirty.size > 0,
+        disabledReason: "no unsaved edits",
+        run: () => void doSave(),
+      },
+      {
+        id: "level.validate",
+        label: "Validate this level",
+        group: `Level · ${levelId}`,
+        keywords: "check playable problems reachability",
+        run: () => void doValidate(),
+      },
+      {
+        id: "level.improve",
+        label: "Improve this level…",
+        group: `Level · ${levelId}`,
+        keywords: "llm refine instruction harder easier",
+        run: () => void openImprove(),
+      },
+      {
+        id: "level.layout",
+        label: "Regenerate the layout…",
+        group: `Level · ${levelId}`,
+        keywords: "redesign terrain blind",
+        run: () => void openRegen(),
+      },
+      {
+        id: "level.music",
+        label: "Music and regions…",
+        group: `Level · ${levelId}`,
+        keywords: "audio theme track sections",
+        run: () => setMusicOpen(true),
+      },
+    ]);
+    return () => unregisterCommands("level");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [levelId, dirty.size, registerCommands, unregisterCommands]);
+
   const publish = async () => {
     setSave({ status: "saving" });
     try {
@@ -599,12 +686,13 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     }
   };
 
-  // Keyboard: ⌘S save · Esc disarm brush/selection · Delete removes selection.
+  // Keyboard: mod+S save · Esc disarm brush/selection · Delete removes
+  // selection. `isShortcut` resolves the platform's primary modifier.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+      if (isShortcut(e, "s")) {
         e.preventDefault();
         void doSave();
         return;
@@ -641,13 +729,13 @@ export function LevelDetail({ levelId }: { levelId: string }) {
       style={{
         display: "inline-block",
         fontSize: 12,
-        fontFamily: "var(--font-mono, monospace)",
-        background: "var(--surface-2, #2a2136)",
-        border: `1px solid ${tone ?? "var(--border, #3a2f4a)"}`,
+        fontFamily: "var(--mono)",
+        background: "var(--bg-hover)",
+        border: `1px solid ${tone ?? "var(--border)"}`,
         borderRadius: 6,
         padding: "1px 8px",
         marginRight: 6,
-        color: tone ?? "var(--text-2, #d9cfe8)",
+        color: tone ?? "var(--fg-muted)",
       }}
     >
       {label}
@@ -656,17 +744,8 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   const btn = (label: string, onClick: () => void, accent = false): React.ReactNode => (
     <button
       onClick={onClick}
-      style={{
-        fontSize: 12,
-        padding: "3px 12px",
-        borderRadius: 7,
-        cursor: "pointer",
-        border: "1px solid var(--border, #3a2f4a)",
-        background: accent ? "var(--accent, #e2b714)" : "var(--surface-2, #2a2136)",
-        color: accent ? "#1a1208" : "var(--text-2, #d9cfe8)",
-        fontWeight: accent ? 600 : 400,
-        marginLeft: 8,
-      }}
+      className={accent ? "btn pri" : "btn"}
+      style={{ marginLeft: 8 }}
     >
       {label}
     </button>
@@ -689,18 +768,18 @@ export function LevelDetail({ levelId }: { levelId: string }) {
             style={{
               display: "inline-block",
               fontSize: 12,
-              fontFamily: "var(--font-mono, monospace)",
-              background: "var(--surface-2, #2a2136)",
-              border: "1px solid var(--border, #3a2f4a)",
+              fontFamily: "var(--mono)",
+              background: "var(--bg-hover)",
+              border: "1px solid var(--border)",
               borderRadius: 6,
               padding: "1px 8px",
               marginRight: 6,
-              color: "var(--text-3, #9a90ad)",
+              color: "var(--fg-dim)",
             }}
           >
             ⬡ {bundle.revision_short}
             {bundle.last_change && (
-              <span style={{ color: "var(--text-2, #d9cfe8)" }}>
+              <span style={{ color: "var(--fg-muted)" }}>
                 {" · "}
                 {bundle.last_change.label}
                 {bundle.last_change.ts ? ` · ${relTime(bundle.last_change.ts)}` : ""}
@@ -751,20 +830,12 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           <option value="fake">fake ($0)</option>
           <option value="anthropic">paid</option>
         </select>
-        <div style={{ display: "inline-flex", border: "1px solid var(--border, #3a2f4a)", borderRadius: 7, overflow: "hidden" }}>
+        <div className="segmented">
           {MODES.map((m) => (
             <button
               key={m.id}
               onClick={() => setMode(m.id)}
-              style={{
-                fontSize: 12,
-                padding: "3px 11px",
-                border: "none",
-                cursor: "pointer",
-                background: mode === m.id ? "var(--accent, #e2b714)" : "transparent",
-                color: mode === m.id ? "#1a1208" : "var(--text-2, #d9cfe8)",
-                fontWeight: mode === m.id ? 600 : 400,
-              }}
+              className={mode === m.id ? "seg-btn active" : "seg-btn"}
             >
               {m.label}
             </button>
@@ -785,29 +856,44 @@ export function LevelDetail({ levelId }: { levelId: string }) {
         <PaletteRail bundle={bundle} brush={brush} onBrush={setBrush} onReplaceArt={replaceArt} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <LevelCanvas
-            bundle={bundle}
-            scale={26}
-            mode={mode}
-            showGrid={showGrid}
-            showLabels={showLabels}
-            selection={selection}
-            brush={brush}
-            painted={painted}
-            onSelect={setSelection}
-            onMove={onMove}
-            onCommit={onCommit}
-            onPaint={onPaint}
-            onPlace={onPlace}
-            onErase={onErase}
-          />
+          {/* The rail floats over the CANVAS, so it anchors to a wrapper that
+              spans only the canvas — anchoring to the column would put it on
+              top of the hint row below. */}
+          <div style={{ position: "relative" }}>
+            <LevelCanvas
+              bundle={bundle}
+              scale={26}
+              mode={mode}
+              showGrid={showGrid}
+              showLabels={showLabels}
+              showBounds={showBounds}
+              selection={selection}
+              brush={brush}
+              tool={tool}
+              painted={painted}
+              onSelect={setSelection}
+              onMove={onMove}
+              onCommit={onCommit}
+              onPaint={onPaint}
+              onPlace={onPlace}
+              onErase={onErase}
+              onFill={onFill}
+            />
+            <ToolRail
+              tool={tool}
+              onTool={setTool}
+              showBounds={showBounds}
+              onToggleBounds={() => setShowBounds((v) => !v)}
+              onOpenMusic={() => setMusicOpen(true)}
+            />
+          </div>
           <div style={{ margin: "10px 2px 0", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <p style={{ margin: 0, color: "var(--text-3, #8a8398)", fontSize: 12, flex: 1, minWidth: 260 }}>
+            <p style={{ margin: 0, color: "var(--fg-dim)", fontSize: 12, flex: 1, minWidth: 260 }}>
               {brush
                 ? "Brush armed: left-click/drag paints · right-click/drag erases · Esc to disarm."
-                : "Click to select · drag to move · right-click erases a cell · Delete removes · drag space/scroll pans · ⌘S saves."}
+                : `Click to select · drag to move · right-click erases a cell · Delete removes · drag space/scroll pans · ${kbd("S")} saves.`}
             </p>
-            <label style={{ fontSize: 12, color: "var(--text-3, #8a8398)" }}>
+            <label style={{ fontSize: 12, color: "var(--fg-dim)" }}>
               W{" "}
               <input
                 type="number"
@@ -817,7 +903,7 @@ export function LevelDetail({ levelId }: { levelId: string }) {
                 style={{ width: 58 }}
               />
             </label>
-            <label style={{ fontSize: 12, color: "var(--text-3, #8a8398)" }}>
+            <label style={{ fontSize: 12, color: "var(--fg-dim)" }}>
               H{" "}
               <input
                 type="number"
@@ -850,8 +936,8 @@ export function LevelDetail({ levelId }: { levelId: string }) {
             style={{
               width: 250,
               flexShrink: 0,
-              background: "var(--surface-1, #1a1420)",
-              border: "1px solid var(--border, #3a2f4a)",
+              background: "var(--bg-raised)",
+              border: "1px solid var(--border)",
               borderRadius: 10,
               padding: 14,
               fontSize: 13,
@@ -931,18 +1017,18 @@ function Inspector({
 }) {
   const row = (k: string, v: React.ReactNode) => (
     <div style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "2px 0" }}>
-      <span style={{ color: "var(--text-3, #8a8398)" }}>{k}</span>
-      <span style={{ fontFamily: "var(--font-mono, monospace)", textAlign: "right" }}>{v}</span>
+      <span style={{ color: "var(--fg-dim)" }}>{k}</span>
+      <span style={{ fontFamily: "var(--mono)", textAlign: "right" }}>{v}</span>
     </div>
   );
   const actionBtn = (label: string, onClick: () => void, danger = false) => (
     <button
       onClick={onClick}
       style={{
-        background: "var(--surface-2, #2a2136)",
-        border: `1px solid ${danger ? "#e0453a" : "var(--border, #3a2f4a)"}`,
+        background: "var(--bg-hover)",
+        border: `1px solid ${danger ? "#e0453a" : "var(--border)"}`,
         borderRadius: 6,
-        color: danger ? "#e0453a" : "var(--accent, #e2b714)",
+        color: danger ? "#e0453a" : "var(--accent)",
         cursor: "pointer",
         fontSize: 12,
         padding: "3px 8px",
@@ -956,7 +1042,7 @@ function Inspector({
   const deletable = ["enemy", "item", "trigger"].includes(selection.kind);
   const switcher = (current: string, ids: string[]) => (
     <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 10 }}>
-      <span style={{ color: "var(--text-3, #8a8398)", fontSize: 12 }}>switch to</span>
+      <span style={{ color: "var(--fg-dim)", fontSize: 12 }}>switch to</span>
       <select
         value=""
         onChange={(e) => e.target.value && onSwitch(e.target.value)}
@@ -1033,8 +1119,8 @@ function Header({ title, sub, sprite, color }: { title: string; sub: string; spr
           width: 40,
           height: 40,
           borderRadius: 8,
-          background: color ?? "var(--surface-2, #2a2136)",
-          border: "1px solid var(--border, #3a2f4a)",
+          background: color ?? "var(--bg-hover)",
+          border: "1px solid var(--border)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -1045,7 +1131,7 @@ function Header({ title, sub, sprite, color }: { title: string; sub: string; spr
       </div>
       <div>
         <div style={{ fontWeight: 600, textTransform: "capitalize" }}>{title}</div>
-        <div style={{ color: "var(--text-3, #8a8398)", fontSize: 11 }}>{sub}</div>
+        <div style={{ color: "var(--fg-dim)", fontSize: 11 }}>{sub}</div>
       </div>
     </div>
   );
@@ -1072,7 +1158,7 @@ function ValidationPanel({ report }: { report: ValidationReport }) {
           ),
         );
       for (const [i, p] of (c.notes ?? []).entries())
-        rows.push(line("var(--text-3, #8a8398)", `${label}${c.name}: ${p}`, `${label}${c.name}n${i}`));
+        rows.push(line("var(--fg-dim)", `${label}${c.name}: ${p}`, `${label}${c.name}n${i}`));
     }
     for (const room of r.rooms ?? []) renderOne(room, `${room.level_id} · `);
   };
@@ -1081,15 +1167,15 @@ function ValidationPanel({ report }: { report: ValidationReport }) {
   return (
     <div
       style={{
-        border: "1px solid var(--border, #3a2f4a)",
+        border: "1px solid var(--border)",
         borderLeft: `3px solid ${report.ok ? "#3ddc84" : "#e0453a"}`,
         borderRadius: 8,
         padding: "8px 14px",
         margin: "0 0 12px",
-        background: "var(--surface-1, #1a1420)",
+        background: "var(--bg-raised)",
       }}
     >
-      <div style={{ fontSize: 11, color: "var(--text-3, #8a8398)", marginBottom: 2 }}>
+      <div style={{ fontSize: 11, color: "var(--fg-dim)", marginBottom: 2 }}>
         canon level validate · {report.ok ? "playable" : "NOT playable as-is"} —
         reachability simulated under this level's own physics
       </div>

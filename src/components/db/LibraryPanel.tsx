@@ -112,19 +112,19 @@ export function LibraryPanel() {
     fontSize: 10.5,
     padding: "1px 8px",
     borderRadius: 8,
-    border: "1px solid var(--border, #3a2f4a)",
-    color: "var(--text-3, #8a8398)",
+    border: "1px solid var(--border)",
+    color: "var(--fg-dim)",
   };
 
   return (
     <div style={{ padding: 16 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <strong style={{ fontSize: 15 }}>Asset library</strong>
-        <span style={{ fontSize: 11, color: "var(--text-3, #8a8398)" }}>
+        <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>
           published from any project · imports copy in with fresh ids + provenance
         </span>
         <span style={{ flex: 1 }} />
-        <div style={{ display: "inline-flex", border: "1px solid var(--border, #3a2f4a)", borderRadius: 7, overflow: "hidden" }}>
+        <div style={{ display: "inline-flex", border: "1px solid var(--border)", borderRadius: 7, overflow: "hidden" }}>
           {(["all", "project"] as const).map((s) => (
             <button
               key={s}
@@ -134,8 +134,8 @@ export function LibraryPanel() {
                 padding: "3px 11px",
                 border: "none",
                 cursor: "pointer",
-                background: scope === s ? "var(--accent, #e2b714)" : "transparent",
-                color: scope === s ? "#1a1208" : "var(--text-2, #d9cfe8)",
+                background: scope === s ? "var(--accent)" : "transparent",
+                color: scope === s ? "var(--accent-ink)" : "var(--fg-muted)",
                 fontWeight: scope === s ? 600 : 400,
               }}
             >
@@ -156,12 +156,12 @@ export function LibraryPanel() {
         />
       </div>
       {note && (
-        <p style={{ fontSize: 12, color: "var(--accent, #e2b714)", margin: "8px 0 0" }}>{note}</p>
+        <p style={{ fontSize: 12, color: "var(--accent)", margin: "8px 0 0" }}>{note}</p>
       )}
       {err && <p style={{ color: "#e0453a", fontSize: 13 }}>{err}</p>}
       {!entries && !err && <p style={{ fontSize: 13, marginTop: 12 }}>Loading library…</p>}
       {entries && entries.length === 0 && (
-        <p style={{ fontSize: 13, marginTop: 12, color: "var(--text-3, #8a8398)" }}>
+        <p style={{ fontSize: 13, marginTop: 12, color: "var(--fg-dim)" }}>
           Nothing here yet — publish an asset with ⬆ from an enemy or item page,
           or `canon library publish` from any pack.
         </p>
@@ -178,10 +178,10 @@ export function LibraryPanel() {
           <div
             key={entry.library_id}
             style={{
-              border: "1px solid var(--border, #3a2f4a)",
+              border: "1px solid var(--border)",
               borderRadius: 10,
               padding: 10,
-              background: "var(--surface-1, #1a1420)",
+              background: "var(--bg-raised)",
               fontSize: 12,
             }}
           >
@@ -200,7 +200,7 @@ export function LibraryPanel() {
                   style={{
                     width: 64, height: 64, display: "inline-flex",
                     alignItems: "center", justifyContent: "center",
-                    background: "var(--surface-2, #2a2136)", borderRadius: 6,
+                    background: "var(--bg-hover)", borderRadius: 6,
                     fontSize: 24,
                   }}
                 >
@@ -211,9 +211,9 @@ export function LibraryPanel() {
                 <div style={{ fontWeight: 650, overflow: "hidden", textOverflow: "ellipsis" }}>
                   {entry.name}
                 </div>
-                <div style={{ color: "var(--text-3, #8a8398)" }}>{entry.kind}</div>
+                <div style={{ color: "var(--fg-dim)" }}>{entry.kind}</div>
                 <div
-                  style={{ color: "var(--text-3, #8a8398)", overflow: "hidden", textOverflow: "ellipsis" }}
+                  style={{ color: "var(--fg-dim)", overflow: "hidden", textOverflow: "ellipsis" }}
                   title={entry.source.pack}
                 >
                   from {entry.source.world}
@@ -231,8 +231,8 @@ export function LibraryPanel() {
                   onClick={() => void doImport(entry)}
                   style={{
                     cursor: "pointer",
-                    background: "var(--accent, #e2b714)",
-                    color: "#1a1208",
+                    background: "var(--accent)",
+                    color: "var(--accent-ink)",
                     fontWeight: 600,
                     border: "none",
                     borderRadius: 6,

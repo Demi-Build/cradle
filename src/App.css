@@ -620,6 +620,140 @@ button.portrait-badge:hover {
   color: var(--fg-muted);
   border-color: var(--border);
 }
+/* Selected/active chip — accent border + text over a 10% accent wash. */
+.chip.on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: oklch(72% 0.13 78 / 0.1);
+}
+
+/* =========================================================
+   SHARED CHROME PRIMITIVES (design system)
+   One definition each, so surfaces can't drift the way the
+   hand-rolled inline style objects did. Specs are from the
+   design handoff's "Shared chrome primitives" table.
+   ========================================================= */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  line-height: 1.45;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease,
+    opacity 0.12s ease;
+}
+.btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+/* Primary: accent fill, no border, ink-on-accent. */
+.btn.pri {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+  font-weight: 500;
+}
+.btn.pri:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--accent-ink);
+  filter: brightness(1.06);
+}
+/* Destructive: red border + text, never a red fill (fills read as primary). */
+.btn.dang {
+  border-color: oklch(62% 0.18 25 / 0.55);
+  color: oklch(76% 0.16 25);
+}
+.btn.dang:hover:not(:disabled) {
+  background: oklch(62% 0.18 25 / 0.12);
+  color: oklch(76% 0.16 25);
+}
+
+/* 30x30 icon button (tool rails, zoom pills). */
+.tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+.tool:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.tool.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.tool:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Keyboard hint. The 2px bottom border is the keycap edge. */
+.kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--border-hi);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--bg-sunken);
+  color: var(--fg-muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+/* Tooltip panel. Positioning (right, flipped left on overflow, clamped to the
+   frame) is done by the component that owns it; this is the surface only. */
+.tip {
+  position: fixed;
+  z-index: 1200;
+  max-width: 214px;
+  padding: 7px 9px;
+  border: 1px solid var(--border-hi);
+  border-radius: 5px;
+  background: var(--bg-sunken);
+  box-shadow: var(--shadow-2);
+  pointer-events: none;
+}
+.tip-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--fg);
+}
+.tip-desc {
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--fg-dim);
+}
 
 .portrait {
   border-radius: var(--radius);
@@ -1637,6 +1771,42 @@ button.portrait-badge:hover {
 .val-item {
   font-variant-numeric: tabular-nums;
 }
+/* Floating tool rail over the level canvas (design: bottom-left of the stage).
+   Panel treatment matches the handoff's floating-panel spec. */
+.tool-rail {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-raised) 93%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.tool-rail-div {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--border-hi);
+}
+
+/* Right-aligned palette affordance in the statusbar. */
+.val-palette {
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.val-palette:hover {
+  opacity: 1;
+}
 .val-pending {
   color: var(--fg-dim);
 }
@@ -1671,17 +1841,23 @@ button.portrait-badge:hover {
   background: none;
   color: var(--fg-muted);
   border: 0;
-  padding: 4px 12px;
-  font-size: 11.5px;
+  padding: 2px 9px;
+  font-size: 11px;
   border-radius: 3px;
   cursor: pointer;
   font-family: inherit;
   font-weight: 500;
 }
+/* Selected: raised fill + an accent underline INSIDE the track. The earlier
+   --bg-raised + shadow-1 read as a floating card rather than a selection. */
 .seg-btn.active {
-  background: var(--bg-raised);
+  background: var(--bg-hover);
   color: var(--fg);
-  box-shadow: var(--shadow-1);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.seg-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 .dialogue-meta {
   color: var(--fg-dim);
@@ -2625,7 +2801,7 @@ button.portrait-badge:hover {
 .bible-hero-img {
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: var(--bg-elev);
+  background: var(--bg-sunken);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   margin-bottom: 8px;

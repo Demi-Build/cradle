@@ -82,9 +82,9 @@ export function PaletteRail({ bundle, brush, onBrush, onReplaceArt }: PaletteRai
     width: "100%",
     padding: "3px 8px",
     borderRadius: 6,
-    border: active ? "1px solid var(--accent, #e2b714)" : "1px solid transparent",
+    border: active ? "1px solid var(--accent)" : "1px solid transparent",
     background: active ? "rgba(226,183,20,0.12)" : "transparent",
-    color: "var(--text-1, #e8e4ee)",
+    color: "var(--fg)",
     cursor: "pointer",
     fontSize: 12,
     textAlign: "left",
@@ -101,7 +101,7 @@ export function PaletteRail({ bundle, brush, onBrush, onReplaceArt }: PaletteRai
     fontSize: 10,
     letterSpacing: 1,
     textTransform: "uppercase",
-    color: "var(--text-3, #8a8398)",
+    color: "var(--fg-dim)",
     margin: "10px 0 4px",
   };
 
@@ -130,8 +130,8 @@ export function PaletteRail({ bundle, brush, onBrush, onReplaceArt }: PaletteRai
       style={{
         width: 190,
         flexShrink: 0,
-        background: "var(--surface-1, #1a1420)",
-        border: "1px solid var(--border, #3a2f4a)",
+        background: "var(--bg-raised)",
+        border: "1px solid var(--border)",
         borderRadius: 10,
         padding: "8px 10px",
         maxHeight: "min(68vh, 820px)",
@@ -150,7 +150,7 @@ export function PaletteRail({ bundle, brush, onBrush, onReplaceArt }: PaletteRai
           >
             <span style={swatch(tileColor(bundle, slot.tile_type) ?? "#555")} />
             <span style={{ flex: 1 }}>{slot.name}</span>
-            <span style={{ color: "var(--text-3, #8a8398)", fontFamily: "monospace" }}>
+            <span style={{ color: "var(--fg-dim)", fontFamily: "monospace" }}>
               {slot.tile_type}
             </span>
             {artBtn(`tile:${bundle.stage_id}/${slot.name}`)}
@@ -174,10 +174,10 @@ export function PaletteRail({ bundle, brush, onBrush, onReplaceArt }: PaletteRai
               cursor: "pointer",
               border:
                 variant === v
-                  ? "1px solid var(--accent, #e2b714)"
-                  : "1px solid var(--border, #3a2f4a)",
+                  ? "1px solid var(--accent)"
+                  : "1px solid var(--border)",
               background: variant === v ? "rgba(226,183,20,0.12)" : "transparent",
-              color: "var(--text-2, #d9cfe8)",
+              color: "var(--fg-muted)",
             }}
           >
             {v ?? "normal"}
@@ -222,9 +222,9 @@ export function PaletteRail({ bundle, brush, onBrush, onReplaceArt }: PaletteRai
               borderRadius: 9,
               cursor: "pointer",
               border:
-                source === s ? "1px solid var(--accent, #e2b714)" : "1px solid var(--border, #3a2f4a)",
+                source === s ? "1px solid var(--accent)" : "1px solid var(--border)",
               background: source === s ? "rgba(226,183,20,0.12)" : "transparent",
-              color: "var(--text-2, #d9cfe8)",
+              color: "var(--fg-muted)",
             }}
           >
             {s}

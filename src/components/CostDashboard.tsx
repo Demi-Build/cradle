@@ -48,26 +48,26 @@ export function CostDashboard() {
     maxWidth: "92vw",
     maxHeight: "86vh",
     overflowY: "auto",
-    background: "var(--surface-1, #1a1522)",
-    border: "1px solid var(--border, #3a2f4a)",
+    background: "var(--bg-raised)",
+    border: "1px solid var(--border)",
     borderRadius: 12,
     padding: 22,
-    color: "var(--text-1, #ece7f5)",
+    color: "var(--fg)",
     boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
   };
   const tile: React.CSSProperties = {
     flex: 1,
     padding: "10px 12px",
     borderRadius: 8,
-    background: "var(--surface-2, #221a2e)",
-    border: "1px solid var(--border, #3a2f4a)",
+    background: "var(--bg-sunken)",
+    border: "1px solid var(--border)",
   };
   const th: React.CSSProperties = {
     textAlign: "left",
     fontWeight: 600,
     opacity: 0.7,
     padding: "4px 8px",
-    borderBottom: "1px solid var(--border, #3a2f4a)",
+    borderBottom: "1px solid var(--border)",
   };
   const td: React.CSSProperties = { padding: "4px 8px", fontSize: 12 };
   const tdNum: React.CSSProperties = { ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" };

@@ -256,7 +256,7 @@ fn regenerate_layout(
     if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
-    let args = with_prompt_override(args, "--system-prompt", system_override);
+    let args = with_opt_flag(args, "--system-prompt", system_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
@@ -292,7 +292,7 @@ fn improve_layout(
     if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
-    let args = with_prompt_override(args, "--system-prompt", system_override);
+    let args = with_opt_flag(args, "--system-prompt", system_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
@@ -358,7 +358,7 @@ fn generate_level(
     if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
-    let args = with_prompt_override(args, "--system-prompt", system_override);
+    let args = with_opt_flag(args, "--system-prompt", system_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
@@ -389,7 +389,7 @@ fn generate_level_music(
     ];
     if let Some(s) = section { args.push("--section".into()); args.push(s.to_string()); }
     if let Some(sec) = seconds { args.push("--seconds".into()); args.push(sec.to_string()); }
-    let args = with_prompt_override(args, "--prompt", prompt_override);
+    let args = with_opt_flag(args, "--prompt", prompt_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
@@ -452,10 +452,11 @@ fn place_items(
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
-/// Append a per-call prompt override (`--system-prompt` for LLM verbs,
-/// `--prompt` for image/audio verbs) when the user edited it in the UI. An
-/// absent or blank override adds nothing, so the built-in default runs.
-fn with_prompt_override(mut args: Vec<String>, flag: &str, value: Option<String>) -> Vec<String> {
+/// Append `--flag <value>` when the UI supplied one. An absent or blank value
+/// adds nothing, so canon's own default applies — which is what makes every
+/// optional knob (prompt overrides, backends, model ids) additive: leave the
+/// field empty and the call is byte-identical to not having the field.
+fn with_opt_flag(mut args: Vec<String>, flag: &str, value: Option<String>) -> Vec<String> {
     if let Some(text) = value {
         if !text.trim().is_empty() {
             args.push(flag.into());
@@ -605,7 +606,7 @@ fn db_new(
         args.push("--complete".into());
         args.push("--llm-backend".into());
         args.push(llm_backend.unwrap_or_else(|| "anthropic".into()));
-        args = with_prompt_override(args, "--system-prompt", system_override);
+        args = with_opt_flag(args, "--system-prompt", system_override);
     }
     run_canon_owned(with_env_file(args))
 }
@@ -631,7 +632,7 @@ fn db_complete(
         args.push("--locked".into());
         args.push(locked.join(","));
     }
-    let args = with_prompt_override(args, "--system-prompt", system_override);
+    let args = with_opt_flag(args, "--system-prompt", system_override);
     run_canon_owned(with_env_file(args))
 }
 
@@ -733,6 +734,35 @@ fn estimate_level(
     if let Some(w) = width {
         args.push("--width".into());
         args.push(w.to_string());
+    }
+    let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    run_canon_module(&refs)
+}
+
+/// Pre-run cost estimate for animating ONE actor. Priced BY STATES (one
+/// img2img edit per state per facing) plus one VLM authoring call unless
+/// `reuse_spec`. fake/none = $0 with the counts still shown.
+///
+/// Like the other estimate verbs this imports `examples.*`, so it goes through
+/// `run_canon_module` (`python -m canon.cli.main`), NOT the console script.
+#[tauri::command]
+fn estimate_asset(
+    path: String,
+    target: String,
+    op: String,
+    image_backend: String,
+    vlm_backend: String,
+    reuse_spec: bool,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<String> = vec![
+        "asset".into(), "estimate".into(), root, "--target".into(), target,
+        "--op".into(), op,
+        "--image-backend".into(), image_backend,
+        "--vlm-backend".into(), vlm_backend,
+    ];
+    if reuse_spec {
+        args.push("--reuse-spec".into());
     }
     let refs: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
     run_canon_module(&refs)
@@ -1077,33 +1107,33 @@ fn generate_asset(
     path: String,
     target: String,
     image_backend: Option<String>,
+    image_model: Option<String>,
+    image_edit_model: Option<String>,
+    image_edit_backend: Option<String>,
     music_backend: Option<String>,
     sfx_backend: Option<String>,
     prompt_override: Option<String>,
     job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
-    let mut args: Vec<String> = vec![
+    let args: Vec<String> = vec![
         "asset".into(), "generate".into(), root, "--target".into(), target,
         "--actor".into(), "cradle:user".into(),
     ];
-    if let Some(b) = image_backend {
-        args.push("--image-backend".into());
-        args.push(b);
-    }
-    if let Some(b) = music_backend {
-        args.push("--music-backend".into());
-        args.push(b);
-    }
-    if let Some(b) = sfx_backend {
-        args.push("--sfx-backend".into());
-        args.push(b);
-    }
-    let args = with_prompt_override(args, "--prompt", prompt_override);
+    let args = with_opt_flag(args, "--image-backend", image_backend);
+    let args = with_opt_flag(args, "--image-model", image_model);
+    let args = with_opt_flag(args, "--image-edit-model", image_edit_model);
+    let args = with_opt_flag(args, "--image-edit-backend", image_edit_backend);
+    let args = with_opt_flag(args, "--music-backend", music_backend);
+    let args = with_opt_flag(args, "--sfx-backend", sfx_backend);
+    let args = with_opt_flag(args, "--prompt", prompt_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
 /// Animate one actor (multi-image path) via `canon asset animate`.
+///
+/// Carries canon's FULL parameter set: only `fal` and `fake` implement
+/// `ImageEditBackend`, so only they can animate — the UI gates on that.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 fn animate_asset(
@@ -1112,26 +1142,32 @@ fn animate_asset(
     path: String,
     target: String,
     image_backend: Option<String>,
+    image_model: Option<String>,
+    image_edit_model: Option<String>,
+    image_edit_backend: Option<String>,
     vlm_backend: Option<String>,
+    vlm_model: Option<String>,
     reuse_spec: bool,
+    prompt_override: Option<String>,
     job_id: String,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
-    let mut args: Vec<String> = vec![
+    let args: Vec<String> = vec![
         "asset".into(), "animate".into(), root, "--target".into(), target,
         "--actor".into(), "cradle:user".into(),
     ];
-    if let Some(b) = image_backend {
-        args.push("--image-backend".into());
-        args.push(b);
-    }
-    if let Some(b) = vlm_backend {
-        args.push("--vlm-backend".into());
-        args.push(b);
-    }
+    let args = with_opt_flag(args, "--image-backend", image_backend);
+    let args = with_opt_flag(args, "--image-model", image_model);
+    let args = with_opt_flag(args, "--image-edit-model", image_edit_model);
+    let args = with_opt_flag(args, "--image-edit-backend", image_edit_backend);
+    let args = with_opt_flag(args, "--vlm-backend", vlm_backend);
+    let args = with_opt_flag(args, "--vlm-model", vlm_model);
+    let mut args = args;
     if reuse_spec {
         args.push("--reuse-spec".into());
     }
+    // Inert under --reuse-spec (which never authors); canon says so too.
+    let args = with_opt_flag(args, "--prompt", prompt_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
 
@@ -1243,6 +1279,7 @@ pub fn run() {
             baseline_level,
             estimate_world,
             estimate_level,
+            estimate_asset,
             spend_record,
             spend_list,
             get_bundled_demo_path,

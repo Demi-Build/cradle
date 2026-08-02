@@ -133,8 +133,8 @@ export function MusicPanel({
   };
   const card: React.CSSProperties = {
     width: 520, maxWidth: "92vw", maxHeight: "88vh", overflowY: "auto",
-    background: "var(--surface-1, #1a1522)", border: "1px solid var(--border, #3a2f4a)",
-    borderRadius: 12, padding: 20, color: "var(--text-1, #ece7f5)",
+    background: "var(--bg-raised)", border: "1px solid var(--border)",
+    borderRadius: 12, padding: 20, color: "var(--fg)",
     boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
   };
   const h4: React.CSSProperties = { margin: "16px 0 6px", fontSize: 13, opacity: 0.85 };

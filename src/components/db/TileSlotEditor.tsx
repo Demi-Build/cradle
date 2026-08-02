@@ -151,18 +151,18 @@ export function TileSlotEditor({
     <section style={{ marginTop: 16 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
         <h3 style={{ margin: "0 0 4px", fontSize: 14 }}>tile gameplay knobs</h3>
-        <span style={{ fontSize: 11, color: "var(--text-3, #8a8398)" }}>
+        <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>
           per tile type — all its slots update together; art/structure stay untouched
         </span>
       </div>
       {note && (
-        <p style={{ fontSize: 11, color: "var(--accent, #e2b714)", margin: "2px 0 6px" }}>
+        <p style={{ fontSize: 11, color: "var(--accent)", margin: "2px 0 6px" }}>
           {note}
         </p>
       )}
       <table style={{ borderCollapse: "collapse" }}>
         <thead>
-          <tr style={{ color: "var(--text-3, #8a8398)", fontSize: 11, textAlign: "left" }}>
+          <tr style={{ color: "var(--fg-dim)", fontSize: 11, textAlign: "left" }}>
             <th style={cell}>tile</th>
             <th style={cell}>slots</th>
             <th style={cell}>collision</th>
@@ -180,9 +180,9 @@ export function TileSlotEditor({
             const set = dirtySet(name, base);
             const dirty = Object.keys(set).length > 0;
             return (
-              <tr key={name} style={{ borderTop: "1px solid var(--border, #3a2f4a)" }}>
+              <tr key={name} style={{ borderTop: "1px solid var(--border)" }}>
                 <td style={{ ...cell, fontWeight: 600 }}>{name}</td>
-                <td style={{ ...cell, color: "var(--text-3, #8a8398)" }}>{group.length}</td>
+                <td style={{ ...cell, color: "var(--fg-dim)" }}>{group.length}</td>
                 <td style={cell}>
                   <select
                     value={editFor(name).collision ?? base.collision}
@@ -195,11 +195,11 @@ export function TileSlotEditor({
                 </td>
                 <td style={cell}>
                   {Object.keys(base.knobs).length === 0 && (
-                    <span style={{ color: "var(--text-3, #8a8398)" }}>—</span>
+                    <span style={{ color: "var(--fg-dim)" }}>—</span>
                   )}
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     {Object.entries(base.knobs).map(([k, v]) => (
-                      <label key={k} style={{ fontSize: 11, color: "var(--text-3, #8a8398)" }}>
+                      <label key={k} style={{ fontSize: 11, color: "var(--fg-dim)" }}>
                         {k}{" "}
                         {knobInput(name, k, v)}
                       </label>
@@ -213,8 +213,8 @@ export function TileSlotEditor({
                       onClick={() => save(name, set)}
                       style={{
                         cursor: "pointer",
-                        background: "var(--accent, #e2b714)",
-                        color: "#1a1208",
+                        background: "var(--accent)",
+                        color: "var(--accent-ink)",
                         fontWeight: 600,
                         border: "none",
                         borderRadius: 6,

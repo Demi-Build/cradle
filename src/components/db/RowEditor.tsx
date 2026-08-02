@@ -183,7 +183,7 @@ export function RowEditor({
 
   const label: React.CSSProperties = {
     fontSize: 11,
-    color: "var(--text-3, #8a8398)",
+    color: "var(--fg-dim)",
     display: "block",
     marginTop: 8,
   };
@@ -260,8 +260,8 @@ export function RowEditor({
         position: "fixed",
         top: 0, right: 0, bottom: 0,
         width: 320,
-        background: "var(--surface-1, #1a1420)",
-        borderLeft: "1px solid var(--border, #3a2f4a)",
+        background: "var(--bg-raised)",
+        borderLeft: "1px solid var(--border)",
         padding: 16,
         overflowY: "auto",
         zIndex: 40,
@@ -274,7 +274,7 @@ export function RowEditor({
         </strong>
         <button onClick={close} style={{ cursor: "pointer" }}>✕</button>
       </div>
-      <p style={{ fontSize: 11, color: "var(--text-3, #8a8398)", margin: "0 0 8px" }}>
+      <p style={{ fontSize: 11, color: "var(--fg-dim)", margin: "0 0 8px" }}>
         {editing ? (
           <>
             Values land <b>verbatim</b> — no rerolls, no LLM. Canon rehashes,
@@ -288,7 +288,7 @@ export function RowEditor({
         )}
       </p>
       {err && <p style={{ color: "#e0453a", fontSize: 12 }}>{err}</p>}
-      {note && <p style={{ color: "var(--accent, #e2b714)", fontSize: 12 }}>{note}</p>}
+      {note && <p style={{ color: "var(--accent)", fontSize: 12 }}>{note}</p>}
       {!spec && !err && <p style={{ fontSize: 12 }}>Loading field spec…</p>}
       {spec && (
         <>
@@ -387,8 +387,8 @@ export function RowEditor({
                 onClick={save}
                 style={{
                   cursor: dirty ? "pointer" : "default",
-                  background: dirty ? "var(--accent, #e2b714)" : undefined,
-                  color: dirty ? "#1a1208" : undefined,
+                  background: dirty ? "var(--accent)" : undefined,
+                  color: dirty ? "var(--accent-ink)" : undefined,
                   fontWeight: 600,
                   border: dirty ? "none" : undefined,
                   borderRadius: 6,
@@ -410,8 +410,8 @@ export function RowEditor({
                   onClick={() => create(true)}
                   style={{
                     cursor: "pointer",
-                    background: "var(--accent, #e2b714)",
-                    color: "#1a1208",
+                    background: "var(--accent)",
+                    color: "var(--accent-ink)",
                     fontWeight: 600,
                     border: "none",
                     borderRadius: 6,

@@ -147,6 +147,8 @@ export interface DrawOpts {
   /** Cells painted since the last save ("x,y") — drawn flat over art until
    * the save re-derives real terrain slots. */
   painted?: Set<string>;
+  /** Draw the play bounds: ceiling, floor, kill plane and DROP columns. */
+  showBounds?: boolean;
 }
 
 const PALETTE_KEY: Record<string, string> = {
@@ -261,6 +263,7 @@ export function drawLevel(canvas: HTMLCanvasElement, bundle: LevelBundle, opts: 
 
   if (mode === "overlay") drawCollisionTint(ctx, bundle, scale);
   if (opts.showGrid || mode === "overlay") drawGrid(ctx, W, H, scale);
+  if (opts.showBounds) drawBounds(ctx, bundle, scale);
 
   // Selection highlight — a dashed amber box on the selected handle's cell.
   if (opts.selection) {
@@ -276,6 +279,108 @@ export function drawLevel(canvas: HTMLCanvasElement, bundle: LevelBundle, opts: 
       ctx.restore();
     }
   }
+}
+
+// --- bounds --------------------------------------------------------------
+
+/** The play envelope, drawn explicitly rather than left to be inferred from
+ *  where the tiles happen to stop: the ceiling, the floor, the kill plane
+ *  below it, and the DROP columns — gaps in the bottom row that a player
+ *  falls through. Everything here is derived from the collision grid, so it
+ *  stays honest when terrain is painted.
+ */
+function drawBounds(ctx: CanvasRenderingContext2D, bundle: LevelBundle, scale: number) {
+  const W = bundle.grid_width;
+  const H = bundle.grid_height;
+  const grid = bundle.grids.collision;
+  const solid = (x: number, y: number) => {
+    const slot = bundle.tiles_by_type[String(grid[y]?.[x] ?? 0)];
+    return slot?.collision === "solid" || slot?.collision === "one_way";
+  };
+
+  const chip = (text: string, x: number, y: number, color: string, ink: string) => {
+    ctx.save();
+    ctx.font = `600 ${Math.max(8, scale * 0.34)}px ui-monospace, monospace`;
+    const padding = scale * 0.16;
+    const w = ctx.measureText(text).width + padding * 2;
+    const h = scale * 0.52;
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y - h / 2, w, h);
+    ctx.fillStyle = ink;
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, x + padding, y);
+    ctx.restore();
+  };
+
+  ctx.save();
+
+  // DROP columns first, so the lines land on top of the bands. A column whose
+  // bottom row has nothing solid is a hole the player can fall out of.
+  const dropRun: { start: number; len: number }[] = [];
+  for (let x = 0; x < W; x++) {
+    if (solid(x, H - 1)) continue;
+    const last = dropRun[dropRun.length - 1];
+    if (last && last.start + last.len === x) last.len += 1;
+    else dropRun.push({ start: x, len: 1 });
+  }
+  for (const run of dropRun) {
+    const gx = run.start * scale;
+    const gw = run.len * scale;
+    const grad = ctx.createLinearGradient(0, 0, 0, H * scale);
+    grad.addColorStop(0, "rgba(224, 69, 58, 0.02)");
+    grad.addColorStop(1, "rgba(224, 69, 58, 0.20)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(gx, 0, gw, H * scale);
+    ctx.strokeStyle = "rgba(224, 69, 58, 0.55)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(gx + 0.5, 0);
+    ctx.lineTo(gx + 0.5, H * scale);
+    ctx.moveTo(gx + gw - 0.5, 0);
+    ctx.lineTo(gx + gw - 0.5, H * scale);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (gw >= scale * 1.6) {
+      chip("DROP", gx + scale * 0.16, H * scale - scale * 1.2, "rgba(224,69,58,0.85)", "#fff");
+    }
+  }
+
+  // Ceiling — dashed, at the very top of the grid.
+  ctx.strokeStyle = "rgba(232, 230, 223, 0.5)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(0, 0.5);
+  ctx.lineTo(W * scale, 0.5);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  chip(`CEILING y0`, scale * 0.3, scale * 0.42, "rgba(20,21,25,0.85)", "#e8e6df");
+
+  // Floor — solid accent, along the TOP edge of the last row (what the player
+  // actually stands on).
+  const floorY = (H - 1) * scale;
+  ctx.strokeStyle = "oklch(72% 0.13 78)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, floorY);
+  ctx.lineTo(W * scale, floorY);
+  ctx.stroke();
+  chip(`FLOOR y${H - 1}`, scale * 0.3, floorY - scale * 0.42, "oklch(72% 0.13 78)", "#2b2205");
+
+  // Kill plane — the bottom of the grid. Below it is out of play.
+  const killY = H * scale;
+  ctx.strokeStyle = "rgba(224, 69, 58, 0.9)";
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([7, 4]);
+  ctx.beginPath();
+  ctx.moveTo(0, killY - 0.75);
+  ctx.lineTo(W * scale, killY - 0.75);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  chip(`KILL PLANE y${H}`, scale * 0.3, killY - scale * 0.42, "rgba(224,69,58,0.9)", "#fff");
+
+  ctx.restore();
 }
 
 // --- terrain -------------------------------------------------------------

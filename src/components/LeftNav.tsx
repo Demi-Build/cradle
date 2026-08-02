@@ -114,9 +114,9 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
     padding: "2px 8px",
     cursor: "pointer",
     borderRadius: 5,
-    border: "1px solid var(--border, #3a2f4a)",
-    background: mode === m ? "var(--accent, #b98a3a)" : "transparent",
-    color: mode === m ? "#1a1420" : "var(--text-2, #d9cfe8)",
+    border: "1px solid var(--border)",
+    background: mode === m ? "var(--accent)" : "transparent",
+    color: mode === m ? "var(--accent-ink)" : "var(--fg-muted)",
   });
   return (
     <div style={{ padding: "6px 10px 8px 26px", display: "flex", flexDirection: "column", gap: 5 }}>
@@ -192,7 +192,7 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
       >
         {busy ? (mode === "blank" ? "creating…" : "generating…") : mode === "blank" ? "create draft" : "generate draft"}
       </button>
-      {note && <div style={{ fontSize: 10, color: "var(--text-3, #8a8398)" }}>{note}</div>}
+      {note && <div style={{ fontSize: 10, color: "var(--fg-dim)" }}>{note}</div>}
     </div>
   );
 }
@@ -338,9 +338,9 @@ export function LeftNav() {
             padding: "3px 12px",
             borderRadius: 7,
             cursor: "pointer",
-            border: "1px solid var(--border, #3a2f4a)",
-            background: "var(--accent, #e2b714)",
-            color: "#1a1208",
+            border: "1px solid var(--border)",
+            background: "var(--accent)",
+            color: "var(--accent-ink)",
             fontWeight: 600,
           }}
         >

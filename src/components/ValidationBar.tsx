@@ -1,8 +1,10 @@
 import { countProblems } from "../lib/validation";
+import { kbd } from "../lib/keys";
 import { useStore } from "../store";
 
 export function ValidationBar() {
   const { world, selection, levelValidation } = useStore();
+  const setPaletteOpen = useStore((s) => s.setPaletteOpen);
   const current =
     selection.kind === "entity" && selection.typeId === "levels"
       ? levelValidation[selection.id]
@@ -32,6 +34,15 @@ export function ValidationBar() {
               ? "(canon level validate — reachability simulated under the level's own physics)"
               : "(validation trail wiring lands when canon emits it)"}
           </span>
+          {/* Right-aligned palette hint — the design puts it here, and it's
+              the only place the shortcut is discoverable without knowing it. */}
+          <button
+            className="val-palette"
+            onClick={() => setPaletteOpen(true)}
+            title="Open the command palette"
+          >
+            <span className="kbd">{kbd("K")}</span>
+          </button>
         </>
       ) : (
         <span className="val-hint">No world loaded.</span>

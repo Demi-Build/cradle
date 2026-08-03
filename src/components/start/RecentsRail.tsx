@@ -6,12 +6,20 @@ import { Icon } from "./Icons";
 import { RecentTile } from "./RecentTile";
 import { DeleteProjectDialog } from "./DeleteProjectDialog";
 
+/** How many projects the start-page rail shows before deferring to the
+ *  projects page. Ten is two comfortable flicks; beyond that the rail stops
+ *  being a shortcut. */
+const RAIL_MAX = 10;
+
 export function RecentsRail({
   recents,
+  excludePath,
   onOpenRecent,
   onAddNew,
 }: {
   recents: RecentProject[];
+  /** Path of the project shown in the hero — excluded so it isn't listed twice. */
+  excludePath?: string;
   onOpenRecent: (path: string) => void;
   onAddNew: () => void;
 }) {
@@ -26,7 +34,17 @@ export function RecentsRail({
   const [showHidden, setShowHidden] = useState(false);
   const [deleting, setDeleting] = useState<RecentProject | null>(null);
   const hiddenCount = recents.filter((r) => r.hidden).length;
-  const visible = showHidden ? recents : recents.filter((r) => !r.hidden);
+  // The hero already IS the most recent project, in full. Repeating it as the
+  // first card spent a slot saying nothing new — and made the row read as one
+  // more project than the tier actually allows.
+  const pool = excludePath ? recents.filter((r) => r.path !== excludePath) : recents;
+  const all = showHidden ? pool : pool.filter((r) => !r.hidden);
+  // The rail is a shortcut, not a browser. Past RAIL_MAX the scroller turns
+  // into an endless flick and the real answer is the projects page — which
+  // already exists (route "recents"), so "See all" is the overflow, not a
+  // second implementation.
+  const visible = all.slice(0, RAIL_MAX);
+  const overflow = all.length - visible.length;
 
   useEffect(() => {
     update();
@@ -44,13 +62,17 @@ export function RecentsRail({
       setCanPrev(e.scrollLeft > 2);
       setCanNext(e.scrollLeft < e.scrollWidth - e.clientWidth - 2);
     }
-  }, [recents.length]);
+  }, [recents.length, visible.length]);
 
   return (
     <>
       <section className="recents-rail">
         <div className="rail-head">
-          Recent <span className="count">· {visible.length}</span>
+          Recent{" "}
+          <span className="count">
+            · {visible.length}
+            {overflow > 0 ? ` of ${all.length}` : ""}
+          </span>
           {hiddenCount > 0 && (
             <button className="hidden-notice" onClick={() => setShowHidden((v) => !v)}>
               {hiddenCount} hidden from view · {showHidden ? "hide" : "show"}
@@ -74,7 +96,9 @@ export function RecentsRail({
           </button>
         </div>
         <button className="see-all" onClick={() => setRoute("recents")}>
-          See all {recents.length} projects →
+          {overflow > 0
+            ? `See all ${recents.length} projects →`
+            : `All projects →`}
         </button>
       </section>
 

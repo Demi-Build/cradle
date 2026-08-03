@@ -8,6 +8,10 @@ export type RecentProject = {
   seed?: string | number;
   rooms?: number;
   npcs?: number;
+  /** Platformer packs count these instead of rooms/npcs, so a card can say
+   *  something true about either kind of project. */
+  levels?: number;
+  enemies?: number;
   events?: number;
   quests?: number;
   cost?: number;
@@ -48,7 +52,13 @@ export function saveRecents(recents: RecentProject[]): void {
 
 export function upsertRecent(recents: RecentProject[], next: RecentProject): RecentProject[] {
   const filtered = recents.filter((r) => r.path !== next.path);
-  const merged = [next, ...filtered].slice(0, MAX_RECENTS);
+  // Order by WHEN IT WAS OPENED, not by when it was last written to this list.
+  // The start page enriches every recent on mount, and each enrichment used to
+  // re-insert its project at the front — so the hero showed whichever one
+  // happened to finish LAST, which is a race, not a choice.
+  const merged = [next, ...filtered]
+    .sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0))
+    .slice(0, MAX_RECENTS);
   saveRecents(merged);
   return merged;
 }

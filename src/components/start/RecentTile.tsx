@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { RecentProject } from "../../lib/recents";
-import { envKeyFor } from "../../lib/recents";
+import { envKeyFor, relativeTimeFrom } from "../../lib/recents";
 import { envImageFor } from "./envImages";
 import { useAssetUrl } from "./useAssetUrl";
 import { RecentMenu } from "./RecentMenu";
@@ -23,12 +23,34 @@ export function RecentTile({
   // The anchor rect is captured at open time; the menu portals out of the
   // tile so an `overflow: hidden` scroller can't clip it.
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  // The meta line has to say something true about EITHER kind of project:
+  // MazeWorld counts rooms and NPCs, a platformer counts levels and enemies.
+  // Previously this only knew the MazeWorld fields, so every platformer card
+  // rendered an empty strip under its name.
+  const count = (n: number | undefined, one: string, many: string) =>
+    n === undefined ? null : `${n} ${n === 1 ? one : many}`;
   const sub = [
+    count(recent.levels, "level", "levels"),
+    count(recent.enemies, "enemy", "enemies"),
+    count(recent.rooms, "room", "rooms"),
+    count(recent.npcs, "NPC", "NPCs"),
     typeof recent.seed === "number" ? `seed ${recent.seed}` : null,
-    recent.rooms !== undefined ? `${recent.rooms} rooms` : null,
   ]
     .filter(Boolean)
+    .slice(0, 2)
     .join(" · ");
+  // Footer: the design's status dot + a plain-language last-touched. `warn`
+  // and `failed` are the only states worth colouring — a green dot on every
+  // card is decoration, not information.
+  const status = recent.validation;
+  const statusLabel =
+    status === "failed"
+      ? "validation failed"
+      : status === "warn"
+        ? "has warnings"
+        : status === "bundled"
+          ? "bundled demo"
+          : "ready";
   return (
     <div className="recent-tile-wrap" data-hidden={recent.hidden ? "1" : "0"}>
       <button className="recent-tile" onClick={onClick} title={recent.path}>
@@ -38,7 +60,12 @@ export function RecentTile({
         </div>
         <div className="meta">
           <div className="t">{recent.storyTitle ?? recent.name}</div>
-          <div className="sub">{sub}</div>
+          {sub && <div className="sub">{sub}</div>}
+          <div className="fo">
+            <span className={`st ${status === "failed" || status === "warn" ? "w" : ""}`} />
+            {statusLabel}
+            <span className="fo-when">{relativeTimeFrom(recent.lastOpenedAt)}</span>
+          </div>
         </div>
       </button>
       {onToggleHidden && onDelete && (

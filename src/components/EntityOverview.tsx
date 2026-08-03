@@ -10,7 +10,7 @@ import { RoomStory } from "./room/RoomStory";
 import { MonsterStatBlock, MonsterAbilities } from "./monster/MonsterStatBlock";
 import { AudioPlayer } from "./AudioPlayer";
 import { useStore } from "../store";
-import { api } from "../lib/invoke";
+import { api, type AnimPreviewMode } from "../lib/invoke";
 import { fmtRange, fmtUsd } from "../lib/cost";
 import { enqueueJob } from "../lib/jobs";
 import { Icon } from "./start/Icons";
@@ -1027,6 +1027,10 @@ function GenActions({
   const [spritePrompt, setSpritePrompt] = useState<string | null>(null);
   const [rowPrompt, setRowPrompt] = useState<string | null>(null);
   const [animating, setAnimating] = useState(false);
+  // Which way the preview buttons below play the actor. `grid` judges one
+  // pose; `sequence` judges a TRANSITION. Rides on the existing buttons
+  // rather than adding two more of them.
+  const [animMode, setAnimMode] = useState<AnimPreviewMode>("grid");
   const kind =
     typeId === "enemies" ? "enemy" : typeId === "player" ? "player" : "item";
   const id = String(
@@ -1044,7 +1048,15 @@ function GenActions({
       setNote(`${c.op} failed — see ⚙ Jobs`);
     } else {
       setNote(`${c.op} done — ${c.changed ? "updated ✓" : "no change"}`);
-      select({ kind: "entity", typeId, id: entityId ?? id });
+      // A finished animate run lands you on the Animation tab: it already
+      // renders the resulting sheet at 6× with the grid, content box and
+      // baseline, so the modal has no reason to duplicate a preview.
+      select({
+        kind: "entity",
+        typeId,
+        id: entityId ?? id,
+        ...(c.op === "animate" && c.changed ? { tab: "animation" } : {}),
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastCompletedJob]);
@@ -1171,7 +1183,7 @@ function GenActions({
       )}
       {(kind === "enemy" || kind === "player") && (
         <button className="btn" disabled={!!busy} onClick={() => setAnimating(true)}>
-          {busy === "animate" ? "…" : "🎬 Animate…"}
+          {busy === "animate" ? "…" : "🎬 Generate animation"}
         </button>
       )}
       {animating && (
@@ -1205,24 +1217,47 @@ function GenActions({
           }}
         />
       )}
-      {/* Watch the animation in the SAME surfaces that render the game —
-          every state side by side, on the game's own frame timing. Both
+      {/* Watch the animation in the SAME surfaces that render the game. Both
           engines, because "does it look right?" means right in BOTH. Native
-          only (each launches a real play surface). */}
+          only (each launches a real play surface). The mode selector rides on
+          these two buttons rather than adding two more. */}
+      <div className="segmented" role="group" aria-label="Preview mode">
+        {(
+          [
+            ["grid", "Grid", "Every state side by side on its own clock — judge one pose"],
+            [
+              "sequence",
+              "Sequence",
+              "jump → fall → land as one motion, driven by the game's own state selection — judge a transition",
+            ],
+          ] as const
+        ).map(([m, label, why]) => (
+          <button
+            key={m}
+            className={`seg-btn ${animMode === m ? "active" : ""}`}
+            aria-pressed={animMode === m}
+            disabled={!!busy}
+            title={why}
+            onClick={() => setAnimMode(m)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       {(["pygame", "godot"] as const).map((engine) => (
         <button
           key={engine}
           className="btn"
           disabled={!!busy}
-          title={`Play this actor's animation states in ${engine}`}
+          title={`Play this actor's animation in ${engine} (${animMode} mode)`}
           onClick={() => {
             setNote(null);
             void api
-              .previewAnimation(worldPath, target, engine)
+              .previewAnimation(worldPath, target, engine, animMode)
               .then((r) =>
                 setNote(
                   r.launched
-                    ? `${engine} preview opened — ESC in that window to close`
+                    ? `${engine} ${animMode} preview opened — TAB switches mode, ESC closes`
                     : (r.note ?? "preview is native-only"),
                 ),
               )
@@ -1232,6 +1267,36 @@ function GenActions({
           {`▶ Preview (${engine})`}
         </button>
       ))}
+      {/* The SANDBOX answers the one question neither viewer mode can: how
+          does it FEEL. A flat room, no win condition, and a HUD naming the
+          state the game picked and why. Player only — it is the player's
+          movement being judged. Two calls: canon scaffolds the room (cradle
+          never writes pack files), then we play it. */}
+      {kind === "player" && (
+        <button
+          className="btn"
+          disabled={!!busy}
+          title="Play a flat room with no win condition and a live state HUD — for judging how the movement feels"
+          onClick={() => {
+            setNote(null);
+            setBusy("sandbox");
+            void api
+              .sandboxLevel(worldPath)
+              .then((r) => api.playSandbox(worldPath, r.level_id))
+              .then((r) =>
+                setNote(
+                  r.launched
+                    ? "sandbox opened — move around; ESC closes"
+                    : (r.note ?? "sandbox is native-only"),
+                ),
+              )
+              .catch((e) => setNote(String(e).slice(0, 160)))
+              .finally(() => setBusy(null));
+          }}
+        >
+          {busy === "sandbox" ? "…" : "🏃 Sandbox"}
+        </button>
+      )}
       {note && (
         <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>{note}</span>
       )}

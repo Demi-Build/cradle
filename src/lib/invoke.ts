@@ -1,5 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 
+/** How the animation viewer plays an actor. `grid` puts every state side by
+ *  side on its own clock — right for judging ONE pose. `sequence` walks the
+ *  storyboard through the game's own state ladder, so `jump → fall → land`
+ *  plays as the single motion it is. A toggle, not a replacement. */
+export type AnimPreviewMode = "grid" | "sequence";
+
 export type EntityTypeCount = { type_id: string; count: number };
 export type WorldSummary = {
   path: string;
@@ -272,6 +278,9 @@ export type AnimState = {
   /** Feet moving between frames of one state — reads as bobbing. */
   foot_wander: number;
 };
+/** One state's motion, as authored by a previous animate run: actor-specific,
+ *  and therefore truer than the generic brief. */
+export type MotionSpecEntry = { frames?: number; motion?: string };
 export type AnimationInfo = {
   target: string;
   label: string;
@@ -282,6 +291,14 @@ export type AnimationInfo = {
   flush_states: string[];
   /** More than one flush state ⇒ the states were squared separately. */
   independently_sized: boolean;
+  /** What an animate run works FROM — the sprite it edits, the states it will
+   *  author, the generic per-state brief, and any spec already stored on this
+   *  actor. `spec` is empty for the player in runner-built packs (no bible). */
+  base_sprite: string;
+  base_sprite_abs: string | null;
+  planned_states: string[];
+  briefs: Record<string, string>;
+  spec: Record<string, MotionSpecEntry>;
 };
 export type AnimEditPatch = {
   offsets?: [number, number][] | null;
@@ -728,15 +745,34 @@ export const api = {
     path: string,
     target: string,
     engine: "pygame" | "godot" = "pygame",
+    animMode: AnimPreviewMode = "grid",
   ) =>
     engine === "godot"
       ? invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>(
           "play_game",
-          { path, levelId: null, animTarget: target },
+          { path, levelId: null, animTarget: target, animMode },
         )
       : invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>(
           "play_level",
-          { path, levelId: "l1", plain: false, animTarget: target },
+          { path, levelId: "l1", plain: false, animTarget: target, animMode },
+        ),
+  /** Scaffold-or-reuse the flat draft room the sandbox plays in, then play it
+   *  with no win condition and the state HUD. Two calls because cradle never
+   *  writes pack files — the room comes from a canon verb. */
+  sandboxLevel: (path: string) =>
+    invoke<{ level_id: string; stage_id: string; created: boolean }>(
+      "sandbox_level",
+      { path },
+    ),
+  playSandbox: (path: string, levelId: string, engine: "pygame" | "godot" = "pygame") =>
+    engine === "godot"
+      ? invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>(
+          "play_game",
+          { path, levelId, sandbox: true },
+        )
+      : invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>(
+          "play_level",
+          { path, levelId, plain: false, sandbox: true },
         ),
   playLevel: (path: string, levelId: string, plain = false) =>
     invoke<{ launched: boolean; engine?: string; note?: string }>("play_level", { path, levelId, plain }),

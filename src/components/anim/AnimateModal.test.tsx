@@ -31,6 +31,19 @@ beforeEach(() => {
   vi.spyOn(api, "previewPrompt").mockResolvedValue({
     kind: "animate", label: "plat:sprite_animation", mode: "vlm", prompt: "default",
   });
+  // The modal now shows what the run works FROM, so it reads the actor.
+  vi.spyOn(api, "animInspect").mockResolvedValue({
+    animation: {
+      target: "player", label: "player", sprite_dir: "sprite/player",
+      has_atlas: true, atlas_path_abs: null, states: [], flush_states: [],
+      independently_sized: false,
+      base_sprite: "sprite/player/base.png",
+      base_sprite_abs: "/__mockassets__/sprite/player/base.png",
+      planned_states: ["idle", "walk", "jump"],
+      briefs: { idle: "at rest", walk: "moving along", jump: "the RISING launch" },
+      spec: {},
+    },
+  } as unknown as { animation: never });
 });
 
 describe("AnimateModal", () => {
@@ -50,7 +63,7 @@ describe("AnimateModal", () => {
     await waitFor(() => expect(api.estimateAsset).toHaveBeenCalled());
     expect(vi.mocked(api.estimateAsset).mock.calls[0][1]).toBe("player");
 
-    await userEvent.click(screen.getByRole("button", { name: /^Animate ·/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^Generate ·/ }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     expect(onSubmit.mock.calls[0][0].backends).toEqual({
       image: "fal",
@@ -76,7 +89,7 @@ describe("AnimateModal", () => {
     render(
       <AnimateModal worldPath="/w" target="enemy:x" onClose={() => {}} onSubmit={onSubmit} />,
     );
-    await userEvent.click(screen.getByRole("button", { name: /^Animate ·/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^Generate ·/ }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     const o = onSubmit.mock.calls[0][0];
     expect(o.imageModel).toBeUndefined();
@@ -94,7 +107,7 @@ describe("AnimateModal", () => {
       screen.getByPlaceholderText("fal-ai/nano-banana/edit"),
       "fal-ai/some-other/edit",
     );
-    await userEvent.click(screen.getByRole("button", { name: /^Animate ·/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^Generate ·/ }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     expect(onSubmit.mock.calls[0][0].imageEditModel).toBe("fal-ai/some-other/edit");
   });
@@ -112,7 +125,7 @@ describe("AnimateModal", () => {
         vlmBackend: "none",
       });
     });
-    await userEvent.click(screen.getByRole("button", { name: /^Animate ·/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^Generate ·/ }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     const o = onSubmit.mock.calls[0][0];
     expect(o.reuseSpec).toBe(true);
@@ -129,7 +142,44 @@ describe("AnimateModal", () => {
       screen.getByRole("combobox", { name: /Vision backend/i }),
       "none",
     );
-    expect(screen.getByRole("button", { name: /^Animate ·/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^Generate ·/ })).toBeDisabled();
     expect(screen.getByText(/Pick a vision backend/)).toBeInTheDocument();
+  });
+
+  it("shows what the run works from — the base sprite and each state's brief", async () => {
+    // The dialog used to be backend dropdowns and a bare prompt box: it never
+    // showed the sprite being edited or what a state was supposed to mean.
+    render(
+      <AnimateModal worldPath="/w" target="player" onClose={() => {}} onSubmit={vi.fn()} />,
+    );
+    const img = await screen.findByAltText(/base sprite/i);
+    expect(img).toHaveAttribute("src", "/__mockassets__/sprite/player/base.png");
+    for (const state of ["idle", "walk", "jump"]) {
+      expect(await screen.findByText(state)).toBeInTheDocument();
+    }
+    expect(screen.getByText(/the RISING launch/)).toBeInTheDocument();
+  });
+
+  it("prefers a stored motion spec over the generic brief", async () => {
+    // The stored spec describes how THIS drawing moves, so it is truer than
+    // the generic per-state brief the vocabulary ships.
+    vi.mocked(api.animInspect).mockResolvedValue({
+      animation: {
+        target: "enemy:eel", label: "eel", sprite_dir: "sprite/enemy/eel",
+        has_atlas: true, atlas_path_abs: null, states: [], flush_states: [],
+        independently_sized: false,
+        base_sprite: "sprite/enemy/eel/base.png",
+        base_sprite_abs: "/__mockassets__/sprite/enemy/eel/base.png",
+        planned_states: ["walk"],
+        briefs: { walk: "actively moving along its path" },
+        spec: { walk: { frames: 4, motion: "sinuous S-curve ripples head to tail" } },
+      },
+    } as unknown as { animation: never });
+    render(
+      <AnimateModal worldPath="/w" target="enemy:eel" onClose={() => {}} onSubmit={vi.fn()} />,
+    );
+    expect(await screen.findByText(/sinuous S-curve/)).toBeInTheDocument();
+    expect(screen.queryByText(/actively moving along its path/)).toBeNull();
+    expect(screen.getByText("walk·4")).toBeInTheDocument();
   });
 });

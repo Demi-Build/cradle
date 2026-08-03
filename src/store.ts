@@ -395,7 +395,12 @@ export const useStore = create<Store>((set, get) => ({
         };
         next.storyTitle = bible.story?.title ?? summary.name;
         next.synopsis = bible.story?.synopsis;
-      } catch {}
+      } catch {
+        // A pack with no world bible (platformer) or an unreadable one must
+        // not BLANK a summary we already knew — keep the last good values.
+        next.storyTitle = existing?.storyTitle ?? next.storyTitle;
+        next.synopsis = existing?.synopsis ?? next.synopsis;
+      }
       try {
         const manifest = (await api.readWorldJson(path, "manifest")) as {
           seed?: string | number;
@@ -422,6 +427,10 @@ export const useStore = create<Store>((set, get) => ({
         next.validation = validationFrom(manifest.validation_report);
       } catch {}
       if (!next.rooms) next.rooms = summary.entity_counts.find((c) => c.type_id === "rooms")?.count;
+      if (!next.levels)
+        next.levels = summary.entity_counts.find((c) => c.type_id === "levels")?.count;
+      if (!next.enemies)
+        next.enemies = summary.entity_counts.find((c) => c.type_id === "enemies")?.count;
       if (!next.npcs) next.npcs = summary.entity_counts.find((c) => c.type_id === "npcs")?.count;
       if (!next.events)
         next.events = summary.entity_counts.find((c) => c.type_id === "events")?.count;

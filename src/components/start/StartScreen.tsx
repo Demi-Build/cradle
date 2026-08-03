@@ -97,6 +97,7 @@ export function StartScreen() {
         {mode === "returning" && (
           <RecentsRail
             recents={recents}
+            excludePath={last?.path}
             onOpenRecent={(p) => loadWorldByPath(p)}
             onAddNew={openFromDisk}
           />

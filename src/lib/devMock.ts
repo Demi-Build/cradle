@@ -690,11 +690,27 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
     case "play_level":
       return {
         launched: false,
-        mode: args.animTarget ? "anim" : "play",
+        mode: args.animTarget ? "anim" : args.sandbox ? "sandbox" : "play",
         note: args.animTarget
-          ? `mock: the animation viewer for ${args.animTarget} opens in the native app`
-          : "mock: playtesting launches from the native app",
+          ? `mock: the ${String(args.animMode ?? "grid")} animation viewer for ${args.animTarget} opens in the native app`
+          : args.sandbox
+            ? "mock: the movement sandbox opens in the native app"
+            : "mock: playtesting launches from the native app",
       };
+    case "get_world_bible":
+      // MazeWorld-shaped: the hero renders story.synopsis under the title.
+      return {
+        story: {
+          title: "The Wandering Wick",
+          synopsis:
+            "A lantern-lit autumn forest where the light you carry is the " +
+            "only thing keeping the hollows at bay. Three areas, nine levels, " +
+            "and something older than the grove waiting at the end.",
+        },
+      };
+    case "sandbox_level":
+      // Mock the canon verb: a reserved-id draft room, idempotent.
+      return { level_id: "sandbox", stage_id: "mock_stage", created: false };
     case "provider_keys":
       // Mock: pretend the usual keys are present so paid gates are reachable
       // headless; the native app reports what it can actually see.
@@ -705,10 +721,12 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
     case "play_game":
       return {
         launched: false,
-        mode: args.animTarget ? "anim" : "play",
+        mode: args.animTarget ? "anim" : args.sandbox ? "sandbox" : "play",
         note: args.animTarget
-          ? `mock: the Godot animation viewer for ${args.animTarget} opens in the native app`
-          : "mock: playtesting launches from the native app",
+          ? `mock: the Godot ${String(args.animMode ?? "grid")} animation viewer for ${args.animTarget} opens in the native app`
+          : args.sandbox
+            ? "mock: the Godot movement sandbox opens in the native app"
+            : "mock: playtesting launches from the native app",
       };
     case "db_schema": {
       const t = String(args.entityType);
@@ -897,6 +915,20 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
           states,
           flush_states: flush,
           independently_sized: flush.length > 1,
+          // What an animate run works FROM (the Generate-animation dialog).
+          base_sprite: "sprite/player/base.png",
+          base_sprite_abs: "/__mockassets__/sprite/player/base.png",
+          planned_states: ["idle", "walk", "jump", "fall", "land", "skid"],
+          briefs: {
+            idle: "at rest / holding position",
+            walk: "actively moving along its path",
+            jump: "the RISING launch — a compact crouch then push-off, moving UP",
+            fall: "the DESCENT past the peak — body stretched tall and vertical",
+            land: "the touchdown SQUASH — body compressed low and WIDE",
+            skid: "braking against carried momentum — torso leaned BACK",
+          },
+          // Empty like a runner-built pack's player: the briefs carry it.
+          spec: {},
         },
       };
     }

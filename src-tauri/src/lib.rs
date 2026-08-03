@@ -179,6 +179,14 @@ fn create_level(path: String, stage_id: String, width: u32, height: u32) -> Resu
     ])
 }
 
+/// Create-or-reuse the flat DRAFT room the movement sandbox plays in.
+/// Idempotent (reserved level id), so repeat launches journal nothing.
+#[tauri::command]
+fn sandbox_level(path: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&["level", "sandbox", &root, "--actor", "cradle:user"])
+}
+
 /// Scaffold a fresh platformer project via `canon world new` (the fake
 /// pipeline — $0, no API keys), returning the created pack path for the
 /// frontend to open. The pack dir is `<parent>/<slug(name)>`.
@@ -862,10 +870,10 @@ fn engine_sync(path: String, dry_run: bool, force: bool) -> Result<Value, String
 /// The PLAT_* hooks turn the play surfaces into scripted/headless sessions
 /// (capture, trajectory dumps, forced start level, plain rendering) — strip
 /// them all so Play starts from a clean slate, then set only what we mean.
-const PLAT_HOOK_VARS: [&str; 10] = [
+const PLAT_HOOK_VARS: [&str; 12] = [
     "PLAT_CAPTURE", "PLAT_TRAJ", "PLAT_HOLD", "PLAT_HOLD_JUMP_EVERY",
     "PLAT_ACTIONS", "PLAT_CAPTURE_TICKS", "PLAT_CAPTURE_EVERY", "PLAT_LEVEL",
-    "PLAT_PLAIN", "PLAT_ANIM",
+    "PLAT_PLAIN", "PLAT_ANIM", "PLAT_ANIM_MODE", "PLAT_SANDBOX",
 ];
 
 /// Reap the detached child (a dropped Child is never waited on → zombie)
@@ -895,6 +903,8 @@ fn play_level(
     level_id: String,
     plain: Option<bool>,
     anim_target: Option<String>,
+    anim_mode: Option<String>,
+    sandbox: Option<bool>,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let repo = canon_repo_root()?;
@@ -927,6 +937,19 @@ fn play_level(
     let previewing = anim_target.as_deref().unwrap_or("").trim().to_string();
     if !previewing.is_empty() {
         cmd.env("PLAT_ANIM", &previewing);
+        // grid = every state on its own clock (judge one pose); sequence =
+        // the chain through the game's own state ladder (judge a transition).
+        if let Some(m) = anim_mode.as_deref().map(str::trim) {
+            if !m.is_empty() {
+                cmd.env("PLAT_ANIM_MODE", m);
+            }
+        }
+    }
+    // The SANDBOX plays a level with no win condition and a HUD naming the
+    // animation state the game picked and why — "how does it feel".
+    let sandboxing = sandbox.unwrap_or(false);
+    if sandboxing {
+        cmd.env("PLAT_SANDBOX", "1");
     }
     let child = cmd
         .spawn()
@@ -936,7 +959,8 @@ fn play_level(
         "launched": true,
         "engine": "pygame",
         "pid": pid,
-        "mode": if previewing.is_empty() { "play" } else { "anim" },
+        "mode": if !previewing.is_empty() { "anim" }
+                else if sandboxing { "sandbox" } else { "play" },
     }))
 }
 
@@ -949,6 +973,8 @@ fn play_game(
     path: String,
     level_id: Option<String>,
     anim_target: Option<String>,
+    anim_mode: Option<String>,
+    sandbox: Option<bool>,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     // A pack generated without the godot engine has nothing to boot — say
@@ -987,13 +1013,23 @@ fn play_game(
             // PLAT_ANIM opens the animation viewer instead of the game — the
             // Godot half of "watch it in both surfaces".
             cmd.env("PLAT_ANIM", &previewing);
+            if let Some(m) = anim_mode.as_deref().map(str::trim) {
+                if !m.is_empty() {
+                    cmd.env("PLAT_ANIM_MODE", m);
+                }
+            }
+        }
+        let sandboxing = sandbox.unwrap_or(false);
+        if sandboxing {
+            cmd.env("PLAT_SANDBOX", "1");
         }
         match cmd.spawn() {
             Ok(child) => {
                 let pid = reap_and_notify(app.clone(), child, "godot");
                 return Ok(serde_json::json!({
                     "launched": true, "engine": "godot", "pid": pid,
-                    "mode": if previewing.is_empty() { "play" } else { "anim" },
+                    "mode": if !previewing.is_empty() { "anim" }
+                            else if sandboxing { "sandbox" } else { "play" },
                 }));
             }
             // Every candidate's failure matters — a broken GODOT_BIN is the
@@ -1341,6 +1377,7 @@ pub fn run() {
             generate_asset,
             animate_asset,
             create_level,
+            sandbox_level,
             new_project,
             regenerate_layout,
             improve_layout,

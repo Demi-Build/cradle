@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, type CostEstimate } from "../../lib/invoke";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { api, type AnimationInfo, type CostEstimate } from "../../lib/invoke";
 import { fmtRange, fmtUsd } from "../../lib/cost";
 import { PromptOverride } from "../PromptOverride";
 
@@ -72,6 +73,33 @@ export function AnimateModal({
   const [prompt, setPrompt] = useState<string | null>(null);
   const [est, setEst] = useState<CostEstimate | null>(null);
   const [busy, setBusy] = useState(false);
+  // What the run actually works FROM. Without this the dialog was backend
+  // dropdowns and a bare prompt box — it never showed the sprite being edited
+  // or what each state is supposed to mean.
+  const [info, setInfo] = useState<AnimationInfo | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    api
+      .animInspect(worldPath, target)
+      .then((r) => live && setInfo(r.animation))
+      .catch(() => live && setInfo(null));
+    return () => {
+      live = false;
+    };
+  }, [worldPath, target]);
+
+  const baseAbs = info?.base_sprite_abs ?? null;
+  const baseSrc = baseAbs
+    ? baseAbs.startsWith("/__mockassets__")
+      ? baseAbs
+      : convertFileSrc(baseAbs)
+    : null;
+  // Prefer the STORED spec — it describes how this particular drawing moves,
+  // authored by a previous run against this very sprite. The generic brief is
+  // the fallback for an actor that has never been animated.
+  const planned = info?.planned_states ?? [];
+  const specFor = (s: string) => info?.spec?.[s];
 
   const anyPaid = imageBackend === "fal" || (!reuseSpec && vlmBackend === "anthropic");
   // canon refuses this pair up front ("animate needs --vlm-backend (or
@@ -198,12 +226,105 @@ export function AnimateModal({
   return (
     <div style={overlay} onClick={() => !busy && onClose()}>
       <div style={card} onClick={(e) => e.stopPropagation()}>
-        <h3 style={{ margin: "0 0 4px" }}>Animate {name ?? target}</h3>
+        <h3 style={{ margin: "0 0 4px" }}>Generate animation — {name ?? target}</h3>
         <p style={{ margin: "0 0 14px", fontSize: 12, opacity: 0.7, lineHeight: 1.4 }}>
-          A vision model authors a per-state motion spec from the sprite, then one
-          img2img sheet is generated per state (idle / walk / hurt / death…). The
-          sheets are sliced into frame strips and a packed atlas.
+          A vision model authors a per-state motion spec from the sprite below, then
+          one img2img sheet is generated per state. The sheets are sliced into frame
+          strips and a packed atlas — inspect the result in the <b>Animation</b> tab.
         </p>
+
+        {/* THE INPUTS — the sprite this run edits, and what each state means.
+            Shown before the backend knobs because they are what determines
+            whether the result will be any good. */}
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            padding: 10,
+            borderRadius: 8,
+            background: "var(--bg-sunken)",
+            border: "1px solid var(--border)",
+            marginBottom: 14,
+          }}
+        >
+          <div style={{ flex: "none", textAlign: "center" }}>
+            {baseSrc ? (
+              <img
+                src={baseSrc}
+                alt={`${name ?? target} base sprite`}
+                width={64}
+                height={64}
+                style={{
+                  imageRendering: "pixelated",
+                  background: "var(--bg)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 6,
+                  objectFit: "contain",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  display: "grid",
+                  placeItems: "center",
+                  border: "1px dashed var(--border-hi)",
+                  borderRadius: 6,
+                  fontSize: 10,
+                  color: "var(--fg-dim)",
+                }}
+              >
+                no sprite
+              </div>
+            )}
+            <div style={{ fontSize: 9.5, color: "var(--fg-dim)", marginTop: 4 }}>
+              base sprite
+            </div>
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 11.5, opacity: 0.75, marginBottom: 5 }}>
+              {planned.length
+                ? `${planned.length} states — ${
+                    info?.spec && Object.keys(info.spec).length
+                      ? "motion stored from a previous run"
+                      : "the motion brief each will be authored against"
+                  }`
+                : "reading this actor…"}
+            </div>
+            <div style={{ maxHeight: 132, overflowY: "auto", paddingRight: 4 }}>
+              {planned.map((s) => {
+                const sp = specFor(s);
+                const text = sp?.motion || info?.briefs?.[s] || "";
+                return (
+                  <div key={s} style={{ display: "flex", gap: 7, margin: "3px 0" }}>
+                    <code
+                      style={{
+                        fontSize: 10.5,
+                        flex: "none",
+                        minWidth: 40,
+                        color: sp ? "var(--fg)" : "var(--fg-muted)",
+                      }}
+                    >
+                      {s}
+                      {sp?.frames ? `·${sp.frames}` : ""}
+                    </code>
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        lineHeight: 1.45,
+                        color: "var(--fg-dim)",
+                        minWidth: 0,
+                      }}
+                    >
+                      {text}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
         {sel("Image edit backend", imageBackend, setImageBackend, EDIT_BACKENDS)}
         <div style={{ fontSize: 11, opacity: 0.6, margin: "-2px 0 8px", lineHeight: 1.45 }}>
@@ -294,7 +415,11 @@ export function AnimateModal({
             disabled={busy || blocked !== null}
             style={{ cursor: "pointer", fontWeight: 600 }}
           >
-            {busy ? "Queueing…" : anyPaid ? `Animate · ${fmtRange(est?.total_usd)}` : "Animate · $0"}
+            {busy
+              ? "Queueing…"
+              : anyPaid
+                ? `Generate · ${fmtRange(est?.total_usd)}`
+                : "Generate · $0"}
           </button>
         </div>
       </div>

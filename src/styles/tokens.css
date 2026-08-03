@@ -1,4 +1,8 @@
 :root {
+  /* Content cap. Chrome (cards, forms, toolbars, hero copy) centres inside
+     this; atmospheric ART and editor CANVASES deliberately bleed past it —
+     an ultrawide was bought to see more map, not more margin. */
+  --shell-max: 1440px;
   --ui: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --mono:
     "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;

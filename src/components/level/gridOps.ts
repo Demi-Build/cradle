@@ -14,12 +14,7 @@
  *  Iterative on purpose: a recursive fill overflows the stack on a large empty
  *  level (a 76x20 map is 1520 cells, and the sky is usually one region).
  */
-export function floodFill(
-  grid: number[][],
-  x: number,
-  y: number,
-  fillType: number,
-): string[] {
+export function floodFill(grid: number[][], x: number, y: number, fillType: number): string[] {
   const h = grid.length;
   const w = grid[0]?.length ?? 0;
   if (x < 0 || y < 0 || x >= w || y >= h) return [];

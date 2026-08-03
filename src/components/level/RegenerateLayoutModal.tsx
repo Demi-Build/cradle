@@ -126,7 +126,11 @@ export function RegenerateLayoutModal({
         />
         <label style={row}>
           <span>Difficulty</span>
-          <select value={difficulty} onChange={(e) => setDifficulty(+e.target.value)} disabled={busy}>
+          <select
+            value={difficulty}
+            onChange={(e) => setDifficulty(+e.target.value)}
+            disabled={busy}
+          >
             <option value={1}>1</option>
             <option value={2}>2</option>
             <option value={3}>3</option>
@@ -134,7 +138,11 @@ export function RegenerateLayoutModal({
         </label>
         <label style={row}>
           <span>Axis</span>
-          <select value={axis} onChange={(e) => setAxis(e.target.value as typeof axis)} disabled={busy}>
+          <select
+            value={axis}
+            onChange={(e) => setAxis(e.target.value as typeof axis)}
+            disabled={busy}
+          >
             <option value="">auto</option>
             <option value="horizontal">horizontal</option>
             <option value="vertical">vertical</option>
@@ -142,7 +150,11 @@ export function RegenerateLayoutModal({
         </label>
         <label style={row}>
           <span>Backend</span>
-          <select value={backend} onChange={(e) => setBackend(e.target.value as typeof backend)} disabled={busy}>
+          <select
+            value={backend}
+            onChange={(e) => setBackend(e.target.value as typeof backend)}
+            disabled={busy}
+          >
             <option value="fake">fake ($0)</option>
             <option value="anthropic">Claude (paid)</option>
           </select>
@@ -160,14 +172,20 @@ export function RegenerateLayoutModal({
           <strong>{est ? fmtRange(est.total_usd) : "…"}</strong>
         </div>
         {err && (
-          <div style={{ color: "var(--err)", fontSize: 12, marginTop: 6, whiteSpace: "pre-wrap" }}>{err}</div>
+          <div style={{ color: "var(--err)", fontSize: 12, marginTop: 6, whiteSpace: "pre-wrap" }}>
+            {err}
+          </div>
         )}
         {busy && <div style={{ fontSize: 12, marginTop: 6, opacity: 0.85 }}>Regenerating…</div>}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>
           <button onClick={onClose} disabled={busy} style={{ cursor: "pointer" }}>
             Cancel
           </button>
-          <button onClick={() => void run()} disabled={busy} style={{ cursor: "pointer", fontWeight: 600 }}>
+          <button
+            onClick={() => void run()}
+            disabled={busy}
+            style={{ cursor: "pointer", fontWeight: 600 }}
+          >
             {busy ? "Regenerating…" : "🪄 Regenerate"}
           </button>
         </div>

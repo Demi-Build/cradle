@@ -252,9 +252,7 @@ export function CommandPalette() {
                     </span>
                   )}
                   {off && c.disabledReason && (
-                    <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>
-                      {c.disabledReason}
-                    </span>
+                    <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>{c.disabledReason}</span>
                   )}
                   {c.hint && <span className="kbd">{c.hint}</span>}
                 </button>

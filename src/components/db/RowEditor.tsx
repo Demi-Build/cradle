@@ -36,18 +36,23 @@ const DB_TYPE: Record<string, string> = { enemies: "enemy", items: "item" };
 
 // Identity/provenance/art plumbing — canon refuses these; don't render them.
 const HIDDEN = new Set([
-  "artifact_id", "enemy_id", "item_id", "provenance_hash", "parents",
-  "status", "review_status", "sprite_path", "sprite_hash", "animation",
+  "artifact_id",
+  "enemy_id",
+  "item_id",
+  "provenance_hash",
+  "parents",
+  "status",
+  "review_status",
+  "sprite_path",
+  "sprite_hash",
+  "animation",
   "canon_version",
 ]);
 
 /** The row's editable flat view — mirrors canon's db-update routing. Known
  * knobs keep their bare names; hand-added custom knobs become dotted
  * "<container>.<key>" paths (the only spelling canon can route). */
-function flattenRow(
-  dbType: string,
-  row: Record<string, unknown>,
-): Record<string, unknown> {
+function flattenRow(dbType: string, row: Record<string, unknown>): Record<string, unknown> {
   const nesting = DB_NESTING[dbType] ?? {};
   const flat: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(row)) {
@@ -85,10 +90,7 @@ export function RowEditor({
   const worldPath = useStore((s) => s.worldPath);
   const dbType = DB_TYPE[typeId];
   const editing = Boolean(editRow && editId);
-  const original = useMemo(
-    () => (editRow ? flattenRow(dbType, editRow) : {}),
-    [dbType, editRow],
-  );
+  const original = useMemo(() => (editRow ? flattenRow(dbType, editRow) : {}), [dbType, editRow]);
   const [spec, setSpec] = useState<DbType | null>(null);
   const [fields, setFields] = useState<Record<string, unknown>>(original);
   const [busy, setBusy] = useState(false);
@@ -108,8 +110,7 @@ export function RowEditor({
   const set = (name: string, value: unknown) =>
     setFields((f) => {
       const next = { ...f };
-      if (!editing && (value === "" || value === undefined || value === null))
-        delete next[name];
+      if (!editing && (value === "" || value === undefined || value === null)) delete next[name];
       else next[name] = value;
       return next;
     });
@@ -187,18 +188,17 @@ export function RowEditor({
     display: "block",
     marginTop: 8,
   };
-  const marked = (name: string) =>
-    editing ? name in changed && "✎" : name in fields && "🔒";
+  const marked = (name: string) => (editing ? name in changed && "✎" : name in fields && "🔒");
 
   // Edit mode shows every flat row field; spec metadata upgrades matching
   // names to dropdowns/bounded inputs. Extra hand-added knobs render as
   // plain inputs after the spec-known ones.
   const specNames = new Set([
-    "name", "flavor", ...(spec?.skeleton_fields.map((f) => f.name) ?? []),
+    "name",
+    "flavor",
+    ...(spec?.skeleton_fields.map((f) => f.name) ?? []),
   ]);
-  const extraFields = editing
-    ? Object.keys(original).filter((k) => !specNames.has(k))
-    : [];
+  const extraFields = editing ? Object.keys(original).filter((k) => !specNames.has(k)) : [];
 
   const textInput = (name: string) => (
     <input
@@ -245,9 +245,7 @@ export function RowEditor({
           type="number"
           step="any"
           value={(fields[name] as number) ?? ""}
-          onChange={(e) =>
-            set(name, e.target.value === "" ? "" : Number(e.target.value))
-          }
+          onChange={(e) => set(name, e.target.value === "" ? "" : Number(e.target.value))}
         />
       );
     }
@@ -258,7 +256,9 @@ export function RowEditor({
     <div
       style={{
         position: "fixed",
-        top: 0, right: 0, bottom: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
         width: 320,
         background: "var(--bg-raised)",
         borderLeft: "1px solid var(--border)",
@@ -272,18 +272,20 @@ export function RowEditor({
         <strong style={{ flex: 1 }}>
           {editing ? `Edit ${dbType} · ${editId}` : `New ${dbType}`}
         </strong>
-        <button onClick={close} style={{ cursor: "pointer" }}>✕</button>
+        <button onClick={close} style={{ cursor: "pointer" }}>
+          ✕
+        </button>
       </div>
       <p style={{ fontSize: 11, color: "var(--fg-dim)", margin: "0 0 8px" }}>
         {editing ? (
           <>
-            Values land <b>verbatim</b> — no rerolls, no LLM. Canon rehashes,
-            stamps <code>user_edited</code>, and journals the diff.
+            Values land <b>verbatim</b> — no rerolls, no LLM. Canon rehashes, stamps{" "}
+            <code>user_edited</code>, and journals the diff.
           </>
         ) : (
           <>
-            Anything you set is a <b>locked anchor</b> — the skeleton rolls the
-            rest around it (dependent stats follow your anchors).
+            Anything you set is a <b>locked anchor</b> — the skeleton rolls the rest around it
+            (dependent stats follow your anchors).
           </>
         )}
       </p>
@@ -336,7 +338,9 @@ export function RowEditor({
                         </option>
                       )}
                     {(f.choices ?? []).map((c) => (
-                      <option key={String(c)} value={String(c)}>{String(c)}</option>
+                      <option key={String(c)} value={String(c)}>
+                        {String(c)}
+                      </option>
                     ))}
                   </select>
                 ) : f.mode === "range" ? (
@@ -396,9 +400,11 @@ export function RowEditor({
                   opacity: dirty ? 1 : 0.6,
                 }}
               >
-                {busy ? "…" : dirty
-                  ? `Save ${Object.keys(changed).length} change${Object.keys(changed).length > 1 ? "s" : ""}`
-                  : "No changes"}
+                {busy
+                  ? "…"
+                  : dirty
+                    ? `Save ${Object.keys(changed).length} change${Object.keys(changed).length > 1 ? "s" : ""}`
+                    : "No changes"}
               </button>
             ) : (
               <>

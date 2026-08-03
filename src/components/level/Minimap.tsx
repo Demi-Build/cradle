@@ -89,24 +89,24 @@ export function Minimap({
         </span>
       </button>
       {!collapsed && (
-      <div
-        ref={mapRef}
-        className="mini-map"
-        style={{ height: mapH }}
-        onPointerDown={(e) => {
-          dragging.current = true;
-          (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-          jump(e.clientX, e.clientY);
-        }}
-        onPointerMove={(e) => dragging.current && jump(e.clientX, e.clientY)}
-        onPointerUp={() => (dragging.current = false)}
-        onPointerCancel={() => (dragging.current = false)}
-      >
-        <canvas ref={canvasRef} style={{ display: "block", width: "100%" }} />
-        {/* Out-of-play band under the floor, mirroring the bounds overlay. */}
-        <div className="mini-kill" />
-        {vp && <div className="mini-vp" style={vp} />}
-      </div>
+        <div
+          ref={mapRef}
+          className="mini-map"
+          style={{ height: mapH }}
+          onPointerDown={(e) => {
+            dragging.current = true;
+            (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+            jump(e.clientX, e.clientY);
+          }}
+          onPointerMove={(e) => dragging.current && jump(e.clientX, e.clientY)}
+          onPointerUp={() => (dragging.current = false)}
+          onPointerCancel={() => (dragging.current = false)}
+        >
+          <canvas ref={canvasRef} style={{ display: "block", width: "100%" }} />
+          {/* Out-of-play band under the floor, mirroring the bounds overlay. */}
+          <div className="mini-kill" />
+          {vp && <div className="mini-vp" style={vp} />}
+        </div>
       )}
     </div>
   );

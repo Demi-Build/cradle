@@ -9,8 +9,7 @@
 /** True on macOS. `userAgentData` where available, userAgent otherwise —
  *  `navigator.platform` is deprecated and lies under some webviews. */
 export const IS_MAC: boolean = (() => {
-  const uaData = (navigator as unknown as { userAgentData?: { platform?: string } })
-    .userAgentData;
+  const uaData = (navigator as unknown as { userAgentData?: { platform?: string } }).userAgentData;
   if (uaData?.platform) return /mac/i.test(uaData.platform);
   return /Mac|iPhone|iPad/i.test(navigator.userAgent);
 })();
@@ -46,7 +45,5 @@ export function isShortcut(e: KeyboardEvent, key: string): boolean {
 export function inTextField(e: KeyboardEvent): boolean {
   const t = e.target as HTMLElement | null;
   if (!t) return false;
-  return (
-    t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable === true
-  );
+  return t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable === true;
 }

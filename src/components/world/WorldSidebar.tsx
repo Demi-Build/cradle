@@ -28,11 +28,8 @@ export function WorldSidebar() {
   const unassigned = map.nodes.filter((n) => !areaIds.has(n.stage_id));
   // A draft nobody has positioned sits at the map's default spot: it exists,
   // but it has no place in the world yet.
-  const unplaced = map.nodes.filter(
-    (n) => n.status === "planned" && n.origin !== "manual",
-  );
-  const sets =
-    world?.entity_counts.find((c) => c.type_id === "tilesets")?.count ?? 0;
+  const unplaced = map.nodes.filter((n) => n.status === "planned" && n.origin !== "manual");
+  const sets = world?.entity_counts.find((c) => c.type_id === "tilesets")?.count ?? 0;
 
   const levelRow = (n: WorldMapNode) => (
     <div key={n.level_id}>

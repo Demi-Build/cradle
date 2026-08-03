@@ -37,8 +37,7 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
     store.updateJob(id, { status: "failed", error: error ?? "failed", endedAt: now });
   } else {
     const changed = !!result?.changed;
-    const resolvedTarget =
-      (result?.level_id as string) || (result?.id as string) || job.target;
+    const resolvedTarget = (result?.level_id as string) || (result?.id as string) || job.target;
     store.updateJob(id, {
       status: changed ? "ok" : "no_change",
       changed,
@@ -57,17 +56,27 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
   if (j.status !== "failed") {
     const levelId = j.targetType === "levels" ? j.target : undefined;
     await recordSpend(worldPath, {
-      op: j.op, scope: j.scope, level_id: levelId, backends: j.backends,
-      estimate: j.estimate, actual_usd: j.cost?.usd ?? 0,
+      op: j.op,
+      scope: j.scope,
+      level_id: levelId,
+      backends: j.backends,
+      estimate: j.estimate,
+      actual_usd: j.cost?.usd ?? 0,
       tokens: j.cost
         ? { input: j.cost.input_tokens, output: j.cost.output_tokens, calls: j.cost.calls }
         : undefined,
     });
   }
   await recordJob(worldPath, {
-    job_id: j.id, op: j.op, scope: j.scope, target: j.target,
-    target_type: j.targetType, status: j.status, backends: j.backends,
-    estimate: j.estimate, actual_usd: j.cost?.usd ?? 0,
+    job_id: j.id,
+    op: j.op,
+    scope: j.scope,
+    target: j.target,
+    target_type: j.targetType,
+    status: j.status,
+    backends: j.backends,
+    estimate: j.estimate,
+    actual_usd: j.cost?.usd ?? 0,
     duration_ms: j.endedAt && j.ts ? j.endedAt - j.ts : undefined,
     changed: j.changed,
     changed_artifacts: (result?.changed_artifacts as string[]) ?? undefined,
@@ -76,8 +85,13 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
 
   // Broadcast completion so an open LevelDetail / EntityOverview can refresh.
   store.setLastCompletedJob({
-    id: j.id, op: j.op, target: j.target, targetType: j.targetType,
-    status: j.status as "ok" | "no_change" | "failed", changed: !!j.changed, ts: now,
+    id: j.id,
+    op: j.op,
+    target: j.target,
+    targetType: j.targetType,
+    status: j.status as "ok" | "no_change" | "failed",
+    changed: !!j.changed,
+    ts: now,
   });
 
   // Refresh the affected nav list so new/updated entities appear.

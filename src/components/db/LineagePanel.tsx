@@ -11,11 +11,7 @@
 // replace `layout()` without touching anything else if that changes.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  api,
-  type LineageNode,
-  type LineageTree,
-} from "../../lib/invoke";
+import { api, type LineageNode, type LineageTree } from "../../lib/invoke";
 import { useStore } from "../../store";
 
 const COL_W = 240;
@@ -58,9 +54,7 @@ function restoreTarget(node: LineageNode, artifactId: string): string | null {
       return kind === "tileset" ? `tilesheet:${rest}` : null;
     case "band": {
       const band = node.detail?.band;
-      return kind === "backdrop" && band !== undefined
-        ? `backdrop:${rest}/${band}`
-        : null;
+      return kind === "backdrop" && band !== undefined ? `backdrop:${rest}/${band}` : null;
     }
     default:
       return null;
@@ -181,8 +175,7 @@ export function LineagePanel({
     );
 
   const width = (tree.metadata.max_depth + 1) * COL_W + 40;
-  const height =
-    Math.max(...[...placed.values()].map((p) => p.y + ROW_H), ROW_H) + 20;
+  const height = Math.max(...[...placed.values()].map((p) => p.y + ROW_H), ROW_H) + 20;
   const compareCurrent = compare ? currentOfFacet(compare.facet) : undefined;
 
   return (
@@ -190,8 +183,8 @@ export function LineagePanel({
       <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
         <strong style={{ fontSize: 14 }}>lineage · {artifactId}</strong>
         <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>
-          {tree.metadata.total_nodes} version{tree.metadata.total_nodes === 1 ? "" : "s"} —
-          nodes are content, edges are the ops between them; restore branches, never deletes
+          {tree.metadata.total_nodes} version{tree.metadata.total_nodes === 1 ? "" : "s"} — nodes
+          are content, edges are the ops between them; restore branches, never deletes
         </span>
         {tree.metadata.pruned && (
           <span style={{ fontSize: 11, color: "var(--accent)" }}>
@@ -201,7 +194,14 @@ export function LineagePanel({
         {note && <span style={{ fontSize: 12, color: "var(--accent)" }}>{note}</span>}
       </div>
 
-      <div style={{ overflow: "auto", marginTop: 8, border: "1px solid var(--border)", borderRadius: 10 }}>
+      <div
+        style={{
+          overflow: "auto",
+          marginTop: 8,
+          border: "1px solid var(--border)",
+          borderRadius: 10,
+        }}
+      >
         <div style={{ position: "relative", width, height }}>
           <svg
             width={width}
@@ -247,11 +247,9 @@ export function LineagePanel({
             if (!pos) return null;
             const isCurrent = node.current_of.length > 0;
             const isRequested = node.id === tree.requested_node_id;
-            const canRestore =
-              !isCurrent && restoreTarget(node, artifactId) !== null;
+            const canRestore = !isCurrent && restoreTarget(node, artifactId) !== null;
             const facetCurrent = currentOfFacet(node.facet);
-            const canCompare =
-              facetCurrent !== undefined && facetCurrent.id !== node.id;
+            const canCompare = facetCurrent !== undefined && facetCurrent.id !== node.id;
             const usageLevels = Object.values(node.usage).flat();
             return (
               <div
@@ -268,11 +266,7 @@ export function LineagePanel({
                   overflowY: "auto",
                   background: "var(--bg-raised)",
                   border: `2px solid ${
-                    isRequested
-                      ? "var(--accent)"
-                      : isCurrent
-                        ? "var(--ok)"
-                        : "var(--border)"
+                    isRequested ? "var(--accent)" : isCurrent ? "var(--ok)" : "var(--border)"
                   }`,
                   borderRadius: 10,
                   padding: 8,
@@ -299,16 +293,24 @@ export function LineagePanel({
                       src={thumbs[node.id]}
                       alt={node.facet}
                       style={{
-                        width: 56, height: 56, imageRendering: "pixelated",
-                        background: "#000", borderRadius: 6, objectFit: "contain",
+                        width: 56,
+                        height: 56,
+                        imageRendering: "pixelated",
+                        background: "#000",
+                        borderRadius: 6,
+                        objectFit: "contain",
                       }}
                     />
                   ) : (
                     <span
                       style={{
-                        width: 56, height: 56, display: "inline-flex",
-                        alignItems: "center", justifyContent: "center",
-                        background: "var(--bg-hover)", borderRadius: 6,
+                        width: 56,
+                        height: 56,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "var(--bg-hover)",
+                        borderRadius: 6,
                         fontSize: 20,
                       }}
                     >
@@ -338,9 +340,13 @@ export function LineagePanel({
                     </summary>
                     <div
                       style={{
-                        maxHeight: 120, overflow: "auto", whiteSpace: "pre-wrap",
-                        background: "var(--bg-hover)", borderRadius: 6,
-                        padding: 6, marginTop: 4,
+                        maxHeight: 120,
+                        overflow: "auto",
+                        whiteSpace: "pre-wrap",
+                        background: "var(--bg-hover)",
+                        borderRadius: 6,
+                        padding: 6,
+                        marginTop: 4,
                       }}
                     >
                       {node.gen.prompt}
@@ -435,11 +441,7 @@ function CompareStrip({
         const fa = flat(ja);
         const fb = flat(jb);
         const keys = [...new Set([...Object.keys(fa), ...Object.keys(fb)])].sort();
-        setDiff(
-          keys
-            .filter((k) => fa[k] !== fb[k])
-            .map((k) => [k, fa[k] ?? "—", fb[k] ?? "—"]),
-        );
+        setDiff(keys.filter((k) => fa[k] !== fb[k]).map((k) => [k, fa[k] ?? "—", fb[k] ?? "—"]));
       } catch {
         if (alive) setDiff([]);
       }
@@ -452,8 +454,11 @@ function CompareStrip({
   return (
     <div
       style={{
-        marginTop: 10, border: "1px solid var(--border)",
-        borderRadius: 10, padding: 12, fontSize: 12,
+        marginTop: 10,
+        border: "1px solid var(--border)",
+        borderRadius: 10,
+        padding: 12,
+        fontSize: 12,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
@@ -461,27 +466,44 @@ function CompareStrip({
           {shortHash(a.id)} ({a.op}) vs current {shortHash(b.id)}
         </strong>
         <span style={{ flex: 1 }} />
-        <button onClick={onClose} style={{ cursor: "pointer" }}>✕</button>
+        <button onClick={onClose} style={{ cursor: "pointer" }}>
+          ✕
+        </button>
       </div>
       {images ? (
         <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
           <figure style={{ margin: 0, textAlign: "center" }}>
-            <img src={thumbs[a.id]} alt="then" style={{ width: 128, imageRendering: "pixelated", background: "#000" }} />
+            <img
+              src={thumbs[a.id]}
+              alt="then"
+              style={{ width: 128, imageRendering: "pixelated", background: "#000" }}
+            />
             <figcaption style={{ color: "var(--fg-dim)" }}>then</figcaption>
           </figure>
           <figure style={{ margin: 0, textAlign: "center" }}>
-            <img src={thumbs[b.id]} alt="now" style={{ width: 128, imageRendering: "pixelated", background: "#000" }} />
+            <img
+              src={thumbs[b.id]}
+              alt="now"
+              style={{ width: 128, imageRendering: "pixelated", background: "#000" }}
+            />
             <figcaption style={{ color: "var(--fg-dim)" }}>now</figcaption>
           </figure>
           <figure style={{ margin: 0, textAlign: "center" }}>
             <div style={{ position: "relative", width: 128, height: 128, background: "#000" }}>
-              <img src={thumbs[a.id]} alt="" style={{ position: "absolute", inset: 0, width: 128, imageRendering: "pixelated" }} />
+              <img
+                src={thumbs[a.id]}
+                alt=""
+                style={{ position: "absolute", inset: 0, width: 128, imageRendering: "pixelated" }}
+              />
               <img
                 src={thumbs[b.id]}
                 alt=""
                 style={{
-                  position: "absolute", inset: 0, width: 128,
-                  imageRendering: "pixelated", opacity: blend / 100,
+                  position: "absolute",
+                  inset: 0,
+                  width: 128,
+                  imageRendering: "pixelated",
+                  opacity: blend / 100,
                 }}
               />
             </div>

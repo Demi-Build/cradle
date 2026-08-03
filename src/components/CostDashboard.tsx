@@ -24,8 +24,8 @@ export function CostDashboard() {
     api
       .readWorldJson(worldPath, "manifest.json")
       .then((mf) => {
-        const c = (mf as { generation_stats?: { total_cost_usd?: number } })
-          .generation_stats?.total_cost_usd;
+        const c = (mf as { generation_stats?: { total_cost_usd?: number } }).generation_stats
+          ?.total_cost_usd;
         if (live && typeof c === "number") setGenActual(c);
       })
       .catch(() => {});
@@ -70,7 +70,11 @@ export function CostDashboard() {
     borderBottom: "1px solid var(--border)",
   };
   const td: React.CSSProperties = { padding: "4px 8px", fontSize: 12 };
-  const tdNum: React.CSSProperties = { ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" };
+  const tdNum: React.CSSProperties = {
+    ...td,
+    textAlign: "right",
+    fontVariantNumeric: "tabular-nums",
+  };
 
   const byOp = spend ? Object.entries(spend.by_op) : [];
   const entries = spend ? [...spend.entries].reverse().slice(0, 14) : [];

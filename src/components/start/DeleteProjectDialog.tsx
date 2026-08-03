@@ -32,9 +32,8 @@ export function DeleteProjectDialog({
       <div className="modal delete-dialog" onClick={(e) => e.stopPropagation()}>
         <h3>Delete this project?</h3>
         <p className="note">
-          <code>{recent.path}</code> would be moved to the trash. This is not the
-          same as removing it from recents — removing only hides the card and
-          leaves everything on disk.
+          <code>{recent.path}</code> would be moved to the trash. This is not the same as removing
+          it from recents — removing only hides the card and leaves everything on disk.
         </p>
         <label className="check">
           <input
@@ -43,14 +42,13 @@ export function DeleteProjectDialog({
             onChange={(e) => setAlsoAssets(e.target.checked)}
           />
           <span>
-            Also delete generated art, music and SFX (placeholders and shared
-            library sets are kept)
+            Also delete generated art, music and SFX (placeholders and shared library sets are kept)
           </span>
         </label>
         <p className="note dim">
-          Moving a project to the trash isn't wired up yet — cradle has no
-          backend command that touches your filesystem outside a pack. Remove it
-          from recents instead, or delete the folder yourself.
+          Moving a project to the trash isn't wired up yet — cradle has no backend command that
+          touches your filesystem outside a pack. Remove it from recents instead, or delete the
+          folder yourself.
         </p>
         <div className="modal-foot">
           <button className="btn" onClick={onCancel}>

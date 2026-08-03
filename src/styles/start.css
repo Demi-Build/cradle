@@ -235,7 +235,6 @@
   margin-inline: auto;
 }
 
-
 .start-app .branding {
   display: flex;
   align-items: center;
@@ -1792,7 +1791,6 @@
   overflow-y: auto;
 }
 
-
 .glance-svg {
   width: 100%;
   height: 100%;
@@ -1966,12 +1964,9 @@
   white-space: pre-wrap;
 }
 
-
 /* Degradation ladder. The rail is the first thing to go — the hero plus
    "All projects →" is a complete start page on its own, and a half-scrolled
    row of clipped cards is worse than none. */
-
-
 
 /* ===========================================================================
    PROGRESSIVE DISCLOSURE — the start page earns content as it earns space.
@@ -1998,9 +1993,7 @@
    lands on whole cards. */
 .start-app .recent-tile-wrap,
 .start-app .recent-tile.add {
-  flex: 0 0 calc(
-    (100% - (var(--cards) - 1) * var(--card-gap, 20px)) / var(--cards)
-  );
+  flex: 0 0 calc((100% - (var(--cards) - 1) * var(--card-gap, 20px)) / var(--cards));
   min-width: 172px;
 }
 
@@ -2056,7 +2049,6 @@
   }
 }
 
-
 /* ===========================================================================
    HERO ART — fill the page, then fade. The art used to stop at the bottom of
    the hero ROW, so everything below the cards was dead black even though
@@ -2092,7 +2084,6 @@
   );
 }
 
-
 /* Short viewports buy back height from the hero's own chrome before anything
    overlaps — the ladder drops CONTENT, this just stops the remaining content
    being needlessly tall. */
@@ -2116,7 +2107,6 @@
     display: none;
   }
 }
-
 
 /* (3) A rule between the hero and the projects. The two were reading as one
    run-on column once the hero art spanned the whole page — the divider is

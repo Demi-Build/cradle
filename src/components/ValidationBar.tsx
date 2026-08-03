@@ -16,10 +16,7 @@ export function ValidationBar() {
         <>
           <span className="val-item val-pending">Checker: —</span>
           {current ? (
-            <span
-              className="val-item"
-              style={{ color: current.ok ? "var(--ok)" : "var(--err)" }}
-            >
+            <span className="val-item" style={{ color: current.ok ? "var(--ok)" : "var(--err)" }}>
               Validator: {current.level_id}{" "}
               {current.ok
                 ? "✓ playable"

@@ -59,7 +59,8 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
     if (backend === "anthropic") {
       try {
         // A new level has no id yet — price by the form's width.
-        est = (await api.estimateLevel(worldPath, "__preview__", "generate", backend, width)).estimate;
+        est = (await api.estimateLevel(worldPath, "__preview__", "generate", backend, width))
+          .estimate;
       } catch {
         /* estimate is advisory */
       }
@@ -122,12 +123,18 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
   return (
     <div style={{ padding: "6px 10px 8px 26px", display: "flex", flexDirection: "column", gap: 5 }}>
       <div style={{ display: "flex", gap: 4 }}>
-        <button style={tab("blank")} onClick={() => setMode("blank")}>blank</button>
-        <button style={tab("generate")} onClick={() => setMode("generate")}>generate</button>
+        <button style={tab("blank")} onClick={() => setMode("blank")}>
+          blank
+        </button>
+        <button style={tab("generate")} onClick={() => setMode("generate")}>
+          generate
+        </button>
       </div>
       <select value={stage} onChange={(e) => setStage(e.target.value)} style={{ fontSize: 11 }}>
         {stages.map((s) => (
-          <option key={s} value={s}>{s}</option>
+          <option key={s} value={s}>
+            {s}
+          </option>
         ))}
       </select>
       {mode === "generate" && (
@@ -140,29 +147,67 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
         />
       )}
       <div style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 11 }}>
-        W <input type="number" min={8} value={width} onChange={(e) => setWidth(+e.target.value)} style={field} />
-        H <input type="number" min={8} value={height} onChange={(e) => setHeight(+e.target.value)} style={field} />
+        W{" "}
+        <input
+          type="number"
+          min={8}
+          value={width}
+          onChange={(e) => setWidth(+e.target.value)}
+          style={field}
+        />
+        H{" "}
+        <input
+          type="number"
+          min={8}
+          value={height}
+          onChange={(e) => setHeight(+e.target.value)}
+          style={field}
+        />
       </div>
       {mode === "generate" && (
         <>
           <div style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 11 }}>
-            <label>diff
-              <select value={difficulty} onChange={(e) => setDifficulty(+e.target.value)} style={{ fontSize: 11, marginLeft: 3 }}>
+            <label>
+              diff
+              <select
+                value={difficulty}
+                onChange={(e) => setDifficulty(+e.target.value)}
+                style={{ fontSize: 11, marginLeft: 3 }}
+              >
                 <option value={1}>1</option>
                 <option value={2}>2</option>
                 <option value={3}>3</option>
               </select>
             </label>
-            <label>axis
-              <select value={axis} onChange={(e) => setAxis(e.target.value as "horizontal" | "vertical")} style={{ fontSize: 11, marginLeft: 3 }}>
+            <label>
+              axis
+              <select
+                value={axis}
+                onChange={(e) => setAxis(e.target.value as "horizontal" | "vertical")}
+                style={{ fontSize: 11, marginLeft: 3 }}
+              >
                 <option value="horizontal">horiz</option>
                 <option value="vertical">vert</option>
               </select>
             </label>
           </div>
           <div style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 11 }}>
-            enemies <input type="number" min={0} value={enemies} onChange={(e) => setEnemies(+e.target.value)} style={{ ...field, width: 40 }} />
-            items <input type="number" min={0} value={items} onChange={(e) => setItems(+e.target.value)} style={{ ...field, width: 40 }} />
+            enemies{" "}
+            <input
+              type="number"
+              min={0}
+              value={enemies}
+              onChange={(e) => setEnemies(+e.target.value)}
+              style={{ ...field, width: 40 }}
+            />
+            items{" "}
+            <input
+              type="number"
+              min={0}
+              value={items}
+              onChange={(e) => setItems(+e.target.value)}
+              style={{ ...field, width: 40 }}
+            />
           </div>
           <input
             placeholder="seed (optional — blank = varied)"
@@ -170,8 +215,13 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
             onChange={(e) => setSeed(e.target.value)}
             style={{ fontSize: 11 }}
           />
-          <label style={{ fontSize: 11 }}>backend
-            <select value={backend} onChange={(e) => setBackend(e.target.value as "fake" | "anthropic")} style={{ fontSize: 11, marginLeft: 3 }}>
+          <label style={{ fontSize: 11 }}>
+            backend
+            <select
+              value={backend}
+              onChange={(e) => setBackend(e.target.value as "fake" | "anthropic")}
+              style={{ fontSize: 11, marginLeft: 3 }}
+            >
               <option value="fake">fake ($0)</option>
               <option value="anthropic">anthropic (paid)</option>
             </select>
@@ -191,7 +241,13 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
         disabled={busy || !stage}
         style={{ fontSize: 11, cursor: "pointer" }}
       >
-        {busy ? (mode === "blank" ? "creating…" : "generating…") : mode === "blank" ? "create draft" : "generate draft"}
+        {busy
+          ? mode === "blank"
+            ? "creating…"
+            : "generating…"
+          : mode === "blank"
+            ? "create draft"
+            : "generate draft"}
       </button>
       {note && <div style={{ fontSize: 10, color: "var(--fg-dim)" }}>{note}</div>}
     </div>
@@ -364,106 +420,106 @@ export function LeftNav() {
       {selection.kind === "worldmap" ? (
         <WorldSidebar />
       ) : (
-      <div className="nav-types">
-        {world.entity_counts.map(({ type_id, count }, i) => {
-          const hasPartition = !!PARTITION_FIELD[type_id];
-          const parts = partitionCounts[type_id];
-          // Head the group when this type opens one (types arrive in registry
-          // order, so grouped types are already adjacent).
-          const group = TYPE_GROUP[type_id];
-          const opensGroup =
-            !!group && TYPE_GROUP[world.entity_counts[i - 1]?.type_id ?? ""] !== group;
-          return (
-            <div key={type_id} className="nav-type">
-              {opensGroup && (
-                <div
-                  className="nav-group-label"
-                  style={{
-                    fontSize: 10,
-                    letterSpacing: 0.8,
-                    textTransform: "uppercase",
-                    opacity: 0.55,
-                    padding: "8px 0 2px 6px",
+        <div className="nav-types">
+          {world.entity_counts.map(({ type_id, count }, i) => {
+            const hasPartition = !!PARTITION_FIELD[type_id];
+            const parts = partitionCounts[type_id];
+            // Head the group when this type opens one (types arrive in registry
+            // order, so grouped types are already adjacent).
+            const group = TYPE_GROUP[type_id];
+            const opensGroup =
+              !!group && TYPE_GROUP[world.entity_counts[i - 1]?.type_id ?? ""] !== group;
+            return (
+              <div key={type_id} className="nav-type">
+                {opensGroup && (
+                  <div
+                    className="nav-group-label"
+                    style={{
+                      fontSize: 10,
+                      letterSpacing: 0.8,
+                      textTransform: "uppercase",
+                      opacity: 0.55,
+                      padding: "8px 0 2px 6px",
+                    }}
+                  >
+                    {group}
+                  </div>
+                )}
+                <button
+                  className={`nav-type-header ${isTypeSelected(type_id) ? "selected" : ""}`}
+                  onClick={() => {
+                    select({ kind: "type", typeId: type_id });
+                    if (!expanded[type_id]) toggleType(type_id);
                   }}
                 >
-                  {group}
-                </div>
-              )}
-              <button
-                className={`nav-type-header ${isTypeSelected(type_id) ? "selected" : ""}`}
-                onClick={() => {
-                  select({ kind: "type", typeId: type_id });
-                  if (!expanded[type_id]) toggleType(type_id);
-                }}
-              >
-                <span
-                  className="caret"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleType(type_id);
-                  }}
-                >
-                  {expanded[type_id] ? "▼" : "▶"}
-                </span>
-                <span className="nav-label">{TYPE_LABELS[type_id] ?? type_id}</span>
-                <span className="nav-count">({count})</span>
-                {type_id === "levels" && isPlatformer && (
                   <span
-                    title="New draft level"
+                    className="caret"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setNewLevelOpen((v) => !v);
+                      toggleType(type_id);
                     }}
-                    style={{ marginLeft: 6, cursor: "pointer", opacity: 0.8 }}
                   >
-                    ＋
+                    {expanded[type_id] ? "▼" : "▶"}
                   </span>
+                  <span className="nav-label">{TYPE_LABELS[type_id] ?? type_id}</span>
+                  <span className="nav-count">({count})</span>
+                  {type_id === "levels" && isPlatformer && (
+                    <span
+                      title="New draft level"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNewLevelOpen((v) => !v);
+                      }}
+                      style={{ marginLeft: 6, cursor: "pointer", opacity: 0.8 }}
+                    >
+                      ＋
+                    </span>
+                  )}
+                </button>
+                {type_id === "levels" && newLevelOpen && (
+                  <NewLevelForm onDone={() => setNewLevelOpen(false)} />
                 )}
-              </button>
-              {type_id === "levels" && newLevelOpen && (
-                <NewLevelForm onDone={() => setNewLevelOpen(false)} />
-              )}
 
-              {expanded[type_id] && hasPartition && parts && (
-                <ul className="nav-entities">
-                  {parts.map((p) => (
-                    <li key={p.value}>
-                      <button
-                        className={`nav-entity ${
-                          isTypeSelected(type_id, p.value) ? "selected" : ""
-                        }`}
-                        onClick={() =>
-                          select({ kind: "type", typeId: type_id, partition: p.value })
-                        }
-                      >
-                        <span className="nav-part-label">{p.value}</span>
-                        <span className="nav-count">({p.count})</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                {expanded[type_id] && hasPartition && parts && (
+                  <ul className="nav-entities">
+                    {parts.map((p) => (
+                      <li key={p.value}>
+                        <button
+                          className={`nav-entity ${
+                            isTypeSelected(type_id, p.value) ? "selected" : ""
+                          }`}
+                          onClick={() =>
+                            select({ kind: "type", typeId: type_id, partition: p.value })
+                          }
+                        >
+                          <span className="nav-part-label">{p.value}</span>
+                          <span className="nav-count">({p.count})</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
-              {expanded[type_id] && !hasPartition && entities[type_id] && (
-                <ul className="nav-entities">
-                  {entities[type_id].map((ref) => (
-                    <li key={ref.id}>
-                      <button
-                        className={`nav-entity ${
-                          isEntitySelected(type_id, ref.id) ? "selected" : ""
-                        }`}
-                        onClick={() => select({ kind: "entity", typeId: type_id, id: ref.id })}
-                      >
-                        {ref.name ?? ref.id}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                {expanded[type_id] && !hasPartition && entities[type_id] && (
+                  <ul className="nav-entities">
+                    {entities[type_id].map((ref) => (
+                      <li key={ref.id}>
+                        <button
+                          className={`nav-entity ${
+                            isEntitySelected(type_id, ref.id) ? "selected" : ""
+                          }`}
+                          onClick={() => select({ kind: "entity", typeId: type_id, id: ref.id })}
+                        >
+                          {ref.name ?? ref.id}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
     </aside>
   );

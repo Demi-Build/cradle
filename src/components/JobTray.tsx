@@ -94,8 +94,7 @@ export function JobTray() {
               <div key={r.id} style={rowStyle}>
                 <span style={{ fontSize: 15 }}>{opIcon(r.op)}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <strong>{opLabel(r.op)}</strong>{" "}
-                  <span style={{ opacity: 0.7 }}>{r.target}</span>
+                  <strong>{opLabel(r.op)}</strong> <span style={{ opacity: 0.7 }}>{r.target}</span>
                   {r.error && (
                     <div style={{ color: "var(--err)", fontSize: 11, marginTop: 2 }}>
                       {r.error.slice(0, 120)}
@@ -194,8 +193,15 @@ function opLabel(op: string): string {
 function opIcon(op: string): string {
   return (
     {
-      improve: "✨", layout: "🪄", generate: "🎲", enemies: "🎲", items: "🎲",
-      sprite: "🎨", animate: "🎬", music: "🎵", audio: "🎵",
+      improve: "✨",
+      layout: "🪄",
+      generate: "🎲",
+      enemies: "🎲",
+      items: "🎲",
+      sprite: "🎨",
+      animate: "🎬",
+      music: "🎵",
+      audio: "🎵",
     }[op] ?? "⚙"
   );
 }
@@ -220,8 +226,13 @@ function StatusBadge({ status, changed }: { status: string; changed?: boolean })
   return (
     <span
       style={{
-        fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999,
-        color: "var(--bg-sunken)", background: color, whiteSpace: "nowrap",
+        fontSize: 11,
+        fontWeight: 600,
+        padding: "2px 8px",
+        borderRadius: 999,
+        color: "var(--bg-sunken)",
+        background: color,
+        whiteSpace: "nowrap",
       }}
     >
       {label}
@@ -230,7 +241,9 @@ function StatusBadge({ status, changed }: { status: string; changed?: boolean })
 }
 
 function TabButton({
-  on, onClick, children,
+  on,
+  onClick,
+  children,
 }: {
   on: boolean;
   onClick: () => void;
@@ -240,7 +253,10 @@ function TabButton({
     <button
       onClick={onClick}
       style={{
-        cursor: "pointer", fontSize: 12, padding: "4px 12px", borderRadius: 7,
+        cursor: "pointer",
+        fontSize: 12,
+        padding: "4px 12px",
+        borderRadius: 7,
         border: "1px solid var(--border)",
         background: on ? "var(--accent)" : "transparent",
         color: on ? "var(--accent-ink)" : "var(--fg-muted)",

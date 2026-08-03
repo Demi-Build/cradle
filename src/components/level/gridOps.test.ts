@@ -35,7 +35,8 @@ describe("floodFill", () => {
 
   it("fills a whole uniform grid without overflowing the stack", () => {
     // Recursion would blow up here; the iterative version must not.
-    const w = 200, h = 120;
+    const w = 200,
+      h = 120;
     const grid = Array.from({ length: h }, () => new Array(w).fill(0));
     const touched = floodFill(grid, 0, 0, 1);
     expect(touched).toHaveLength(w * h);

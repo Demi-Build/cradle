@@ -197,7 +197,11 @@ export function ImproveLayoutModal({
         </div>
         <label style={row}>
           <span>Backend</span>
-          <select value={backend} onChange={(e) => setBackend(e.target.value as typeof backend)} disabled={busy}>
+          <select
+            value={backend}
+            onChange={(e) => setBackend(e.target.value as typeof backend)}
+            disabled={busy}
+          >
             <option value="fake">fake ($0)</option>
             <option value="anthropic">Claude (paid)</option>
           </select>
@@ -215,14 +219,20 @@ export function ImproveLayoutModal({
           <strong>{est ? fmtRange(est.total_usd) : "…"}</strong>
         </div>
         {err && (
-          <div style={{ color: "var(--err)", fontSize: 12, marginTop: 6, whiteSpace: "pre-wrap" }}>{err}</div>
+          <div style={{ color: "var(--err)", fontSize: 12, marginTop: 6, whiteSpace: "pre-wrap" }}>
+            {err}
+          </div>
         )}
         {busy && <div style={{ fontSize: 12, marginTop: 6, opacity: 0.85 }}>Improving…</div>}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>
           <button onClick={onClose} disabled={busy} style={{ cursor: "pointer" }}>
             Cancel
           </button>
-          <button onClick={() => void run()} disabled={busy} style={{ cursor: "pointer", fontWeight: 600 }}>
+          <button
+            onClick={() => void run()}
+            disabled={busy}
+            style={{ cursor: "pointer", fontWeight: 600 }}
+          >
             {busy ? "Improving…" : "✨ Improve"}
           </button>
         </div>

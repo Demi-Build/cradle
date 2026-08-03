@@ -29,7 +29,7 @@ Open a real pack (`plat_lantern_paid` is the one I measured against).
       CURRENT, and the chip should disappear.
 
 **Why it matters:** your packs never received the phase-1 Godot render fix, so
-until you do this they are mis-drawing animation frames *in real gameplay* —
+until you do this they are mis-drawing animation frames _in real gameplay_ —
 frames whose content doesn't touch the top of their square draw too high.
 
 - [ ] **▶ Play game** and look at an actor's feet. They should sit on the
@@ -41,7 +41,7 @@ frames whose content doesn't touch the top of their square draw too high.
 
 Open **ACTORS → PLAYER**, then the **Animation** tab.
 
-- [ ] An amber banner says *5 states reach the cell edge* and explains what that
+- [ ] An amber banner says _5 states reach the cell edge_ and explains what that
       means.
 - [ ] The **stage** on the left is playing the animation.
 - [ ] The **filmstrip** on the right highlights the frame currently on stage.
@@ -78,7 +78,7 @@ Open **🗺 WORLD MAP**.
       levels with dimensions, secret rooms as `↳ l1r1`.
 - [ ] The **tool rail** floats top-right with six tools. Hover each — every one
       has a tooltip with a shortcut and a description.
-- [ ] **Area** and **Player start** are greyed. Hover them: they explain *why*
+- [ ] **Area** and **Player start** are greyed. Hover them: they explain _why_
       (areas are stages; player start isn't editable yet). That's deliberate.
 - [ ] `V` / `L` / `P` / `S` switch tools from the keyboard.
 - [ ] Top-left float reads `Layout agent`, with Re-run and a lock.
@@ -104,7 +104,7 @@ Open **🗺 WORLD MAP**.
 - [ ] Drag the **minimap** by its dotted grip; double-click the grip to reset.
 - [ ] **Toggle the theme.** This is the one I most want your eye on: the canvas
       used to stay dark in light mode. The world map, level canvas and rulers
-      should now all follow the theme. Game *content* colours (tiles, spawn/exit
+      should now all follow the theme. Game _content_ colours (tiles, spawn/exit
       markers) stay as they are on purpose.
 
 ---
@@ -118,8 +118,8 @@ Close the project (`cradle` breadcrumb).
 - [ ] Hover a recents card → `⋯` appears. Open it.
 - [ ] **Remove from recents.** The card should hide, the header should say
       `1 hidden from view · show`, and the status bar should confirm
-      *"still on disk"*. Click **show** — it returns as a ghost card.
-- [ ] **Delete project…** opens a confirm that spells out it is *not* the same
+      _"still on disk"_. Click **show** — it returns as a ghost card.
+- [ ] **Delete project…** opens a confirm that spells out it is _not_ the same
       as removing from recents. **Move to trash is deliberately disabled** —
       no backend command touches your filesystem outside a pack yet.
 - [ ] Tray (panel icon, top right): **What's new / Updates / Links**. The

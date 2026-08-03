@@ -48,8 +48,8 @@ function useDbEntries(typeId: "enemies" | "items"): DbEntry[] {
             name: (data.name as string) ?? row.id,
             spriteUrl,
             color:
-              ((data.stats as Record<string, unknown> | undefined)
-                ?.placeholder_color as string) ?? "#ff00ff",
+              ((data.stats as Record<string, unknown> | undefined)?.placeholder_color as string) ??
+              "#ff00ff",
           });
         }
         if (alive) setEntries(out);
@@ -165,9 +165,7 @@ export function Dock({
   let armedImg: string | null | undefined;
   if (brush?.kind === "tile") {
     const slot = bundle.tiles_by_type[String(brush.tileType)];
-    const placed = bundle.grids.collision
-      .flat()
-      .filter((t) => t === brush.tileType).length;
+    const placed = bundle.grids.collision.flat().filter((t) => t === brush.tileType).length;
     armedName = slot?.name ?? `type ${brush.tileType}`;
     armedSub = `tile · id ${brush.tileType} · ${placed} placed`;
     armedColor = tileColor(bundle, brush.tileType) ?? "var(--bg-hover)";
@@ -224,9 +222,7 @@ export function Dock({
               L-click paints · R-click erases · <span className="kbd">Esc</span> disarms
             </>
           ) : (
-            <>
-              Click selects · drag moves · R-click erases
-            </>
+            <>Click selects · drag moves · R-click erases</>
           )}
         </div>
       </div>
@@ -350,9 +346,8 @@ export function Dock({
             <div className="dock-tray-empty">
               <div className="dock-sect">Nothing selected</div>
               <p>
-                Click a placement on the canvas to inspect it, or arm a brush to
-                paint. Tile types are the physics vocabulary — art is a skin bound
-                to them, swappable per level.
+                Click a placement on the canvas to inspect it, or arm a brush to paint. Tile types
+                are the physics vocabulary — art is a skin bound to them, swappable per level.
               </p>
             </div>
           )}

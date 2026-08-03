@@ -42,8 +42,7 @@ export type GenLevelOpts = {
   systemOverride?: string | null;
 };
 /** Which generator's prompt to preview / override. */
-export type PromptKind =
-  | "layout" | "improve" | "enemy" | "item" | "sprite" | "animate" | "music";
+export type PromptKind = "layout" | "improve" | "enemy" | "item" | "sprite" | "animate" | "music";
 /** The default prompt a generator would send (`canon prompt show`).
  *  LLM kinds split system (editable) / user_message (context, rebuilt per call);
  *  image/audio/vlm kinds have no such split and carry one `prompt` string.
@@ -310,12 +309,7 @@ export type AnimEditPatch = {
  *  `modified` = differs from its own stamp, i.e. hand-edited — sync refuses
  *  those by name. `unstamped` = the pack predates stamping, so a hand edit
  *  can't be told from an old build. */
-export type EngineFileState =
-  | "current"
-  | "stale"
-  | "missing"
-  | "modified"
-  | "unstamped";
+export type EngineFileState = "current" | "stale" | "missing" | "modified" | "unstamped";
 export type EngineStatus = {
   pack: string;
   has_engine: boolean;
@@ -519,10 +513,22 @@ export const api = {
       systemOverride: opts.systemOverride ?? null,
       jobId: opts.jobId,
     }),
-  placeEnemies: (path: string, levelId: string, jobId: string, enemies?: number, seed?: string, llmBackend?: string) =>
-    invoke<QueuedAck>("place_enemies", { path, levelId, enemies, seed, llmBackend, jobId }),
-  placeItems: (path: string, levelId: string, jobId: string, items?: number, seed?: string, llmBackend?: string) =>
-    invoke<QueuedAck>("place_items", { path, levelId, items, seed, llmBackend, jobId }),
+  placeEnemies: (
+    path: string,
+    levelId: string,
+    jobId: string,
+    enemies?: number,
+    seed?: string,
+    llmBackend?: string,
+  ) => invoke<QueuedAck>("place_enemies", { path, levelId, enemies, seed, llmBackend, jobId }),
+  placeItems: (
+    path: string,
+    levelId: string,
+    jobId: string,
+    items?: number,
+    seed?: string,
+    llmBackend?: string,
+  ) => invoke<QueuedAck>("place_items", { path, levelId, items, seed, llmBackend, jobId }),
   estimateWorld: (opts: {
     stages: number;
     levels: number;
@@ -545,13 +551,7 @@ export const api = {
       sfxBackend: opts.sfxBackend,
       vlmBackend: opts.vlmBackend,
     }),
-  estimateLevel: (
-    path: string,
-    levelId: string,
-    op: string,
-    llmBackend: string,
-    width?: number,
-  ) =>
+  estimateLevel: (path: string, levelId: string, op: string, llmBackend: string, width?: number) =>
     invoke<{ result: string; estimate: CostEstimate }>("estimate_level", {
       path,
       levelId,
@@ -565,8 +565,7 @@ export const api = {
     invoke<{ result: string; spend: SpendSummary }>("spend_list", { path }),
   jobRecord: (path: string, entry: JobEntry) =>
     invoke<{ result: string; entry: JobEntry }>("jobs_record", { path, entry }),
-  jobList: (path: string) =>
-    invoke<{ result: string; jobs: JobSummary }>("jobs_list", { path }),
+  jobList: (path: string) => invoke<{ result: string; jobs: JobSummary }>("jobs_list", { path }),
   generateLevelMusic: (
     path: string,
     levelId: string,
@@ -604,7 +603,11 @@ export const api = {
     systemOverride?: string | null,
   ) =>
     invoke<{ id: string; row: Record<string, unknown> }>("db_new", {
-      path, entityType, fields, complete, llmBackend,
+      path,
+      entityType,
+      fields,
+      complete,
+      llmBackend,
       systemOverride: systemOverride ?? null,
     }),
   dbComplete: (
@@ -616,26 +619,34 @@ export const api = {
     systemOverride?: string | null,
   ) =>
     invoke<{ id: string; row: Record<string, unknown> }>("db_complete", {
-      path, entityType, id, locked, llmBackend,
+      path,
+      entityType,
+      id,
+      locked,
+      llmBackend,
       systemOverride: systemOverride ?? null,
     }),
   dbUpdate: (path: string, entityType: string, id: string, set: Record<string, unknown>) =>
-    invoke<{ row?: Record<string, unknown>; changed: Record<string, unknown>; warnings?: string[] }>(
-      "db_update", { path, entityType, id, set }),
+    invoke<{
+      row?: Record<string, unknown>;
+      changed: Record<string, unknown>;
+      warnings?: string[];
+    }>("db_update", { path, entityType, id, set }),
   dbSchema: (path: string, entityType: string) =>
     invoke<{ source: string; schema: { fields: Record<string, Record<string, unknown>> } }>(
-      "db_schema", { path, entityType }),
+      "db_schema",
+      { path, entityType },
+    ),
   dbUpdateSchema: (path: string, entityType: string, set: Record<string, unknown>) =>
     invoke<{ source: string; schema: { fields: Record<string, Record<string, unknown>> } }>(
-      "db_update_schema", { path, entityType, set }),
-  generateAsset: (
-    path: string,
-    target: string,
-    jobId: string,
-    opts: AssetGenOpts = {},
-  ) =>
+      "db_update_schema",
+      { path, entityType, set },
+    ),
+  generateAsset: (path: string, target: string, jobId: string, opts: AssetGenOpts = {}) =>
     invoke<QueuedAck>("generate_asset", {
-      path, target, jobId,
+      path,
+      target,
+      jobId,
       imageBackend: opts.imageBackend,
       imageModel: opts.imageModel ?? null,
       imageEditModel: opts.imageEditModel ?? null,
@@ -644,14 +655,11 @@ export const api = {
       sfxBackend: opts.sfxBackend,
       promptOverride: opts.promptOverride ?? null,
     }),
-  animateAsset: (
-    path: string,
-    target: string,
-    jobId: string,
-    opts: AnimateOpts = {},
-  ) =>
+  animateAsset: (path: string, target: string, jobId: string, opts: AnimateOpts = {}) =>
     invoke<QueuedAck>("animate_asset", {
-      path, target, jobId,
+      path,
+      target,
+      jobId,
       imageBackend: opts.imageBackend,
       imageModel: opts.imageModel ?? null,
       imageEditModel: opts.imageEditModel ?? null,
@@ -674,7 +682,8 @@ export const api = {
     } = {},
   ) =>
     invoke<{ estimate: CostEstimate }>("estimate_asset", {
-      path, target,
+      path,
+      target,
       op: opts.op ?? "animate",
       imageBackend: opts.imageBackend ?? "fake",
       vlmBackend: opts.vlmBackend ?? "none",
@@ -714,8 +723,7 @@ export const api = {
   /** Which provider keys cradle can hand to canon, and the env file they came
    *  from. NAMES only — never values. Lets a paid gate refuse up front instead
    *  of dying at the provider. */
-  providerKeys: () =>
-    invoke<{ env_file: string | null; keys: string[] }>("provider_keys", {}),
+  providerKeys: () => invoke<{ env_file: string | null; keys: string[] }>("provider_keys", {}),
   /** The DEFAULT prompt a generator would send — fills the "✎ Edit prompt"
    *  textarea. Pure read: no LLM call, no cost, no journal. */
   previewPrompt: (
@@ -748,34 +756,43 @@ export const api = {
     animMode: AnimPreviewMode = "grid",
   ) =>
     engine === "godot"
-      ? invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>(
-          "play_game",
-          { path, levelId: null, animTarget: target, animMode },
-        )
-      : invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>(
-          "play_level",
-          { path, levelId: "l1", plain: false, animTarget: target, animMode },
-        ),
+      ? invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>("play_game", {
+          path,
+          levelId: null,
+          animTarget: target,
+          animMode,
+        })
+      : invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>("play_level", {
+          path,
+          levelId: "l1",
+          plain: false,
+          animTarget: target,
+          animMode,
+        }),
   /** Scaffold-or-reuse the flat draft room the sandbox plays in, then play it
    *  with no win condition and the state HUD. Two calls because cradle never
    *  writes pack files — the room comes from a canon verb. */
   sandboxLevel: (path: string) =>
-    invoke<{ level_id: string; stage_id: string; created: boolean }>(
-      "sandbox_level",
-      { path },
-    ),
+    invoke<{ level_id: string; stage_id: string; created: boolean }>("sandbox_level", { path }),
   playSandbox: (path: string, levelId: string, engine: "pygame" | "godot" = "pygame") =>
     engine === "godot"
-      ? invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>(
-          "play_game",
-          { path, levelId, sandbox: true },
-        )
-      : invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>(
-          "play_level",
-          { path, levelId, plain: false, sandbox: true },
-        ),
+      ? invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>("play_game", {
+          path,
+          levelId,
+          sandbox: true,
+        })
+      : invoke<{ launched: boolean; engine?: string; mode?: string; note?: string }>("play_level", {
+          path,
+          levelId,
+          plain: false,
+          sandbox: true,
+        }),
   playLevel: (path: string, levelId: string, plain = false) =>
-    invoke<{ launched: boolean; engine?: string; note?: string }>("play_level", { path, levelId, plain }),
+    invoke<{ launched: boolean; engine?: string; note?: string }>("play_level", {
+      path,
+      levelId,
+      plain,
+    }),
   playGame: (path: string, levelId?: string) =>
     invoke<{ launched: boolean; engine?: string; note?: string }>("play_game", { path, levelId }),
   assetLineage: (path: string, target: string) =>
@@ -785,18 +802,19 @@ export const api = {
   objectCat: (path: string, hash: string) =>
     invoke<{ hash: string; size: number; bytes_b64: string }>("object_cat", { path, hash }),
   libraryList: (kind?: string, query?: string, project?: string) =>
-    invoke<{ entries: LibraryEntry[]; count: number; root: string }>(
-      "library_list", { kind, query, project }),
+    invoke<{ entries: LibraryEntry[]; count: number; root: string }>("library_list", {
+      kind,
+      query,
+      project,
+    }),
   libraryPublish: (path: string, target: string) =>
     invoke<LibraryEntry & { deduped?: boolean }>("library_publish", { path, target }),
   libraryImport: (path: string, id: string, into?: string) =>
-    invoke<{ kind: string; id?: string; library_id: string }>(
-      "library_import", { path, id, into }),
+    invoke<{ kind: string; id?: string; library_id: string }>("library_import", { path, id, into }),
   libraryCat: (hash: string) =>
     invoke<{ hash: string; size: number; bytes_b64: string }>("library_cat", { hash }),
   assetAssign: (path: string, source: string, to: string) =>
-    invoke<{ from: string; to: string; sprite_hash: string }>(
-      "asset_assign", { path, source, to }),
+    invoke<{ from: string; to: string; sprite_hash: string }>("asset_assign", { path, source, to }),
   resolveAsset: (path: string, hint: string) =>
     invoke<string | null>("resolve_asset", { path, hint }),
   getBundledDemoPath: () => invoke<string>("get_bundled_demo_path"),

@@ -29,13 +29,21 @@ beforeEach(() => {
   } as unknown as { estimate: typeof ESTIMATE });
   // The prompt expander must fetch NOTHING until it is opened.
   vi.spyOn(api, "previewPrompt").mockResolvedValue({
-    kind: "animate", label: "plat:sprite_animation", mode: "vlm", prompt: "default",
+    kind: "animate",
+    label: "plat:sprite_animation",
+    mode: "vlm",
+    prompt: "default",
   });
   // The modal now shows what the run works FROM, so it reads the actor.
   vi.spyOn(api, "animInspect").mockResolvedValue({
     animation: {
-      target: "player", label: "player", sprite_dir: "sprite/player",
-      has_atlas: true, atlas_path_abs: null, states: [], flush_states: [],
+      target: "player",
+      label: "player",
+      sprite_dir: "sprite/player",
+      has_atlas: true,
+      atlas_path_abs: null,
+      states: [],
+      flush_states: [],
       independently_sized: false,
       base_sprite: "sprite/player/base.png",
       base_sprite_abs: "/__mockassets__/sprite/player/base.png",
@@ -74,9 +82,7 @@ describe("AnimateModal", () => {
   it("offers only the backends that can actually animate", async () => {
     // fal + fake are the only ImageEditBackends; the rest would bill the VLM
     // for a run that animates nothing.
-    render(
-      <AnimateModal worldPath="/w" target="enemy:x" onClose={() => {}} onSubmit={vi.fn()} />,
-    );
+    render(<AnimateModal worldPath="/w" target="enemy:x" onClose={() => {}} onSubmit={vi.fn()} />);
     const select = screen.getByRole("combobox", { name: /Image edit backend/i });
     const values = Array.from(select.querySelectorAll("option")).map((o) => o.value);
     expect(values).toEqual(["fal", "fake"]);
@@ -86,9 +92,7 @@ describe("AnimateModal", () => {
 
   it("blank model fields are omitted, so canon's defaults apply", async () => {
     const onSubmit = vi.fn();
-    render(
-      <AnimateModal worldPath="/w" target="enemy:x" onClose={() => {}} onSubmit={onSubmit} />,
-    );
+    render(<AnimateModal worldPath="/w" target="enemy:x" onClose={() => {}} onSubmit={onSubmit} />);
     await userEvent.click(screen.getByRole("button", { name: /^Generate ·/ }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     const o = onSubmit.mock.calls[0][0];
@@ -100,9 +104,7 @@ describe("AnimateModal", () => {
 
   it("a typed model reaches the caller", async () => {
     const onSubmit = vi.fn();
-    render(
-      <AnimateModal worldPath="/w" target="enemy:x" onClose={() => {}} onSubmit={onSubmit} />,
-    );
+    render(<AnimateModal worldPath="/w" target="enemy:x" onClose={() => {}} onSubmit={onSubmit} />);
     await userEvent.type(
       screen.getByPlaceholderText("fal-ai/nano-banana/edit"),
       "fal-ai/some-other/edit",
@@ -114,9 +116,7 @@ describe("AnimateModal", () => {
 
   it("reuse-spec drops the vision call from the quote and the submit", async () => {
     const onSubmit = vi.fn();
-    render(
-      <AnimateModal worldPath="/w" target="enemy:x" onClose={() => {}} onSubmit={onSubmit} />,
-    );
+    render(<AnimateModal worldPath="/w" target="enemy:x" onClose={() => {}} onSubmit={onSubmit} />);
     await userEvent.click(screen.getByRole("checkbox"));
     await waitFor(() => {
       const calls = vi.mocked(api.estimateAsset).mock.calls;
@@ -135,9 +135,7 @@ describe("AnimateModal", () => {
 
   it("refuses the combination canon itself rejects", async () => {
     // No stored spec to replay AND no vision backend to author one.
-    render(
-      <AnimateModal worldPath="/w" target="enemy:x" onClose={() => {}} onSubmit={vi.fn()} />,
-    );
+    render(<AnimateModal worldPath="/w" target="enemy:x" onClose={() => {}} onSubmit={vi.fn()} />);
     await userEvent.selectOptions(
       screen.getByRole("combobox", { name: /Vision backend/i }),
       "none",
@@ -149,9 +147,7 @@ describe("AnimateModal", () => {
   it("shows what the run works from — the base sprite and each state's brief", async () => {
     // The dialog used to be backend dropdowns and a bare prompt box: it never
     // showed the sprite being edited or what a state was supposed to mean.
-    render(
-      <AnimateModal worldPath="/w" target="player" onClose={() => {}} onSubmit={vi.fn()} />,
-    );
+    render(<AnimateModal worldPath="/w" target="player" onClose={() => {}} onSubmit={vi.fn()} />);
     const img = await screen.findByAltText(/base sprite/i);
     expect(img).toHaveAttribute("src", "/__mockassets__/sprite/player/base.png");
     for (const state of ["idle", "walk", "jump"]) {
@@ -165,8 +161,13 @@ describe("AnimateModal", () => {
     // the generic per-state brief the vocabulary ships.
     vi.mocked(api.animInspect).mockResolvedValue({
       animation: {
-        target: "enemy:eel", label: "eel", sprite_dir: "sprite/enemy/eel",
-        has_atlas: true, atlas_path_abs: null, states: [], flush_states: [],
+        target: "enemy:eel",
+        label: "eel",
+        sprite_dir: "sprite/enemy/eel",
+        has_atlas: true,
+        atlas_path_abs: null,
+        states: [],
+        flush_states: [],
         independently_sized: false,
         base_sprite: "sprite/enemy/eel/base.png",
         base_sprite_abs: "/__mockassets__/sprite/enemy/eel/base.png",

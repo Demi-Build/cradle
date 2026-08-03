@@ -127,7 +127,10 @@ export function DetailPane() {
     // Lineage/History (Library A): platformer asset artifacts whose journal
     // chains cradle can browse and restore from.
     const artifactPrefix: Record<string, string> = {
-      enemies: "enemy", items: "item", tilesets: "tileset", backdrops: "backdrop",
+      enemies: "enemy",
+      items: "item",
+      tilesets: "tileset",
+      backdrops: "backdrop",
     };
     // The player's artifact id is the BARE string "player" — canon journals it
     // that way (there is no "player:player"), so a prefixed id would look up an
@@ -143,11 +146,7 @@ export function DetailPane() {
         id: "history",
         label: "History",
         content: (
-          <LineagePanel
-            artifactId={artifactId}
-            typeId={selection.typeId}
-            entityId={selection.id}
-          />
+          <LineagePanel artifactId={artifactId} typeId={selection.typeId} entityId={selection.id} />
         ),
       });
     }

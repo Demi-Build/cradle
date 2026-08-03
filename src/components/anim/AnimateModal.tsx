@@ -228,9 +228,9 @@ export function AnimateModal({
       <div style={card} onClick={(e) => e.stopPropagation()}>
         <h3 style={{ margin: "0 0 4px" }}>Generate animation — {name ?? target}</h3>
         <p style={{ margin: "0 0 14px", fontSize: 12, opacity: 0.7, lineHeight: 1.4 }}>
-          A vision model authors a per-state motion spec from the sprite below, then
-          one img2img sheet is generated per state. The sheets are sliced into frame
-          strips and a packed atlas — inspect the result in the <b>Animation</b> tab.
+          A vision model authors a per-state motion spec from the sprite below, then one img2img
+          sheet is generated per state. The sheets are sliced into frame strips and a packed atlas —
+          inspect the result in the <b>Animation</b> tab.
         </p>
 
         {/* THE INPUTS — the sprite this run edits, and what each state means.
@@ -278,9 +278,7 @@ export function AnimateModal({
                 no sprite
               </div>
             )}
-            <div style={{ fontSize: 9.5, color: "var(--fg-dim)", marginTop: 4 }}>
-              base sprite
-            </div>
+            <div style={{ fontSize: 9.5, color: "var(--fg-dim)", marginTop: 4 }}>base sprite</div>
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: 11.5, opacity: 0.75, marginBottom: 5 }}>
@@ -328,10 +326,9 @@ export function AnimateModal({
 
         {sel("Image edit backend", imageBackend, setImageBackend, EDIT_BACKENDS)}
         <div style={{ fontSize: 11, opacity: 0.6, margin: "-2px 0 8px", lineHeight: 1.45 }}>
-          Only <code>fal</code> and <code>fake</code> can animate — they are the only
-          backends with an img2img <code>edit()</code>. PixelLab, Retro Diffusion and
-          local can draw a sprite, but an animate run on them produces no frames and
-          still bills the vision model.
+          Only <code>fal</code> and <code>fake</code> can animate — they are the only backends with
+          an img2img <code>edit()</code>. PixelLab, Retro Diffusion and local can draw a sprite, but
+          an animate run on them produces no frames and still bills the vision model.
         </div>
         {txt("Image model", imageModel, setImageModel, DEFAULT_IMAGE_MODEL)}
         {txt("Edit model", editModel, setEditModel, DEFAULT_EDIT_MODEL)}
@@ -349,9 +346,8 @@ export function AnimateModal({
           />
         </label>
         <div style={{ fontSize: 11, opacity: 0.6, margin: "-2px 0 8px", lineHeight: 1.45 }}>
-          Re-render from the motion spec already stored on this actor — no vision
-          call, so it is cheaper and reproduces the same motion. Needs a previous
-          animate run to have stored one.
+          Re-render from the motion spec already stored on this actor — no vision call, so it is
+          cheaper and reproduces the same motion. Needs a previous animate run to have stored one.
         </div>
         {sel("Vision backend", vlmBackend, setVlmBackend, VLM_BACKENDS, reuseSpec)}
         {txt("Vision model", vlmModel, setVlmModel, DEFAULT_VLM_MODEL, reuseSpec)}
@@ -396,8 +392,7 @@ export function AnimateModal({
             </div>
           )}
           <div style={{ marginTop: 4, opacity: 0.55, lineHeight: 1.45 }}>
-            Priced per STATE, not per frame — one image call renders a whole state's
-            sheet.
+            Priced per STATE, not per frame — one image call renders a whole state's sheet.
           </div>
         </div>
 

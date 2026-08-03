@@ -124,7 +124,14 @@ export function LibraryPanel() {
           published from any project · imports copy in with fresh ids + provenance
         </span>
         <span style={{ flex: 1 }} />
-        <div style={{ display: "inline-flex", border: "1px solid var(--border)", borderRadius: 7, overflow: "hidden" }}>
+        <div
+          style={{
+            display: "inline-flex",
+            border: "1px solid var(--border)",
+            borderRadius: 7,
+            overflow: "hidden",
+          }}
+        >
           {(["all", "project"] as const).map((s) => (
             <button
               key={s}
@@ -145,7 +152,9 @@ export function LibraryPanel() {
         </div>
         <select value={kind} onChange={(e) => setKind(e.target.value)} style={{ fontSize: 12 }}>
           {KINDS.map((k) => (
-            <option key={k} value={k}>{k || "all kinds"}</option>
+            <option key={k} value={k}>
+              {k || "all kinds"}
+            </option>
           ))}
         </select>
         <input
@@ -155,15 +164,13 @@ export function LibraryPanel() {
           style={{ fontSize: 12, width: 140 }}
         />
       </div>
-      {note && (
-        <p style={{ fontSize: 12, color: "var(--accent)", margin: "8px 0 0" }}>{note}</p>
-      )}
+      {note && <p style={{ fontSize: 12, color: "var(--accent)", margin: "8px 0 0" }}>{note}</p>}
       {err && <p style={{ color: "var(--err)", fontSize: 13 }}>{err}</p>}
       {!entries && !err && <p style={{ fontSize: 13, marginTop: 12 }}>Loading library…</p>}
       {entries && entries.length === 0 && (
         <p style={{ fontSize: 13, marginTop: 12, color: "var(--fg-dim)" }}>
-          Nothing here yet — publish an asset with ⬆ from an enemy or item page,
-          or `canon library publish` from any pack.
+          Nothing here yet — publish an asset with ⬆ from an enemy or item page, or `canon library
+          publish` from any pack.
         </p>
       )}
       <div
@@ -191,16 +198,24 @@ export function LibraryPanel() {
                   src={previews[entry.preview]}
                   alt={entry.name}
                   style={{
-                    width: 64, height: 64, imageRendering: "pixelated",
-                    background: "#000", borderRadius: 6, objectFit: "contain",
+                    width: 64,
+                    height: 64,
+                    imageRendering: "pixelated",
+                    background: "#000",
+                    borderRadius: 6,
+                    objectFit: "contain",
                   }}
                 />
               ) : (
                 <span
                   style={{
-                    width: 64, height: 64, display: "inline-flex",
-                    alignItems: "center", justifyContent: "center",
-                    background: "var(--bg-hover)", borderRadius: 6,
+                    width: 64,
+                    height: 64,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "var(--bg-hover)",
+                    borderRadius: 6,
                     fontSize: 24,
                   }}
                 >
@@ -220,9 +235,19 @@ export function LibraryPanel() {
                 </div>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                marginTop: 8,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
               {entry.tags.map((t) => (
-                <span key={t} style={chip}>{t}</span>
+                <span key={t} style={chip}>
+                  {t}
+                </span>
               ))}
               <span style={{ flex: 1 }} />
               {DIRECT_IMPORT.has(entry.kind) ? (
@@ -243,7 +268,10 @@ export function LibraryPanel() {
                   {busy === entry.library_id ? "…" : "⬇ Import"}
                 </button>
               ) : (
-                <span style={chip} title={`canon library import <pack> --id ${entry.library_id} --into …`}>
+                <span
+                  style={chip}
+                  title={`canon library import <pack> --id ${entry.library_id} --into …`}
+                >
                   import via CLI --into
                 </span>
               )}

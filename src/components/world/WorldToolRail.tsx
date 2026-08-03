@@ -84,7 +84,13 @@ export function WorldToolRail({
   const { ref, style, gripProps } = useDraggablePanel("worldRailPos");
 
   return (
-    <div ref={ref} className="tool-rail wm-rail" role="toolbar" aria-label="World map tools" style={style}>
+    <div
+      ref={ref}
+      className="tool-rail wm-rail"
+      role="toolbar"
+      aria-label="World map tools"
+      style={style}
+    >
       <span className="tool-grip" {...gripProps} />
       {TOOLS.map((t) => (
         <span key={t.id} style={{ display: "contents" }}>

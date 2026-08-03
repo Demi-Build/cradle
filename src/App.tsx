@@ -185,8 +185,16 @@ export default function App() {
       },
     ]);
   }, [
-    registerCommands, setNewProjectOpen, setDashboardOpen, setJobsOpen,
-    setTheme, closeWorld, theme, world, layout, setLayout,
+    registerCommands,
+    setNewProjectOpen,
+    setDashboardOpen,
+    setJobsOpen,
+    setTheme,
+    closeWorld,
+    theme,
+    world,
+    layout,
+    setLayout,
   ]);
 
   // Keyboard navigation (tier 1):

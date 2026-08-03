@@ -30,12 +30,25 @@ const COLUMN_CONFIG: Record<string, string[]> = {
   sfx: ["name", "filename"],
   // Platformer catalog — dotted keys reach nested fields, __keys are computed.
   enemies: [
-    "name", "archetype", "size", "rarity", "stats.hp", "stats.damage",
-    "stats.speed", "habitats", "behavior.patrol_range", "behavior.aggro_range",
+    "name",
+    "archetype",
+    "size",
+    "rarity",
+    "stats.hp",
+    "stats.damage",
+    "stats.speed",
+    "habitats",
+    "behavior.patrol_range",
+    "behavior.aggro_range",
     "review_status",
   ],
   levels: [
-    "stage_id", "__dims", "__enemies", "__items", "layout_fallback", "status",
+    "stage_id",
+    "__dims",
+    "__enemies",
+    "__items",
+    "layout_fallback",
+    "status",
     "review_status",
   ],
   tilesets: ["stage_id", "__slots", "render_filter", "tilesheet_path"],
@@ -45,8 +58,14 @@ const COLUMN_CONFIG: Record<string, string[]> = {
 
 // Platformer items share the "items" type id with MazeWorld's — pick by shape.
 const PLATFORMER_ITEM_COLUMNS = [
-  "name", "kind", "rarity", "params.coin_value", "params.heal_amount",
-  "params.duration_s", "params.boost_mult", "review_status",
+  "name",
+  "kind",
+  "rarity",
+  "params.coin_value",
+  "params.heal_amount",
+  "params.duration_s",
+  "params.boost_mult",
+  "review_status",
 ];
 const PLATFORMER_ITEM_SORTS: SortOption[] = [
   { id: "name", label: "Name", keys: ["name"] },
@@ -164,7 +183,12 @@ const SORT_CONFIG: Record<string, SortOption[]> = {
   sfx: [{ id: "name", label: "Name", keys: ["name"] }],
   enemies: [
     { id: "name", label: "Name", keys: ["name"] },
-    { id: "arch-name", label: "Archetype → Name", keys: ["archetype", "name"], groupKey: "archetype" },
+    {
+      id: "arch-name",
+      label: "Archetype → Name",
+      keys: ["archetype", "name"],
+      groupKey: "archetype",
+    },
     { id: "rarity-name", label: "Rarity → Name", keys: ["rarity", "name"], groupKey: "rarity" },
     { id: "size-first", label: "Biggest first", keys: ["-size", "name"] },
   ],
@@ -199,7 +223,6 @@ function cellRaw(row: Row, key: string): string | number {
   if (typeof v === "object") return "{…}";
   return String(v);
 }
-
 
 function portraitHintFor(typeId: string, row: Row): string | null {
   // First non-empty image-ish field (platformer entities carry sprite_path /
@@ -285,8 +308,7 @@ export function EntityTable({
   const [filter, setFilter] = useState("");
   const [newRowOpen, setNewRowOpen] = useState(false);
   const [schemaOpen, setSchemaOpen] = useState(false);
-  const canCreateRow =
-    typeId === "enemies" || isPlatformerItems(typeId, rows);
+  const canCreateRow = typeId === "enemies" || isPlatformerItems(typeId, rows);
   const [partition, setPartition] = useState<string | null>(initialPartition ?? null);
   const [view, setView] = useState<"list" | "cards">(
     typeId === "music" || typeId === "sfx" ? "list" : "cards",
@@ -449,9 +471,7 @@ export function EntityTable({
           onCreated={(id) => select({ kind: "entity", typeId, id })}
         />
       )}
-      {schemaOpen && (
-        <SchemaEditor typeId={typeId} onClose={() => setSchemaOpen(false)} />
-      )}
+      {schemaOpen && <SchemaEditor typeId={typeId} onClose={() => setSchemaOpen(false)} />}
       <div className="entity-table-toolbar">
         <input
           value={filter}

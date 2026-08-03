@@ -172,10 +172,7 @@ export function PaletteRail({ bundle, brush, onBrush, onReplaceArt }: PaletteRai
               padding: "1px 7px",
               borderRadius: 9,
               cursor: "pointer",
-              border:
-                variant === v
-                  ? "1px solid var(--accent)"
-                  : "1px solid var(--border)",
+              border: variant === v ? "1px solid var(--accent)" : "1px solid var(--border)",
               background: variant === v ? "rgba(226,183,20,0.12)" : "transparent",
               color: "var(--fg-muted)",
             }}
@@ -221,8 +218,7 @@ export function PaletteRail({ bundle, brush, onBrush, onReplaceArt }: PaletteRai
               padding: "1px 7px",
               borderRadius: 9,
               cursor: "pointer",
-              border:
-                source === s ? "1px solid var(--accent)" : "1px solid var(--border)",
+              border: source === s ? "1px solid var(--accent)" : "1px solid var(--border)",
               background: source === s ? "rgba(226,183,20,0.12)" : "transparent",
               color: "var(--fg-muted)",
             }}

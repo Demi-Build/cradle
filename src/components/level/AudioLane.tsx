@@ -79,9 +79,7 @@ export function AudioLane({
               >
                 <b>{s.name || basename(s.music_path) || "silence"}</b>
                 <i>
-                  {s.music_path?.trim()
-                    ? `${s.start}–${s.end}`
-                    : `${s.start}–${s.end} · silent`}
+                  {s.music_path?.trim() ? `${s.start}–${s.end}` : `${s.start}–${s.end} · silent`}
                 </i>
               </div>
             ))}

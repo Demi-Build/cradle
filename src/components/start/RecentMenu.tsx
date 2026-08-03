@@ -88,8 +88,7 @@ export function RecentMenu({
       </button>
       {!recent.hidden && (
         <div className="rmenu-hint">
-          Hides the card only — the project stays on disk and stays openable
-          from Open another…
+          Hides the card only — the project stays on disk and stays openable from Open another…
         </div>
       )}
       <div className="rmenu-div" />

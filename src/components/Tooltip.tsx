@@ -63,10 +63,7 @@ export function Tooltip({
     }
     if (x < MARGIN) x = MARGIN;
     const half = tip.height / 2;
-    const y = Math.min(
-      Math.max(pos.y, half + MARGIN),
-      window.innerHeight - half - MARGIN,
-    );
+    const y = Math.min(Math.max(pos.y, half + MARGIN), window.innerHeight - half - MARGIN);
     if (x !== pos.x || y !== pos.y || flipped !== pos.flipped) {
       setPos({ x, y, flipped });
     }

@@ -339,10 +339,7 @@ export function WorldMapView() {
       const p = worldAt(e);
       const node = m.nodes.find((n) => n.level_id === g.id);
       if (!node) return;
-      node.pos = [
-        Math.min(1, Math.max(0, p.x / WORLD_W)),
-        Math.min(1, Math.max(0, p.y / WORLD_H)),
-      ];
+      node.pos = [Math.min(1, Math.max(0, p.x / WORLD_W)), Math.min(1, Math.max(0, p.y / WORLD_H))];
       node.origin = "manual";
     } else {
       cam.current.ox -= (e.clientX - g.x) / cam.current.zoom;
@@ -410,9 +407,7 @@ export function WorldMapView() {
       const edge = m.edges[hit.index];
       void setEdges(
         m.edges.map((x, i) =>
-          i === hit.index
-            ? { ...x, stop: edge.stop ? undefined : "jump · secret exit?" }
-            : x,
+          i === hit.index ? { ...x, stop: edge.stop ? undefined : "jump · secret exit?" } : x,
         ),
       );
       setSel(hit);
@@ -438,8 +433,13 @@ export function WorldMapView() {
     // rendered hull — never by nearest-cluster guessing, which inflates hulls.
     const hull = m.areas.find((a) => {
       const h = areaHull(a, m.nodes, mode);
-      return h && nx * WORLD_W >= h.x && nx * WORLD_W <= h.x + h.w
-        && ny * WORLD_H >= h.y && ny * WORLD_H <= h.y + h.h;
+      return (
+        h &&
+        nx * WORLD_W >= h.x &&
+        nx * WORLD_W <= h.x + h.w &&
+        ny * WORLD_H >= h.y &&
+        ny * WORLD_H <= h.y + h.h
+      );
     });
     try {
       const created = await api.createLevel(worldPath, hull?.stage_id ?? stage, 40, 16);
@@ -460,9 +460,7 @@ export function WorldMapView() {
   const connect = async (a: string, b: string) => {
     const m = mapRef.current;
     if (!m) return;
-    const exists = m.edges.some(
-      (e) => (e.a === a && e.b === b) || (e.a === b && e.b === a),
-    );
+    const exists = m.edges.some((e) => (e.a === a && e.b === b) || (e.a === b && e.b === a));
     setLinkFrom(null);
     if (exists) {
       setNote("those levels are already connected");
@@ -583,7 +581,8 @@ export function WorldMapView() {
       },
       {
         id: "world.canvas",
-        label: mode === "schematic" ? "Switch to the overworld view" : "Switch to the schematic view",
+        label:
+          mode === "schematic" ? "Switch to the overworld view" : "Switch to the schematic view",
         group: "World map",
         keywords: "canvas treatment smw",
         run: () => setMode(mode === "schematic" ? "overworld" : "schematic"),

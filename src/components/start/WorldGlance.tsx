@@ -117,9 +117,7 @@ export function WorldGlance({ recent }: { recent: RecentProject }) {
               <i className="dot planned" />
               {planned} planned
             </span>
-            {recent.validation === "validated" && (
-              <span className="ok">validated ✓</span>
-            )}
+            {recent.validation === "validated" && <span className="ok">validated ✓</span>}
           </div>
         </>
       )}
@@ -141,7 +139,12 @@ function GlanceMap({ map }: { map: WorldMap }) {
   const byId = new Map(map.nodes.map((n) => [n.level_id, n]));
 
   return (
-    <svg className="glance-svg" viewBox={`0 0 ${VB_W} ${VB_H}`} role="img" aria-label="World map preview">
+    <svg
+      className="glance-svg"
+      viewBox={`0 0 ${VB_W} ${VB_H}`}
+      role="img"
+      aria-label="World map preview"
+    >
       {map.areas.map((a, i) => {
         const members = map.nodes.filter((n) => a.level_ids.includes(n.level_id));
         if (!members.length) return null;
@@ -183,11 +186,7 @@ function GlanceMap({ map }: { map: WorldMap }) {
             y2={q.y}
             strokeWidth={1.2}
             stroke={
-              locked
-                ? "oklch(72% 0.14 45 / 0.8)"
-                : isNew
-                  ? "var(--fg-dim)"
-                  : "var(--border-hi)"
+              locked ? "oklch(72% 0.14 45 / 0.8)" : isNew ? "var(--fg-dim)" : "var(--border-hi)"
             }
             strokeDasharray={locked ? "4 3" : isNew ? "2 4" : undefined}
           />

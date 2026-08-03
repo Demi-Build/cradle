@@ -285,8 +285,7 @@ export const useStore = create<Store>((set, get) => ({
   setNewProjectOpen: (open) => set({ newProjectOpen: open }),
   setDashboardOpen: (open) => set({ dashboardOpen: open }),
   setPaletteOpen: (open) => set({ paletteOpen: open }),
-  registerCommands: (scope, cmds) =>
-    set((s) => ({ commands: { ...s.commands, [scope]: cmds } })),
+  registerCommands: (scope, cmds) => set((s) => ({ commands: { ...s.commands, [scope]: cmds } })),
   unregisterCommands: (scope) =>
     set((s) => {
       if (!(scope in s.commands)) return {};
@@ -374,8 +373,7 @@ export const useStore = create<Store>((set, get) => ({
     }),
   togglePin: (path: string) => set((s) => ({ recents: togglePinFn(s.recents, path) })),
   removeRecent: (path) => set((s) => ({ recents: removeRecentFn(s.recents, path) })),
-  toggleRecentHidden: (path) =>
-    set((s) => ({ recents: toggleHiddenFn(s.recents, path) })),
+  toggleRecentHidden: (path) => set((s) => ({ recents: toggleHiddenFn(s.recents, path) })),
   startNote: null,
   setStartNote: (note) => set({ startNote: note }),
   enrichRecent: async (inputPath: string) => {
@@ -466,9 +464,7 @@ export const useStore = create<Store>((set, get) => ({
       // Platformer packs have no world_bible.json (manifest.json + world.json +
       // level/ instead). Open straight to the first level rather than a Bible
       // view that would error, and prime the nav with levels + enemies.
-      const isPlatformer = summary.entity_counts.some(
-        (c) => c.type_id === "levels" && c.count > 0,
-      );
+      const isPlatformer = summary.entity_counts.some((c) => c.type_id === "levels" && c.count > 0);
       if (isPlatformer) {
         let levelRefs: EntityRef[] = [];
         let enemyRefs: EntityRef[] = [];
@@ -484,9 +480,7 @@ export const useStore = create<Store>((set, get) => ({
           world: summary,
           worldStoryTitle: summary.name,
           worldBeats: [],
-          selection: first
-            ? { kind: "entity", typeId: "levels", id: first.id }
-            : { kind: "none" },
+          selection: first ? { kind: "entity", typeId: "levels", id: first.id } : { kind: "none" },
           entities: { levels: levelRefs, enemies: enemyRefs },
           levelValidation: {},
           route: "start",

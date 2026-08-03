@@ -102,9 +102,7 @@ export function PromptOverride({
           }}
         >
           {loading && <div style={{ opacity: 0.7 }}>Loading the default prompt…</div>}
-          {err && (
-            <div style={{ color: "var(--err)", whiteSpace: "pre-wrap" }}>{err}</div>
-          )}
+          {err && <div style={{ color: "var(--err)", whiteSpace: "pre-wrap" }}>{err}</div>}
           {preview && (
             <>
               <div style={{ opacity: 0.7, marginBottom: 6, lineHeight: 1.4 }}>

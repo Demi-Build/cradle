@@ -128,13 +128,24 @@ export function MusicPanel({
   const stageTrack = bundle.stage_music || "";
 
   const overlay: React.CSSProperties = {
-    position: "fixed", inset: 0, background: "rgba(8,6,12,0.6)", display: "flex",
-    alignItems: "center", justifyContent: "center", zIndex: 1000,
+    position: "fixed",
+    inset: 0,
+    background: "rgba(8,6,12,0.6)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
   };
   const card: React.CSSProperties = {
-    width: 520, maxWidth: "92vw", maxHeight: "88vh", overflowY: "auto",
-    background: "var(--bg-raised)", border: "1px solid var(--border)",
-    borderRadius: 12, padding: 20, color: "var(--fg)",
+    width: 520,
+    maxWidth: "92vw",
+    maxHeight: "88vh",
+    overflowY: "auto",
+    background: "var(--bg-raised)",
+    border: "1px solid var(--border)",
+    borderRadius: 12,
+    padding: 20,
+    color: "var(--fg)",
     boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
   };
   const h4: React.CSSProperties = { margin: "16px 0 6px", fontSize: 13, opacity: 0.85 };
@@ -145,13 +156,17 @@ export function MusicPanel({
       <div style={card} onClick={(e) => e.stopPropagation()}>
         <h3 style={{ margin: "0 0 2px" }}>🎵 Music — {bundle.display_name ?? levelId}</h3>
         <p style={sm}>
-          Resolves by position: an active section → this level's track → the stage
-          default. Assign an existing track (free) or generate a new one (Lyria, paid).
+          Resolves by position: an active section → this level's track → the stage default. Assign
+          an existing track (free) or generate a new one (Lyria, paid).
         </p>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "10px 0" }}>
           <label style={sm}>Backend</label>
-          <select value={backend} onChange={(e) => setBackend(e.target.value as Backend)} disabled={!!busy}>
+          <select
+            value={backend}
+            onChange={(e) => setBackend(e.target.value as Backend)}
+            disabled={!!busy}
+          >
             <option value="fake">fake ($0)</option>
             <option value="lyria">Lyria (paid)</option>
           </select>
@@ -192,51 +207,137 @@ export function MusicPanel({
           >
             <option value="">— stage default —</option>
             {tracks.map((t) => (
-              <option key={t.path} value={t.path}>{t.label}</option>
+              <option key={t.path} value={t.path}>
+                {t.label}
+              </option>
             ))}
           </select>
-          <button onClick={() => void generate(null)} disabled={!!busy} style={{ cursor: "pointer" }}>
+          <button
+            onClick={() => void generate(null)}
+            disabled={!!busy}
+            style={{ cursor: "pointer" }}
+          >
             {busy === "generate" ? "Generating…" : "🎲 Generate track"}
           </button>
         </div>
 
         <h4 style={h4}>Music sections ({axis} along the level)</h4>
-        {sections.length === 0 && <div style={sm}>none — add a region to change music mid-level.</div>}
+        {sections.length === 0 && (
+          <div style={sm}>none — add a region to change music mid-level.</div>
+        )}
         {sections.map((s, i) => (
-          <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", margin: "6px 0", flexWrap: "wrap" }}>
-            <input type="number" value={s.start} disabled={!!busy} style={{ width: 60, fontSize: 12 }}
-              onChange={(e) => setSections((xs) => xs.map((x, j) => j === i ? { ...x, start: Number(e.target.value) } : x))} />
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              gap: 6,
+              alignItems: "center",
+              margin: "6px 0",
+              flexWrap: "wrap",
+            }}
+          >
+            <input
+              type="number"
+              value={s.start}
+              disabled={!!busy}
+              style={{ width: 60, fontSize: 12 }}
+              onChange={(e) =>
+                setSections((xs) =>
+                  xs.map((x, j) => (j === i ? { ...x, start: Number(e.target.value) } : x)),
+                )
+              }
+            />
             <span style={sm}>→</span>
-            <input type="number" value={s.end} disabled={!!busy} style={{ width: 60, fontSize: 12 }}
-              onChange={(e) => setSections((xs) => xs.map((x, j) => j === i ? { ...x, end: Number(e.target.value) } : x))} />
-            <input placeholder="name" value={s.name ?? ""} disabled={!!busy} style={{ width: 90, fontSize: 12 }}
-              onChange={(e) => setSections((xs) => xs.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} />
-            <select value={s.music_path ?? ""} disabled={!!busy} style={{ fontSize: 11, maxWidth: 130 }}
-              onChange={(e) => setSections((xs) => xs.map((x, j) => j === i ? { ...x, music_path: e.target.value } : x))}>
+            <input
+              type="number"
+              value={s.end}
+              disabled={!!busy}
+              style={{ width: 60, fontSize: 12 }}
+              onChange={(e) =>
+                setSections((xs) =>
+                  xs.map((x, j) => (j === i ? { ...x, end: Number(e.target.value) } : x)),
+                )
+              }
+            />
+            <input
+              placeholder="name"
+              value={s.name ?? ""}
+              disabled={!!busy}
+              style={{ width: 90, fontSize: 12 }}
+              onChange={(e) =>
+                setSections((xs) =>
+                  xs.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)),
+                )
+              }
+            />
+            <select
+              value={s.music_path ?? ""}
+              disabled={!!busy}
+              style={{ fontSize: 11, maxWidth: 130 }}
+              onChange={(e) =>
+                setSections((xs) =>
+                  xs.map((x, j) => (j === i ? { ...x, music_path: e.target.value } : x)),
+                )
+              }
+            >
               <option value="">— silence —</option>
-              {tracks.map((t) => <option key={t.path} value={t.path}>{t.label}</option>)}
+              {tracks.map((t) => (
+                <option key={t.path} value={t.path}>
+                  {t.label}
+                </option>
+              ))}
             </select>
-            <button onClick={() => void generate(i)} disabled={!!busy} title="Generate a track for this section" style={{ cursor: "pointer", fontSize: 11 }}>🎲</button>
-            <button onClick={() => setSections((xs) => xs.filter((_, j) => j !== i))} disabled={!!busy} style={{ cursor: "pointer", fontSize: 11 }}>✕</button>
+            <button
+              onClick={() => void generate(i)}
+              disabled={!!busy}
+              title="Generate a track for this section"
+              style={{ cursor: "pointer", fontSize: 11 }}
+            >
+              🎲
+            </button>
+            <button
+              onClick={() => setSections((xs) => xs.filter((_, j) => j !== i))}
+              disabled={!!busy}
+              style={{ cursor: "pointer", fontSize: 11 }}
+            >
+              ✕
+            </button>
           </div>
         ))}
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           <button
-            onClick={() => setSections((xs) => [...xs, { start: 0, end: Math.min(20, bundle.grid_width), music_path: "", name: "" }])}
+            onClick={() =>
+              setSections((xs) => [
+                ...xs,
+                { start: 0, end: Math.min(20, bundle.grid_width), music_path: "", name: "" },
+              ])
+            }
             disabled={!!busy}
             style={{ cursor: "pointer", fontSize: 12 }}
           >
             ＋ Add section
           </button>
-          <button onClick={() => void saveSections()} disabled={!!busy} style={{ cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+          <button
+            onClick={() => void saveSections()}
+            disabled={!!busy}
+            style={{ cursor: "pointer", fontSize: 12, fontWeight: 600 }}
+          >
             {busy === "sections" ? "Saving…" : "Save sections"}
           </button>
-          <span style={sm}>generate a section's track AFTER saving (it keys on the saved index)</span>
+          <span style={sm}>
+            generate a section's track AFTER saving (it keys on the saved index)
+          </span>
         </div>
 
-        {err && <div style={{ color: "var(--err)", fontSize: 12, marginTop: 10, whiteSpace: "pre-wrap" }}>{err}</div>}
+        {err && (
+          <div style={{ color: "var(--err)", fontSize: 12, marginTop: 10, whiteSpace: "pre-wrap" }}>
+            {err}
+          </div>
+        )}
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-          <button onClick={onClose} disabled={!!busy} style={{ cursor: "pointer" }}>Close</button>
+          <button onClick={onClose} disabled={!!busy} style={{ cursor: "pointer" }}>
+            Close
+          </button>
         </div>
       </div>
     </div>

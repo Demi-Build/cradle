@@ -42,8 +42,7 @@ export const areaStroke = (i: number) => `oklch(72% 0.13 ${areaHue(i)})`;
 const areaFill = (i: number) => `oklch(60% 0.13 ${areaHue(i)} / 0.10)`;
 /** Label ink for an area. Lightness FLIPS with the theme — a 82% amber is
  *  legible on the dark stage and near-invisible on the light one. */
-const areaInk = (i: number, dark: boolean) =>
-  `oklch(${dark ? 82 : 42}% 0.10 ${areaHue(i)})`;
+const areaInk = (i: number, dark: boolean) => `oklch(${dark ? 82 : 42}% 0.10 ${areaHue(i)})`;
 /** Path stops get their own hue — they are neither a state nor a surface. */
 const STOP_COLOR = "oklch(74% 0.12 300)";
 
@@ -91,12 +90,7 @@ export function areaHull(
 }
 
 /** Hit-test in WORLD coordinates. Nodes win over areas — they sit on top. */
-export function hitTest(
-  map: WorldMap,
-  mode: WorldMode,
-  wx: number,
-  wy: number,
-): WorldSel | null {
+export function hitTest(map: WorldMap, mode: WorldMode, wx: number, wy: number): WorldSel | null {
   const halfW = NODE_W[mode] / 2;
   const halfH = NODE_H[mode] / 2;
   for (const n of map.nodes) {
@@ -166,11 +160,7 @@ export interface DrawWorldOpts {
   theme?: CanvasTheme;
 }
 
-export function drawWorld(
-  canvas: HTMLCanvasElement,
-  map: WorldMap,
-  opts: DrawWorldOpts,
-): void {
+export function drawWorld(canvas: HTMLCanvasElement, map: WorldMap, opts: DrawWorldOpts): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   const mode: WorldMode = opts.mode ?? "schematic";
@@ -191,7 +181,14 @@ export function drawWorld(
   // literal, which is what made the map look dark inside a light app.
   ctx.fillStyle = t.bgSunken;
   ctx.fillRect(0, 0, cam.viewW, cam.viewH);
-  ctx.setTransform(dpr * cam.zoom, 0, 0, dpr * cam.zoom, -cam.ox * dpr * cam.zoom, -cam.oy * dpr * cam.zoom);
+  ctx.setTransform(
+    dpr * cam.zoom,
+    0,
+    0,
+    dpr * cam.zoom,
+    -cam.ox * dpr * cam.zoom,
+    -cam.oy * dpr * cam.zoom,
+  );
   ctx.imageSmoothingEnabled = false;
 
   if (mode === "schematic") drawDotGrid(ctx, cam, t);

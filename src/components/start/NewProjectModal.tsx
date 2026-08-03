@@ -199,8 +199,8 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
         <div className="modal np-modal" onClick={(e) => e.stopPropagation()}>
           <h3>New project</h3>
           <p className="note">
-            Pick what kind of game this is. It sets the vocabulary and the
-            generators the next step offers.
+            Pick what kind of game this is. It sets the vocabulary and the generators the next step
+            offers.
           </p>
           <div className="tpl-grid">
             {TEMPLATES.map((t) => (
@@ -243,13 +243,13 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
       <div className="modal np-modal" onClick={(e) => e.stopPropagation()}>
         <h3>New {template === "dungeon" ? "dungeon crawler" : "platformer"} project</h3>
         <p className="note">
-          Generates a small, playable starter world with placeholder art — $0, no API keys.
-          You'll pick where to save it next, then edit and generate levels from there.
+          Generates a small, playable starter world with placeholder art — $0, no API keys. You'll
+          pick where to save it next, then edit and generate levels from there.
         </p>
         {template === "dungeon" && (
           <p className="note dim">
-            Heads up: canon only generates platformer packs today, so this run
-            produces a platformer world regardless of the template.
+            Heads up: canon only generates platformer packs today, so this run produces a platformer
+            world regardless of the template.
           </p>
         )}
         <label style={row}>
@@ -271,14 +271,16 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
           {num(levels, setLevels, 1)}
         </label>
         <label style={row}>
-          <span>{template === "dungeon" ? "Monsters" : "Enemies"}</span> {num(enemies, setEnemies, 1)}
+          <span>{template === "dungeon" ? "Monsters" : "Enemies"}</span>{" "}
+          {num(enemies, setEnemies, 1)}
         </label>
         <label style={row}>
           <span>{template === "dungeon" ? "Loot tables" : "Items"}</span> {num(items, setItems, 0)}
         </label>
 
         <div style={{ margin: "12px 0 2px", fontSize: 12, opacity: 0.7 }}>
-          Generators — leave at the defaults for a free preview, or turn any up for a real (paid) run:
+          Generators — leave at the defaults for a free preview, or turn any up for a real (paid)
+          run:
         </div>
         {sel("Design (text)", llm, setLlm, [
           ["fake", "$0 canned"],
@@ -309,7 +311,8 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
         ])}
         {anyPaid && (
           <div style={{ fontSize: 11, marginTop: 6, color: "var(--accent)" }}>
-            Paid backends selected — needs API keys via <code>CANON_ENV_FILE</code> when you launch cradle.
+            Paid backends selected — needs API keys via <code>CANON_ENV_FILE</code> when you launch
+            cradle.
           </div>
         )}
         <div className="cost-box">
@@ -323,13 +326,14 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
             <div className="cost-detail">
               LLM {fmtUsd(est.llm.usd.best)} · images {est.assets.images.count}×→
               {fmtUsd(est.assets.images.usd)} · music {fmtUsd(est.assets.music.usd)} · sfx{" "}
-              {fmtUsd(est.assets.sfx.usd)} · anim {fmtUsd((est.assets.vlm?.usd?.best ?? 0) as number)}
+              {fmtUsd(est.assets.sfx.usd)} · anim{" "}
+              {fmtUsd((est.assets.vlm?.usd?.best ?? 0) as number)}
             </div>
           )}
           {est && !anyPaid && (
             <div className="cost-detail">
-              $0 — every generator is free ({est.assets.images.count} placeholder
-              images, {stages * levels} levels).
+              $0 — every generator is free ({est.assets.images.count} placeholder images,{" "}
+              {stages * levels} levels).
             </div>
           )}
         </div>

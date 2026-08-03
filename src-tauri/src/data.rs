@@ -98,7 +98,11 @@ fn synthesize_player_entity(root: &Path) -> Value {
     let base = root.join("sprite/player/base.png");
     m.insert(
         "sprite_path".into(),
-        Value::String(if base.is_file() { "sprite/player/base.png".into() } else { String::new() }),
+        Value::String(if base.is_file() {
+            "sprite/player/base.png".into()
+        } else {
+            String::new()
+        }),
     );
     if let Some(frames) = read_json_opt(&root.join("sprite/player/frames.json")) {
         let mut anim = serde_json::Map::new();
@@ -240,7 +244,7 @@ fn platformer_level_refs(root: &Path) -> Result<Vec<EntityRef>, String> {
             None => (pos(id.as_str()), 0u8, id.clone()),
         }
     };
-    found.sort_by(|a, b| key(a).cmp(&key(b)));
+    found.sort_by_cached_key(|e| key(e));
     Ok(found
         .into_iter()
         .map(|(id, parent)| {
@@ -260,7 +264,11 @@ fn platformer_level_refs(root: &Path) -> Result<Vec<EntityRef>, String> {
 
 /// Flat per-file DBs: `<dir>/<id>.json` with a display `name` field
 /// (enemy/, item/).
-fn platformer_file_db_refs(root: &Path, dir: &str, type_id: &str) -> Result<Vec<EntityRef>, String> {
+fn platformer_file_db_refs(
+    root: &Path,
+    dir: &str,
+    type_id: &str,
+) -> Result<Vec<EntityRef>, String> {
     let base = root.join(dir);
     let mut out = Vec::new();
     if base.is_dir() {
@@ -316,7 +324,13 @@ fn platformer_stage_manifest_refs(
 
 /// The platformer catalog: every browsable type and its refs.
 const PLATFORMER_TYPES: &[&str] = &[
-    "levels", "player", "enemies", "items", "tilesets", "backdrops", "audio",
+    "levels",
+    "player",
+    "enemies",
+    "items",
+    "tilesets",
+    "backdrops",
+    "audio",
 ];
 
 fn platformer_refs(root: &Path, type_id: &str) -> Result<Vec<EntityRef>, String> {

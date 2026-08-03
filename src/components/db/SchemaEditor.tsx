@@ -46,13 +46,7 @@ function fmtLookupValue(v: unknown): string {
   return Array.isArray(v) ? JSON.stringify(v) : String(v);
 }
 
-export function SchemaEditor({
-  typeId,
-  onClose,
-}: {
-  typeId: string;
-  onClose: () => void;
-}) {
+export function SchemaEditor({ typeId, onClose }: { typeId: string; onClose: () => void }) {
   const worldPath = useStore((s) => s.worldPath);
   const dbType = DB_TYPE[typeId];
   const [source, setSource] = useState<string>("");
@@ -255,8 +249,7 @@ export function SchemaEditor({
                 lookup: [
                   ...(entry.lookup ?? []),
                   ...missing.map(
-                    (k) =>
-                      [k, entry.lookup_ranges ? [0, 0] : 0] as [unknown, unknown],
+                    (k) => [k, entry.lookup_ranges ? [0, 0] : 0] as [unknown, unknown],
                   ),
                 ],
               })
@@ -273,7 +266,9 @@ export function SchemaEditor({
     <div
       style={{
         position: "fixed",
-        top: 0, right: 0, bottom: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
         width: 360,
         background: "var(--bg-raised)",
         borderLeft: "1px solid var(--border)",
@@ -298,17 +293,16 @@ export function SchemaEditor({
             {source === "pack" ? "customized" : "default"}
           </span>
         )}
-        <button onClick={onClose} style={{ cursor: "pointer" }}>✕</button>
+        <button onClick={onClose} style={{ cursor: "pointer" }}>
+          ✕
+        </button>
       </div>
       <p style={{ fontSize: 11, color: "var(--fg-dim)", margin: "0 0 8px" }}>
-        The tables generation rolls from. Edits save as a <b>pack-local
-        override</b> and apply to every future roll; existing rows are
-        untouched. Canon validates before writing — a choice without its
-        lookup rows is refused here.
+        The tables generation rolls from. Edits save as a <b>pack-local override</b> and apply to
+        every future roll; existing rows are untouched. Canon validates before writing — a choice
+        without its lookup rows is refused here.
       </p>
-      {err && (
-        <p style={{ color: "var(--err)", fontSize: 12, whiteSpace: "pre-wrap" }}>{err}</p>
-      )}
+      {err && <p style={{ color: "var(--err)", fontSize: 12, whiteSpace: "pre-wrap" }}>{err}</p>}
       {note && <p style={{ color: "var(--accent)", fontSize: 12 }}>{note}</p>}
       {!fields && !err && <p style={{ fontSize: 12 }}>Loading schema…</p>}
       {fields &&
@@ -319,9 +313,7 @@ export function SchemaEditor({
               <div style={{ fontSize: 12, fontWeight: 600 }}>
                 {name} {touched.has(name) && "✎"}
                 {entry.depends_on && (
-                  <span style={{ ...label, fontWeight: 400 }}>
-                    {" "}· keyed by {entry.depends_on}
-                  </span>
+                  <span style={{ ...label, fontWeight: 400 }}> · keyed by {entry.depends_on}</span>
                 )}
                 {entry.lookup_ranges && (
                   <span style={{ ...label, fontWeight: 400 }}> · banded [lo, hi]</span>
@@ -352,7 +344,11 @@ export function SchemaEditor({
             opacity: dirty ? 1 : 0.6,
           }}
         >
-          {busy ? "…" : dirty ? `Save ${touched.size} table${touched.size > 1 ? "s" : ""}` : "No changes"}
+          {busy
+            ? "…"
+            : dirty
+              ? `Save ${touched.size} table${touched.size > 1 ? "s" : ""}`
+              : "No changes"}
         </button>
       </div>
     </div>

@@ -107,16 +107,15 @@ export function EngineChip() {
 
             {!status.stamped && !done && (
               <p className="note dim">
-                This project predates runtime stamping, so cradle can't tell an
-                old build from your own edits. If you've hand-edited{" "}
-                <code>main.gd</code>, copy it somewhere first.
+                This project predates runtime stamping, so cradle can't tell an old build from your
+                own edits. If you've hand-edited <code>main.gd</code>, copy it somewhere first.
               </p>
             )}
             {handEdited && (
               <p className="note dim">
-                {status.modified.join(", ")} differs from what canon wrote, so
-                it looks hand-edited and will be left alone. Use “Overwrite my
-                edits” only if you want canon's version back.
+                {status.modified.join(", ")} differs from what canon wrote, so it looks hand-edited
+                and will be left alone. Use “Overwrite my edits” only if you want canon's version
+                back.
               </p>
             )}
             {note && <p className="note dim">{note}</p>}

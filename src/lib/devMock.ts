@@ -37,11 +37,48 @@ const FALLBACK_SCHEMAS: Record<string, unknown> = {
     schema_version: "8",
     entity_type: "enemy",
     fields: {
-      archetype: { choices: [["patroller", 5], ["sentry", 1], ["swimmer", 3], ["flyer", 2], ["hopper", 4]] },
-      rarity: { choices: [["common", 3], ["uncommon", 2], ["rare", 1]] },
-      size: { choices: [[1.0, 4], [1.5, 2], [2.0, 1]] },
-      hp: { lookup: [[1.0, [4, 6]], [1.5, [7, 12]], [2.0, [13, 18]]], depends_on: "size", lookup_ranges: true },
-      speed: { lookup: [["patroller", 2], ["sentry", 0], ["swimmer", 2], ["flyer", 2], ["hopper", 4]], depends_on: "archetype" },
+      archetype: {
+        choices: [
+          ["patroller", 5],
+          ["sentry", 1],
+          ["swimmer", 3],
+          ["flyer", 2],
+          ["hopper", 4],
+        ],
+      },
+      rarity: {
+        choices: [
+          ["common", 3],
+          ["uncommon", 2],
+          ["rare", 1],
+        ],
+      },
+      size: {
+        choices: [
+          [1.0, 4],
+          [1.5, 2],
+          [2.0, 1],
+        ],
+      },
+      hp: {
+        lookup: [
+          [1.0, [4, 6]],
+          [1.5, [7, 12]],
+          [2.0, [13, 18]],
+        ],
+        depends_on: "size",
+        lookup_ranges: true,
+      },
+      speed: {
+        lookup: [
+          ["patroller", 2],
+          ["sentry", 0],
+          ["swimmer", 2],
+          ["flyer", 2],
+          ["hopper", 4],
+        ],
+        depends_on: "archetype",
+      },
       patrol_range: { range: [3, 8] },
     },
   },
@@ -49,13 +86,35 @@ const FALLBACK_SCHEMAS: Record<string, unknown> = {
     schema_version: "3",
     entity_type: "item",
     fields: {
-      kind: { choices: [["coin", 6], ["heal", 3], ["shield", 1], ["double_jump", 1], ["run_boost", 1]] },
-      rarity: { choices: [["common", 3], ["uncommon", 2], ["rare", 1]] },
-      coin_value: { lookup: [["coin", 1], ["heal", 0], ["shield", 0], ["double_jump", 0], ["run_boost", 0]], depends_on: "kind" },
+      kind: {
+        choices: [
+          ["coin", 6],
+          ["heal", 3],
+          ["shield", 1],
+          ["double_jump", 1],
+          ["run_boost", 1],
+        ],
+      },
+      rarity: {
+        choices: [
+          ["common", 3],
+          ["uncommon", 2],
+          ["rare", 1],
+        ],
+      },
+      coin_value: {
+        lookup: [
+          ["coin", 1],
+          ["heal", 0],
+          ["shield", 0],
+          ["double_jump", 0],
+          ["run_boost", 0],
+        ],
+        depends_on: "kind",
+      },
     },
   },
 };
-
 
 // typeId → [refs field, entity-json field]
 const TYPE_KEYS: Record<string, [keyof MockData, keyof MockData]> = {
@@ -96,9 +155,7 @@ const MOCK_PLAYER_ROW: JsonMap = {
     animation_states: ["idle", "walk", "jump", "fall", "land", "skid"],
   },
 };
-const MOCK_PLAYER_REF: Ref[] = [
-  { type_id: "player", id: "player", name: "Player" },
-];
+const MOCK_PLAYER_REF: Ref[] = [{ type_id: "player", id: "player", name: "Player" }];
 
 function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unknown {
   switch (cmd) {
@@ -117,9 +174,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
             ],
       };
     case "list_entities":
-      return String(args.typeId) === "player"
-        ? MOCK_PLAYER_REF
-        : refsFor(d, String(args.typeId));
+      return String(args.typeId) === "player" ? MOCK_PLAYER_REF : refsFor(d, String(args.typeId));
     case "list_entity_rows":
       return (
         String(args.typeId) === "player" ? MOCK_PLAYER_REF : refsFor(d, String(args.typeId))
@@ -151,8 +206,11 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
           const prev = b.entities as Record<string, unknown>[];
           b.entities = (edit.entities as Record<string, unknown>[]).map((e) => ({
             ...(prev.find((p) => p.enemy_id === e.enemy_id && p.x === e.x && p.y === e.y) ?? {
-              name: e.enemy_id, archetype: null, size: 1,
-              placeholder_color: "#ff00ff", sprite_path_abs: null,
+              name: e.enemy_id,
+              archetype: null,
+              size: 1,
+              placeholder_color: "#ff00ff",
+              sprite_path_abs: null,
             }),
             ...e,
           }));
@@ -161,8 +219,10 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
           const prev = b.items as Record<string, unknown>[];
           b.items = (edit.items as Record<string, unknown>[]).map((it) => ({
             ...(prev.find((p) => p.item_id === it.item_id && p.x === it.x && p.y === it.y) ?? {
-              name: it.item_id, kind: null,
-              placeholder_color: "#ffd700", sprite_path_abs: null,
+              name: it.item_id,
+              kind: null,
+              placeholder_color: "#ffd700",
+              sprite_path_abs: null,
             }),
             ...it,
           }));
@@ -206,7 +266,12 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         b.grids.background = collision.map((row, y) =>
           row.map(() => Math.floor((y * 3) / Math.max(1, collision.length))),
         );
-        stampChange(b as unknown as Record<string, unknown>, "Hand-painted terrain", "edit", "user");
+        stampChange(
+          b as unknown as Record<string, unknown>,
+          "Hand-painted terrain",
+          "edit",
+          "user",
+        );
       }
       return { level_id: String(args.levelId), updated: ["collision"], status: "user_edited" };
     }
@@ -327,9 +392,15 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       if (count) count.count += 1;
       stampChange(d.bundles[lid] as Record<string, unknown>, "Generated", "generate", "llm");
       return simulateJob(args.jobId as string, {
-        level_id: lid, stage_id: stageId, ok: true, repair_count: 0,
-        layout_fallback: false, seed: "mock-seed", warnings: [],
-        changed: true, changed_artifacts: [`level:${stageId}/${lid}/collision`],
+        level_id: lid,
+        stage_id: stageId,
+        ok: true,
+        repair_count: 0,
+        layout_fallback: false,
+        seed: "mock-seed",
+        warnings: [],
+        changed: true,
+        changed_artifacts: [`level:${stageId}/${lid}/collision`],
       });
     }
     case "place_enemies":
@@ -350,13 +421,21 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         b.items = tItems.map((it, i) => ({ ...(it as object), x: 8 + i * 4, y: h - 4 }));
       }
       stampChange(
-        b, cmd === "place_enemies" ? "Placed enemies" : "Placed items",
-        "generate", "llm",
+        b,
+        cmd === "place_enemies" ? "Placed enemies" : "Placed items",
+        "generate",
+        "llm",
       );
       return simulateJob(args.jobId as string, {
-        level_id: lid, stage_id: b.stage_id, ok: true, repair_count: 0,
-        layout_fallback: false, seed: "mock-seed", warnings: [],
-        changed: true, changed_artifacts: [`level:${b.stage_id}/${lid}/${step}`],
+        level_id: lid,
+        stage_id: b.stage_id,
+        ok: true,
+        repair_count: 0,
+        layout_fallback: false,
+        seed: "mock-seed",
+        warnings: [],
+        changed: true,
+        changed_artifacts: [`level:${b.stage_id}/${lid}/${step}`],
       });
     }
     case "regenerate_layout": {
@@ -391,9 +470,15 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       b.layout_fallback = false;
       stampChange(b, "Regenerated layout", "regenerate", "llm");
       return simulateJob(args.jobId as string, {
-        level_id: lid, stage_id: b.stage_id, ok: true, repair_count: 0,
-        layout_fallback: false, seed: "mock-seed", warnings: [],
-        changed: true, changed_artifacts: [`level:${b.stage_id}/${lid}/collision`],
+        level_id: lid,
+        stage_id: b.stage_id,
+        ok: true,
+        repair_count: 0,
+        layout_fallback: false,
+        seed: "mock-seed",
+        warnings: [],
+        changed: true,
+        changed_artifacts: [`level:${b.stage_id}/${lid}/collision`],
       });
     }
     case "improve_layout": {
@@ -443,8 +528,14 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       b.layout_fallback = false;
       if (changed) stampChange(b, "Improved", "regenerate", "llm");
       return simulateJob(args.jobId as string, {
-        level_id: lid, stage_id: b.stage_id, ok: true, repair_count: 0,
-        layout_fallback: false, seed: "mock-seed", improved: true, warnings: [],
+        level_id: lid,
+        stage_id: b.stage_id,
+        ok: true,
+        repair_count: 0,
+        layout_fallback: false,
+        seed: "mock-seed",
+        improved: true,
+        warnings: [],
         cost: { usd: 0, input_tokens: 0, output_tokens: 0, calls: 1, backend: "fake" },
         changed,
         changed_artifacts: changed ? [`level:${b.stage_id}/${lid}/collision`] : [],
@@ -460,10 +551,19 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       const name = String(f.name ?? `Mock ${t}`);
       const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "_");
       const row = {
-        [`${t}_id`]: id, name,
-        archetype: f.archetype ?? "patroller", kind: f.kind ?? "coin",
-        size: f.size ?? 1, rarity: f.rarity ?? "common",
-        stats: { hp: 6, damage: 1, speed: 2, flavor: "(mock roll — native runs canon)", placeholder_color: "#7c5cff" },
+        [`${t}_id`]: id,
+        name,
+        archetype: f.archetype ?? "patroller",
+        kind: f.kind ?? "coin",
+        size: f.size ?? 1,
+        rarity: f.rarity ?? "common",
+        stats: {
+          hp: 6,
+          damage: 1,
+          speed: 2,
+          flavor: "(mock roll — native runs canon)",
+          placeholder_color: "#7c5cff",
+        },
         behavior: { patrol_range: 5, aggro_range: 0, leash_range: 0 },
         ...f,
       };
@@ -486,19 +586,25 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       const set = (args.set as Record<string, unknown>) ?? {};
       if (t === "tile") {
         const [stageId, tileName] = id.split("/");
-        const tilesets = (d.tilesetJson ?? {}) as Record<string, { stage_id?: string; slots?: Record<string, unknown>[] }>;
+        const tilesets = (d.tilesetJson ?? {}) as Record<
+          string,
+          { stage_id?: string; slots?: Record<string, unknown>[] }
+        >;
         const manifest = Object.values(tilesets).find((m) => m?.stage_id === stageId);
         const slots = (manifest?.slots ?? []).filter((s) => s.name === tileName);
         for (const slot of slots) {
           if (typeof set.collision === "string") slot.collision = set.collision;
           if (set.params && typeof set.params === "object") {
-            slot.params = { ...(slot.params as Record<string, unknown>), ...(set.params as Record<string, unknown>) };
+            slot.params = {
+              ...(slot.params as Record<string, unknown>),
+              ...(set.params as Record<string, unknown>),
+            };
           }
         }
         return { stage: stageId, tile: tileName, slots: slots.length, changed: set };
       }
       const jmapKey = t === "enemy" ? "enemyJson" : "itemJson";
-      const jmap = ((d[jmapKey as "enemyJson"] as JsonMap) ?? {});
+      const jmap = (d[jmapKey as "enemyJson"] as JsonMap) ?? {};
       const row = jmap[id] as Record<string, unknown> | undefined;
       if (!row) throw new Error(`devMock: ${t} ${id} not found`);
       const nesting = DB_NESTING[t] ?? {};
@@ -528,18 +634,38 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         count: 2,
         entries: [
           {
-            library_id: "lib-mock-wisp", ts: "2026-07-22T18:00:00", kind: "enemy_def",
-            name: "Ember Wisp", tags: ["fire", "flyer"],
-            source: { pack: "/mock/plat_other", world: "Cinder Vale", artifact_id: "enemy:ember_wisp", target: "enemy:ember_wisp" },
+            library_id: "lib-mock-wisp",
+            ts: "2026-07-22T18:00:00",
+            kind: "enemy_def",
+            name: "Ember Wisp",
+            tags: ["fire", "flyer"],
+            source: {
+              pack: "/mock/plat_other",
+              world: "Cinder Vale",
+              artifact_id: "enemy:ember_wisp",
+              target: "enemy:ember_wisp",
+            },
             objects: { row: "sha256:mockrow-wisp", sprite: "sha256:mocksprite-wisp" },
-            meta: {}, preview: "sha256:mocksprite-wisp", actor: "cradle:user",
+            meta: {},
+            preview: "sha256:mocksprite-wisp",
+            actor: "cradle:user",
           },
           {
-            library_id: "lib-mock-band", ts: "2026-07-21T10:00:00", kind: "backdrop",
-            name: "dusk pines band", tags: [],
-            source: { pack: String(args.project ?? "/mock/this"), world: d.name, artifact_id: "backdrop:s1", target: "backdrop:s1/1" },
+            library_id: "lib-mock-band",
+            ts: "2026-07-21T10:00:00",
+            kind: "backdrop",
+            name: "dusk pines band",
+            tags: [],
+            source: {
+              pack: String(args.project ?? "/mock/this"),
+              world: d.name,
+              artifact_id: "backdrop:s1",
+              target: "backdrop:s1/1",
+            },
             objects: { art: "sha256:mocksprite-band" },
-            meta: { depth: 0.5 }, preview: "sha256:mocksprite-band", actor: "cradle:user",
+            meta: { depth: 0.5 },
+            preview: "sha256:mocksprite-band",
+            actor: "cradle:user",
           },
         ]
           .filter((e) => !args.kind || e.kind === args.kind)
@@ -559,21 +685,42 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       };
     case "library_publish":
       return {
-        library_id: "lib-mock-new", kind: "enemy_def",
-        name: String(args.target), tags: [],
-        source: { pack: "/mock/this", world: d.name, artifact_id: String(args.target), target: String(args.target) },
-        objects: {}, meta: {}, preview: "", actor: "cradle:user",
+        library_id: "lib-mock-new",
+        kind: "enemy_def",
+        name: String(args.target),
+        tags: [],
+        source: {
+          pack: "/mock/this",
+          world: d.name,
+          artifact_id: String(args.target),
+          target: String(args.target),
+        },
+        objects: {},
+        meta: {},
+        preview: "",
+        actor: "cradle:user",
       };
     case "library_import": {
       // Mock: land a visible row so the select-after-import flow demos.
       const id = "ember_wisp";
       const row = {
-        enemy_id: id, name: "Ember Wisp", archetype: "flyer", size: 1, rarity: "uncommon",
+        enemy_id: id,
+        name: "Ember Wisp",
+        archetype: "flyer",
+        size: 1,
+        rarity: "uncommon",
         status: "user_edited",
         stats: {
-          hp: 5, damage: 1, speed: 2, flavor: "(imported from the library — mock)",
+          hp: 5,
+          damage: 1,
+          speed: 2,
+          flavor: "(imported from the library — mock)",
           placeholder_color: "#ff7043",
-          library_ref: { library_id: String(args.id), source_pack: "/mock/plat_other", source_artifact: "enemy:ember_wisp" },
+          library_ref: {
+            library_id: String(args.id),
+            source_pack: "/mock/plat_other",
+            source_artifact: "enemy:ember_wisp",
+          },
         },
         behavior: { patrol_range: 5, aggro_range: 0, leash_range: 0 },
       };
@@ -584,7 +731,8 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
     }
     case "library_cat":
       return {
-        hash: String(args.hash), size: 68,
+        hash: String(args.hash),
+        size: 68,
         bytes_b64:
           "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
       };
@@ -602,11 +750,56 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         root_id: rowA,
         requested_node_id: rowB,
         nodes: [
-          { id: rowA, facet: "row", op: "generate", source: "llm", actor: "canon", ts: "2026-07-20T10:00:00", gen: { llm_model: "claude-haiku", prompt: "Design a small patrolling creature themed to candle-lit woods. Return JSON with name and flavor." }, artifacts: [target], current_of: [], usage: { [target]: ["l1", "l3"] }, detail: {}, depth: 0 },
-          { id: rowB, facet: "row", op: "edit", source: "user", actor: "cradle:user", ts: "2026-07-22T09:00:00", gen: null, artifacts: [target], current_of: [`${target}#row`], usage: { [target]: ["l1", "l3"] }, detail: {}, depth: 1 },
-          { id: spr, facet: "sprite", op: "import", source: "import", actor: "cradle:user", ts: "2026-07-21T12:00:00", gen: null, artifacts: [target], current_of: [`${target}#sprite`], usage: {}, detail: {}, depth: 0 },
+          {
+            id: rowA,
+            facet: "row",
+            op: "generate",
+            source: "llm",
+            actor: "canon",
+            ts: "2026-07-20T10:00:00",
+            gen: {
+              llm_model: "claude-haiku",
+              prompt:
+                "Design a small patrolling creature themed to candle-lit woods. Return JSON with name and flavor.",
+            },
+            artifacts: [target],
+            current_of: [],
+            usage: { [target]: ["l1", "l3"] },
+            detail: {},
+            depth: 0,
+          },
+          {
+            id: rowB,
+            facet: "row",
+            op: "edit",
+            source: "user",
+            actor: "cradle:user",
+            ts: "2026-07-22T09:00:00",
+            gen: null,
+            artifacts: [target],
+            current_of: [`${target}#row`],
+            usage: { [target]: ["l1", "l3"] },
+            detail: {},
+            depth: 1,
+          },
+          {
+            id: spr,
+            facet: "sprite",
+            op: "import",
+            source: "import",
+            actor: "cradle:user",
+            ts: "2026-07-21T12:00:00",
+            gen: null,
+            artifacts: [target],
+            current_of: [`${target}#sprite`],
+            usage: {},
+            detail: {},
+            depth: 0,
+          },
         ],
-        edges: [{ from: rowA, to: rowB, op: "edit", kind: "db_update", actor: "cradle:user", ts: "" }],
+        edges: [
+          { from: rowA, to: rowB, op: "edit", kind: "db_update", actor: "cradle:user", ts: "" },
+        ],
         metadata: { total_nodes: 3, max_depth: 1, pruned: false },
       };
     }
@@ -617,7 +810,8 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       if (h.includes("sprite")) {
         // 1×1 png — enough for the thumbnail pipeline to exercise.
         return {
-          hash: h, size: 68,
+          hash: h,
+          size: 68,
           bytes_b64:
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
         };
@@ -636,7 +830,11 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         display_name: "",
         ok: true,
         checks: [
-          { name: "terrain", problems: [], notes: ["mock: native runs canon's jump-arc simulation"] },
+          {
+            name: "terrain",
+            problems: [],
+            notes: ["mock: native runs canon's jump-arc simulation"],
+          },
           { name: "enemies", problems: [], repairs: [], count: 0 },
           { name: "items", problems: [], repairs: [], count: 0 },
         ],
@@ -659,7 +857,9 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       const label = LABELS[kind] ?? "plat:layout";
       if (kind === "sprite" || kind === "music" || kind === "animate") {
         const MODES: Record<string, string> = {
-          sprite: "image", music: "audio", animate: "vlm",
+          sprite: "image",
+          music: "audio",
+          animate: "vlm",
         };
         const PROMPTS: Record<string, string> = {
           sprite: `Single game sprite: ${args.target ?? "the actor"}, full body, side view facing right, centered, isolated on a plain solid white background. No shadow, no text. (mock)`,
@@ -667,8 +867,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
             "Looping instrumental theme for a retro platformer level. Melodic, atmospheric, seamless loop, no vocals. (mock)",
           // The VLM's motion-spec AUTHORING prompt — one call per run, NOT the
           // per-state img2img sheet prompt.
-          animate:
-            `### TASK: plat_animate\n### ACTOR: ${args.target ?? "the actor"}\n\nYou are a 2D sprite animator. The attached image is the ACTUAL generated sprite for this character — describe how THIS character moves in each state.\n\nStates to author (use these exact keys):\n  - "idle": at rest / holding position\n  - "walk": actively moving along its path\n  - "hurt": recoiling from a hit\n  - "death": defeated\n  - "jump": the RISING launch\n\nReturn ONE JSON object. (mock)`,
+          animate: `### TASK: plat_animate\n### ACTOR: ${args.target ?? "the actor"}\n\nYou are a 2D sprite animator. The attached image is the ACTUAL generated sprite for this character — describe how THIS character moves in each state.\n\nStates to author (use these exact keys):\n  - "idle": at rest / holding position\n  - "walk": actively moving along its path\n  - "hurt": recoiling from a hit\n  - "death": defeated\n  - "jump": the RISING launch\n\nReturn ONE JSON object. (mock)`,
         };
         return { kind, label, mode: MODES[kind], prompt: PROMPTS[kind] };
       }
@@ -754,14 +953,17 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
     }
     case "generate_asset":
       return simulateJob(args.jobId as string, {
-        target: String(args.target), generated: true, changed: true,
+        target: String(args.target),
+        generated: true,
+        changed: true,
         changed_artifacts: [String(args.target)],
         cost: { usd: 0, input_tokens: 0, output_tokens: 0, calls: 0, backend: "fake" },
         warnings: ["mock: real bytes need the native app"],
       });
     case "animate_asset":
       return simulateJob(args.jobId as string, {
-        target: String(args.target), animated: true,
+        target: String(args.target),
+        animated: true,
         states: args.reuseSpec ? ["idle", "walk"] : ["idle", "walk", "hurt", "death"],
         changed: true,
         changed_artifacts: [String(args.target)],
@@ -812,15 +1014,23 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         }
       }
       return simulateJob(args.jobId as string, {
-        level_id: lid, stage_id: stage, target: `music:${stage}/${lid}`,
+        level_id: lid,
+        stage_id: stage,
+        target: `music:${stage}/${lid}`,
         music_path: rel,
         cost: {
-          usd: 0, llm_usd: 0, image_usd: 0, audio_usd: 0,
-          input_tokens: 0, output_tokens: 0, calls: 0,
+          usd: 0,
+          llm_usd: 0,
+          image_usd: 0,
+          audio_usd: 0,
+          input_tokens: 0,
+          output_tokens: 0,
+          calls: 0,
           backend: String(args.musicBackend ?? "fake"),
         },
         warnings: [],
-        changed: true, changed_artifacts: [`level:${stage}/${lid}/music`],
+        changed: true,
+        changed_artifacts: [`level:${stage}/${lid}/music`],
       });
     }
     case "list_music_tracks": {
@@ -829,10 +1039,16 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       for (const bb of Object.values(d.bundles) as Record<string, unknown>[]) {
         const st = String(bb.stage_id ?? "s1");
         const p = `music/${st}/theme.mp3`;
-        if (!seen.has(p)) { seen.add(p); tracks.push({ path: p, label: `${st}/theme.mp3` }); }
+        if (!seen.has(p)) {
+          seen.add(p);
+          tracks.push({ path: p, label: `${st}/theme.mp3` });
+        }
         if (bb.music_path) {
           const mp = String(bb.music_path);
-          if (!seen.has(mp)) { seen.add(mp); tracks.push({ path: mp, label: mp.slice("music/".length) }); }
+          if (!seen.has(mp)) {
+            seen.add(mp);
+            tracks.push({ path: mp, label: mp.slice("music/".length) });
+          }
         }
       }
       return { tracks };
@@ -840,18 +1056,22 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
     case "estimate_world":
       return {
         result: "estimate",
-        estimate: mockEstimate("world", {
-          stages: Number(args.stages ?? 3),
-          levels: Number(args.levels ?? 9),
-          enemies: Number(args.enemies ?? 7),
-          items: Number(args.items ?? 5),
-        }, {
-          llm: String(args.llmBackend ?? "fake"),
-          image: String(args.imageBackend ?? "fake"),
-          music: String(args.musicBackend ?? "none"),
-          sfx: String(args.sfxBackend ?? "none"),
-          vlm: String(args.vlmBackend ?? "none"),
-        }),
+        estimate: mockEstimate(
+          "world",
+          {
+            stages: Number(args.stages ?? 3),
+            levels: Number(args.levels ?? 9),
+            enemies: Number(args.enemies ?? 7),
+            items: Number(args.items ?? 5),
+          },
+          {
+            llm: String(args.llmBackend ?? "fake"),
+            image: String(args.imageBackend ?? "fake"),
+            music: String(args.musicBackend ?? "none"),
+            sfx: String(args.sfxBackend ?? "none"),
+            vlm: String(args.vlmBackend ?? "none"),
+          },
+        ),
       };
     case "estimate_level":
       return {
@@ -895,20 +1115,45 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         };
       };
       const states = [
-        mk("fall", 3, "loop", [[9, 12, 14, 20], [11, 0, 10, 32], [11, 0, 10, 32]]),
-        mk("idle", 3, "loop", [[5, 0, 22, 32], [4, 1, 24, 31], [4, 0, 24, 32]]),
-        mk("jump", 4, "once", [[2, 0, 28, 32], [3, 0, 26, 32], [2, 0, 28, 32], [3, 1, 26, 31]]),
-        mk("land", 3, "once", [[3, 0, 26, 32], [3, 2, 26, 30], [3, 0, 26, 32]]),
+        mk("fall", 3, "loop", [
+          [9, 12, 14, 20],
+          [11, 0, 10, 32],
+          [11, 0, 10, 32],
+        ]),
+        mk("idle", 3, "loop", [
+          [5, 0, 22, 32],
+          [4, 1, 24, 31],
+          [4, 0, 24, 32],
+        ]),
+        mk("jump", 4, "once", [
+          [2, 0, 28, 32],
+          [3, 0, 26, 32],
+          [2, 0, 28, 32],
+          [3, 1, 26, 31],
+        ]),
+        mk("land", 3, "once", [
+          [3, 0, 26, 32],
+          [3, 2, 26, 30],
+          [3, 0, 26, 32],
+        ]),
         mk("walk", 8, "loop", [
-          [6, 1, 20, 31], [6, 0, 20, 32], [7, 1, 18, 31], [6, 0, 20, 32],
-          [6, 1, 20, 31], [6, 0, 20, 32], [7, 1, 18, 31], [6, 0, 20, 32],
+          [6, 1, 20, 31],
+          [6, 0, 20, 32],
+          [7, 1, 18, 31],
+          [6, 0, 20, 32],
+          [6, 1, 20, 31],
+          [6, 0, 20, 32],
+          [7, 1, 18, 31],
+          [6, 0, 20, 32],
         ]),
       ];
       const flush = states.filter((s) => s.flush).map((s) => s.state);
       return {
         animation: {
           target: String(args.target ?? "player"),
-          label: String(args.target ?? "player").split(":").pop(),
+          label: String(args.target ?? "player")
+            .split(":")
+            .pop(),
           sprite_dir: "sprite/player",
           has_atlas: true,
           atlas_path_abs: "/__mockassets__/sprite/player/atlas.png",
@@ -953,7 +1198,12 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       }
       MOCK_ANIM[key] = next;
       return changed
-        ? { frames_edit: "updated", target: args.target, state: args.state, fields: Object.keys(patch).sort() }
+        ? {
+            frames_edit: "updated",
+            target: args.target,
+            state: args.state,
+            fields: Object.keys(patch).sort(),
+          }
         : { frames_edit: "no_change", target: args.target, state: args.state };
     }
     // Engine runtime staleness. The mock starts BEHIND on purpose — that's
@@ -971,11 +1221,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
           files: [
             {
               path: "godot/main.gd",
-              state: MOCK_ENGINE.current
-                ? "current"
-                : MOCK_ENGINE.stamped
-                  ? "stale"
-                  : "unstamped",
+              state: MOCK_ENGINE.current ? "current" : MOCK_ENGINE.stamped ? "stale" : "unstamped",
             },
             { path: "godot/main.tscn", state: "current" },
             { path: "project.godot", state: "current" },
@@ -1028,14 +1274,17 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
             });
             if (i > 0) {
               MOCK_WORLD_MAP.edges.push({
-                a: `l${i}`, b: lid, kind: "path",
+                a: `l${i}`,
+                b: lid,
+                kind: "path",
               });
             }
             i++;
           }
         }
         MOCK_WORLD_MAP.areas = stages.map((sid, idx) => ({
-          stage_id: sid, index: idx,
+          stage_id: sid,
+          index: idx,
           theme: ["autumn lantern forest", "flooded hollow", "ashen crags"][idx],
           biome: ["forest", "caves", "volcanic"][idx],
           level_ids: MOCK_WORLD_MAP.nodes.filter((n) => n.stage_id === sid).map((n) => n.level_id),
@@ -1182,8 +1431,14 @@ function hashStr(s: string): string {
  *  when the content changes (mirrors canon's composite state hash). */
 function mockRevision(b: Record<string, unknown>): { revision: string; revision_short: string } {
   const content = JSON.stringify([
-    b.grids, b.entities, b.items, b.spawn, b.exit, b.hazards,
-    b.music_path, b.music_sections,
+    b.grids,
+    b.entities,
+    b.items,
+    b.spawn,
+    b.exit,
+    b.hazards,
+    b.music_path,
+    b.music_sections,
   ]);
   const hex = hashStr(content) + hashStr(`${content.length}:${content}`);
   return { revision: `sha256:${hex}`, revision_short: hex.slice(0, 10) };
@@ -1197,8 +1452,13 @@ function stampChange(
   source = "user",
 ): void {
   b._last_change = {
-    op, source, kind: "", actor: "cradle:user",
-    ts: new Date().toISOString(), hash: "", label,
+    op,
+    source,
+    kind: "",
+    actor: "cradle:user",
+    ts: new Date().toISOString(),
+    hash: "",
+    label,
   };
 }
 
@@ -1239,10 +1499,13 @@ function mockEstimate(
     const musicUsd = paid("music", backends.music) ? counts.stages * 0.1 : 0;
     const sfxUsd = paid("sfx", backends.sfx) ? 4 * 0.05 : 0;
     const vlmUsd = paid("vlm", backends.vlm) ? Number((counts.levels * 0.03).toFixed(4)) : 0;
-    const llm = paid("llm", backends.llm) ? { best: llmBest, worst: Number((llmBest * 4).toFixed(4)) } : { best: 0, worst: 0 };
+    const llm = paid("llm", backends.llm)
+      ? { best: llmBest, worst: Number((llmBest * 4).toFixed(4)) }
+      : { best: 0, worst: 0 };
     const assetsBest = imgUsd + musicUsd + sfxUsd + vlmUsd;
     return {
-      scope, backends,
+      scope,
+      backends,
       llm: { by_task: {}, calls: counts.levels + counts.stages, usd: llm },
       assets: {
         images: { count: images, usd: imgUsd },
@@ -1267,14 +1530,19 @@ function mockEstimate(
     const vlmUsd = paid("vlm", backends.vlm) ? 0.0081 : 0;
     const assetsBest = imgUsd + vlmUsd;
     return {
-      scope, backends,
+      scope,
+      backends,
       llm: { by_task: {}, calls: 0, usd: { best: 0, worst: 0 } },
       assets: {
         images: { count: states, usd: imgUsd },
         music: { count: 0, usd: 0 },
         sfx: { count: 0, usd: 0 },
         vlm: vlmUsd
-          ? { model: "claude-sonnet-4-6", animation_authoring: 1, usd: { best: vlmUsd, worst: vlmUsd } }
+          ? {
+              model: "claude-sonnet-4-6",
+              animation_authoring: 1,
+              usd: { best: vlmUsd, worst: vlmUsd },
+            }
           : {},
         usd: { best: assetsBest, worst: assetsBest },
       },
@@ -1283,12 +1551,28 @@ function mockEstimate(
     };
   }
   // Per-op: LLM-only, cents.
-  const base: Record<string, number> = { generate: 0.075, layout: 0.064, enemies: 0.005, items: 0.005 };
+  const base: Record<string, number> = {
+    generate: 0.075,
+    layout: 0.064,
+    enemies: 0.005,
+    items: 0.005,
+  };
   const best = paid("llm", backends.llm) ? (base[scope] ?? 0.03) : 0;
   return {
-    scope, backends,
-    llm: { by_task: {}, calls: scope === "generate" ? 6 : 1, usd: { best, worst: Number((best * 4).toFixed(4)) } },
-    assets: { images: { count: 0, usd: 0 }, music: { count: 0, usd: 0 }, sfx: { count: 0, usd: 0 }, vlm: {}, usd: { best: 0, worst: 0 } },
+    scope,
+    backends,
+    llm: {
+      by_task: {},
+      calls: scope === "generate" ? 6 : 1,
+      usd: { best, worst: Number((best * 4).toFixed(4)) },
+    },
+    assets: {
+      images: { count: 0, usd: 0 },
+      music: { count: 0, usd: 0 },
+      sfx: { count: 0, usd: 0 },
+      vlm: {},
+      usd: { best: 0, worst: 0 },
+    },
     total_usd: { best, worst: Number((best * 4).toFixed(4)) },
     warnings: [],
   };

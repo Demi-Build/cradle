@@ -346,9 +346,7 @@ export function EntityOverview({
           </div>
           <div className="overview-titleblock">
             <h2 className="overview-name">{name}</h2>
-            {(typeId === "enemies" ||
-              typeId === "player" ||
-              (isItem && "item_id" in data)) && (
+            {(typeId === "enemies" || typeId === "player" || (isItem && "item_id" in data)) && (
               <GenActions typeId={typeId} data={data} entityId={entityId} />
             )}
             <div className="overview-sub">
@@ -948,7 +946,12 @@ function StageAudioReroll({ worldPath, stageId }: { worldPath: string; stageId: 
     <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10, flexWrap: "wrap" }}>
       <label style={{ fontSize: 12 }}>
         music
-        <select value={music} onChange={(e) => setMusic(e.target.value as typeof music)} disabled={busy} style={sel}>
+        <select
+          value={music}
+          onChange={(e) => setMusic(e.target.value as typeof music)}
+          disabled={busy}
+          style={sel}
+        >
           <option value="none">none</option>
           <option value="fake">fake ($0)</option>
           <option value="lyria">Lyria (paid)</option>
@@ -956,13 +959,22 @@ function StageAudioReroll({ worldPath, stageId }: { worldPath: string; stageId: 
       </label>
       <label style={{ fontSize: 12 }}>
         sfx
-        <select value={sfx} onChange={(e) => setSfx(e.target.value as typeof sfx)} disabled={busy} style={sel}>
+        <select
+          value={sfx}
+          onChange={(e) => setSfx(e.target.value as typeof sfx)}
+          disabled={busy}
+          style={sel}
+        >
           <option value="none">none</option>
           <option value="fake">fake ($0)</option>
           <option value="elevenlabs">ElevenLabs (paid)</option>
         </select>
       </label>
-      <button onClick={() => void run()} disabled={busy} style={{ fontSize: 12, cursor: "pointer" }}>
+      <button
+        onClick={() => void run()}
+        disabled={busy}
+        style={{ fontSize: 12, cursor: "pointer" }}
+      >
         {busy ? "Regenerating…" : "🔊 Reroll stage audio"}
       </button>
       {note && <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>{note}</span>}
@@ -984,9 +996,7 @@ const BACKEND_KEYS: Record<string, string> = {
 
 /** A human explanation when a job's backends need keys cradle can't supply,
  *  or null when it's good to go. Free backends (fake/none) never need one. */
-async function missingKeysFor(
-  backends: Record<string, string>,
-): Promise<string | null> {
+async function missingKeysFor(backends: Record<string, string>): Promise<string | null> {
   const needed = [...new Set(Object.values(backends))]
     .map((b) => BACKEND_KEYS[b])
     .filter((k): k is string => Boolean(k));
@@ -1031,8 +1041,7 @@ function GenActions({
   // pose; `sequence` judges a TRANSITION. Rides on the existing buttons
   // rather than adding two more of them.
   const [animMode, setAnimMode] = useState<AnimPreviewMode>("grid");
-  const kind =
-    typeId === "enemies" ? "enemy" : typeId === "player" ? "player" : "item";
+  const kind = typeId === "enemies" ? "enemy" : typeId === "player" ? "player" : "item";
   const id = String(
     (data.enemy_id as string) ??
       (data.item_id as string) ??
@@ -1119,15 +1128,19 @@ function GenActions({
   };
 
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "6px 0 2px", flexWrap: "wrap" }}>
+    <div
+      style={{
+        display: "flex",
+        gap: 8,
+        alignItems: "center",
+        margin: "6px 0 2px",
+        flexWrap: "wrap",
+      }}
+    >
       {/* Row ops — the player has no DB row (canon's DB_TYPES is enemy/item
           only), so these would throw on it. */}
       {kind !== "player" && (
-        <button
-          className="btn"
-          disabled={!!busy}
-          onClick={() => setEditing(true)}
-        >
+        <button className="btn" disabled={!!busy} onClick={() => setEditing(true)}>
           ✎ Edit row
         </button>
       )}
@@ -1172,8 +1185,12 @@ function GenActions({
               `Re-author ${id}'s name/flavor with the LLM (mechanical stats preserved)?\n\nBackend: anthropic (cheap tier). Rough cost: well under 1¢.`,
               () =>
                 api.dbComplete(
-                  worldPath, kind, id, ["archetype", "size", "rarity"],
-                  undefined, rowPrompt,
+                  worldPath,
+                  kind,
+                  id,
+                  ["archetype", "size", "rarity"],
+                  undefined,
+                  rowPrompt,
                 ),
             )
           }
@@ -1297,9 +1314,7 @@ function GenActions({
           {busy === "sandbox" ? "…" : "🏃 Sandbox"}
         </button>
       )}
-      {note && (
-        <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>{note}</span>
-      )}
+      {note && <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>{note}</span>}
       {/* Per-call prompt editors for the two generators above. Each applies to
           the NEXT run of its own button; collapsed = the built-in default. */}
       <div style={{ flexBasis: "100%" }}>

@@ -145,8 +145,16 @@ export function LevelCanvas({
     clampCam();
     const camera: Camera = { ...cam.current, viewW: viewSize.w, viewH: viewSize.h };
     drawLevel(canvas, bundle, {
-      scale, mode, images, showGrid, showLabels, selection, camera, painted,
-      showBounds, showRulers,
+      scale,
+      mode,
+      images,
+      showGrid,
+      showLabels,
+      selection,
+      camera,
+      painted,
+      showBounds,
+      showRulers,
     });
     setZoomPct(Math.round(cam.current.zoom * 100));
     // Notify ONLY on a real change. redraw() runs after every render, so
@@ -342,11 +350,7 @@ export function LevelCanvas({
     // grab elsewhere.
     const canvas = canvasRef.current;
     if (canvas) {
-      canvas.style.cursor = brush
-        ? "crosshair"
-        : hitHandle(cellAt(e))
-          ? "pointer"
-          : "grab";
+      canvas.style.cursor = brush ? "crosshair" : hitHandle(cellAt(e)) ? "pointer" : "grab";
     }
   };
 
@@ -373,7 +377,10 @@ export function LevelCanvas({
   };
   const fit = () => {
     const c = cam.current;
-    c.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(viewSize.w / worldW, viewSize.h / worldH)));
+    c.zoom = Math.min(
+      MAX_ZOOM,
+      Math.max(MIN_ZOOM, Math.min(viewSize.w / worldW, viewSize.h / worldH)),
+    );
     c.ox = 0;
     c.oy = 0;
     redraw();
@@ -399,7 +406,12 @@ export function LevelCanvas({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onContextMenu={(e) => e.preventDefault()}
-        style={{ display: "block", imageRendering: "pixelated", cursor: "grab", touchAction: "none" }}
+        style={{
+          display: "block",
+          imageRendering: "pixelated",
+          cursor: "grab",
+          touchAction: "none",
+        }}
       />
       <div
         style={{
@@ -413,11 +425,21 @@ export function LevelCanvas({
           alignItems: "center",
         }}
       >
-        <button className="btn" onClick={() => setZoom((z) => z / 1.25)} title="Zoom out">−</button>
-        <span className="btn" style={{ cursor: "default" }}>{zoomPct}%</span>
-        <button className="btn" onClick={() => setZoom((z) => z * 1.25)} title="Zoom in">+</button>
-        <button className="btn" onClick={fit} title="Fit level in view">fit</button>
-        <button className="btn" onClick={() => setZoom(() => 1)} title="Actual size">1:1</button>
+        <button className="btn" onClick={() => setZoom((z) => z / 1.25)} title="Zoom out">
+          −
+        </button>
+        <span className="btn" style={{ cursor: "default" }}>
+          {zoomPct}%
+        </span>
+        <button className="btn" onClick={() => setZoom((z) => z * 1.25)} title="Zoom in">
+          +
+        </button>
+        <button className="btn" onClick={fit} title="Fit level in view">
+          fit
+        </button>
+        <button className="btn" onClick={() => setZoom(() => 1)} title="Actual size">
+          1:1
+        </button>
       </div>
     </div>
   );

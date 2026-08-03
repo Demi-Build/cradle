@@ -53,8 +53,7 @@ export function AnimationTab({ target }: { target: string }) {
   if (!info.states.length) {
     return (
       <p className="anim-empty">
-        {info.label} has no animation yet — use <b>🎬 Generate animation</b> on
-        the Overview tab.
+        {info.label} has no animation yet — use <b>🎬 Generate animation</b> on the Overview tab.
       </p>
     );
   }
@@ -87,7 +86,9 @@ export function AnimationTab({ target }: { target: string }) {
     const cur = state.offsets ?? state.boxes.map(() => [0, 0] as [number, number]);
     void edit({
       offsets: cur.map(([x, y], i) =>
-        frameOnly && i !== sel ? ([x, y] as [number, number]) : ([x + dx, y + dy] as [number, number]),
+        frameOnly && i !== sel
+          ? ([x, y] as [number, number])
+          : ([x + dx, y + dy] as [number, number]),
       ),
     });
   };
@@ -96,11 +97,10 @@ export function AnimationTab({ target }: { target: string }) {
     <div className="anim-tab">
       {info.independently_sized && (
         <div className="anim-warn">
-          <b>{info.flush_states.length} states reach the cell edge.</b> With one
-          shared frame square only the single largest pose can — so these were
-          sized independently, and the actor changes size when its state
-          changes. Offsets can re-seat a pose, but they can't un-bake its
-          proportions: that needs re-generating on the current pipeline.
+          <b>{info.flush_states.length} states reach the cell edge.</b> With one shared frame square
+          only the single largest pose can — so these were sized independently, and the actor
+          changes size when its state changes. Offsets can re-seat a pose, but they can't un-bake
+          its proportions: that needs re-generating on the current pipeline.
         </div>
       )}
 
@@ -126,10 +126,16 @@ export function AnimationTab({ target }: { target: string }) {
 
       <div className="anim-meta">
         <span>
-          cell <b>{state.frame_width}×{state.frame_height}</b>
+          cell{" "}
+          <b>
+            {state.frame_width}×{state.frame_height}
+          </b>
         </span>
         <span>
-          content <b>{state.widest}×{state.tallest}</b>
+          content{" "}
+          <b>
+            {state.widest}×{state.tallest}
+          </b>
         </span>
         <span title="How much the feet move between frames of this state — bobbing when it should be planted">
           foot wander <b>{state.foot_wander}px</b>
@@ -149,17 +155,24 @@ export function AnimationTab({ target }: { target: string }) {
         <div className="anim-nudge">
           <span className="dock-sect">Position in frame</span>
           <p className="note">
-            Move the art within its frame — for a pose that sits too high, too
-            low, or off-centre. Saved with the animation, so pygame and Godot
-            both pick it up.
+            Move the art within its frame — for a pose that sits too high, too low, or off-centre.
+            Saved with the animation, so pygame and Godot both pick it up.
           </p>
           <div className="anim-pad">
-            <button className="btn" disabled={busy} onClick={() => nudge(0, -1)}>↑</button>
+            <button className="btn" disabled={busy} onClick={() => nudge(0, -1)}>
+              ↑
+            </button>
             <div>
-              <button className="btn" disabled={busy} onClick={() => nudge(-1, 0)}>←</button>
-              <button className="btn" disabled={busy} onClick={() => nudge(1, 0)}>→</button>
+              <button className="btn" disabled={busy} onClick={() => nudge(-1, 0)}>
+                ←
+              </button>
+              <button className="btn" disabled={busy} onClick={() => nudge(1, 0)}>
+                →
+              </button>
             </div>
-            <button className="btn" disabled={busy} onClick={() => nudge(0, 1)}>↓</button>
+            <button className="btn" disabled={busy} onClick={() => nudge(0, 1)}>
+              ↓
+            </button>
           </div>
           <label className="anim-play">
             <input
@@ -201,7 +214,9 @@ export function AnimationTab({ target }: { target: string }) {
               onChange={(e) => void edit({ loop: e.target.value })}
             >
               {["loop", "once", "ping_pong"].map((m) => (
-                <option key={m} value={m}>{m}</option>
+                <option key={m} value={m}>
+                  {m}
+                </option>
               ))}
             </select>
           </label>
@@ -233,7 +248,6 @@ export function AnimationTab({ target }: { target: string }) {
     </div>
   );
 }
-
 
 /** One frame, drawn at `zoom`× with optional overlays.
  *
@@ -271,9 +285,7 @@ function Frame({
           }}
         />
       )}
-      {grid && (
-        <span className="anim-grid" style={{ backgroundSize: `${zoom}px ${zoom}px` }} />
-      )}
+      {grid && <span className="anim-grid" style={{ backgroundSize: `${zoom}px ${zoom}px` }} />}
       {/* Where the actor's feet are meant to land — the reference every
           seating judgement is made against. */}
       <span className="anim-baseline" />
@@ -380,7 +392,9 @@ function FrameStage({
           {!loaded && <span className="anim-loading">loading…</span>}
         </div>
         <div className="anim-transport">
-          <button className="btn" onClick={() => step(-1)} title="Previous frame">‹</button>
+          <button className="btn" onClick={() => step(-1)} title="Previous frame">
+            ‹
+          </button>
           <button
             className={playing ? "btn pri" : "btn"}
             onClick={() => {
@@ -392,7 +406,9 @@ function FrameStage({
           >
             {playing ? "❚❚ Pause" : "▶ Play"}
           </button>
-          <button className="btn" onClick={() => step(1)} title="Next frame">›</button>
+          <button className="btn" onClick={() => step(1)} title="Next frame">
+            ›
+          </button>
           <span className="anim-count">
             frame {frame + 1}/{state.frames} · {state.durations_ms[frame] ?? 120}ms
           </span>

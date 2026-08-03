@@ -200,10 +200,14 @@ export function collectImageUrls(bundle: LevelBundle): string[] {
 }
 
 const img = (imgs: Record<string, HTMLImageElement>, url: string | null) =>
-  (url && imgs[url]?.complete && imgs[url].naturalWidth > 0 ? imgs[url] : null);
+  url && imgs[url]?.complete && imgs[url].naturalWidth > 0 ? imgs[url] : null;
 
 /** Draw the whole level. Sizes the canvas to the grid × scale. */
-export function drawLevel(canvas: HTMLCanvasElement, bundle: LevelBundle, opts: DrawOpts = {}): void {
+export function drawLevel(
+  canvas: HTMLCanvasElement,
+  bundle: LevelBundle,
+  opts: DrawOpts = {},
+): void {
   const scale = opts.scale ?? 24;
   const mode: RenderMode = opts.mode ?? "blocks";
   const images = opts.images ?? {};
@@ -289,7 +293,12 @@ export function drawLevel(canvas: HTMLCanvasElement, bundle: LevelBundle, opts: 
       ctx.strokeStyle = "#e2b714";
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 3]);
-      ctx.strokeRect(sel.cx * scale - scale * 0.62, sel.cy * scale - scale * 0.62, scale * 1.24, scale * 1.24);
+      ctx.strokeRect(
+        sel.cx * scale - scale * 0.62,
+        sel.cy * scale - scale * 0.62,
+        scale * 1.24,
+        scale * 1.24,
+      );
       ctx.restore();
     }
   }
@@ -483,7 +492,8 @@ function drawBlocksTerrain(ctx: CanvasRenderingContext2D, bundle: LevelBundle, s
       if (!color) continue;
       const slot = bundle.tiles_by_type[String(tt)];
       ctx.fillStyle = color;
-      if (slot?.collision === "one_way") ctx.fillRect(x * scale, y * scale, scale, Math.max(3, scale * 0.28));
+      if (slot?.collision === "one_way")
+        ctx.fillRect(x * scale, y * scale, scale, Math.max(3, scale * 0.28));
       else ctx.fillRect(x * scale, y * scale, scale, scale);
     }
   }
@@ -548,7 +558,13 @@ function drawItems(
     const sprite = art ? img(images, it.sprite_path_abs) : null;
     if (sprite) {
       const side = scale * 0.7;
-      ctx.drawImage(sprite, (it.x + 0.5) * scale - side / 2, (it.y + 0.5) * scale - side / 2, side, side);
+      ctx.drawImage(
+        sprite,
+        (it.x + 0.5) * scale - side / 2,
+        (it.y + 0.5) * scale - side / 2,
+        side,
+        side,
+      );
     } else {
       ctx.fillStyle = it.placeholder_color;
       ctx.strokeStyle = "rgba(255,255,255,0.85)";

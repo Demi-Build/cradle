@@ -19,7 +19,7 @@ Everything below is **PowerShell** on Windows 10/11.
 - **Visual Studio C++ Build Tools** — https://visualstudio.microsoft.com/visual-cpp-build-tools/
   → in the installer pick **"Desktop development with C++"** (Tauri needs the MSVC linker)
 - **WebView2** — already on most Win10/11; if not: https://developer.microsoft.com/microsoft-edge/webview2/
-- *(optional)* **Godot 4** — https://godotengine.org/download/windows/ — only needed for the "▶ Play game" (whole-game) button; per-level "▶ Play" uses Python/pygame instead.
+- _(optional)_ **Godot 4** — https://godotengine.org/download/windows/ — only needed for the "▶ Play game" (whole-game) button; per-level "▶ Play" uses Python/pygame instead.
 
 Tauri's own checklist (authoritative): https://tauri.app/start/prerequisites/
 
@@ -54,10 +54,10 @@ python -m venv .venv
 .\.venv\Scripts\canon.exe --help
 ```
 
-*(Only if you later want the PAID path — real art / LLM content — also run
+_(Only if you later want the PAID path — real art / LLM content — also run
 `.\.venv\Scripts\python.exe -m pip install -e ".[anthropic,images]"` and put your
 keys in a `.env` file, then set `$env:CANON_ENV_FILE` to it. Not needed to try
-the app.)*
+the app.)_
 
 ---
 
@@ -116,7 +116,7 @@ Everything above runs on the free `fake` backend — no keys, no cost.
 ## Troubleshooting
 
 - **"set CANON_BIN…" or canon not found** — the env vars in step 5 must be set in
-  the *same* terminal you run `npm run tauri dev` from. Double-check the paths.
+  the _same_ terminal you run `npm run tauri dev` from. Double-check the paths.
 - **▶ Play does nothing** — pygame must be installed in canon's venv (the
   `play` extra in step 3) and `CANON_REPO` must point at the canon-ai folder.
 - **▶ Play game fails** — set `GODOT_BIN` to your Godot 4 exe (or skip it; the

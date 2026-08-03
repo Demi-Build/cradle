@@ -96,7 +96,10 @@ export function TileSlotEditor({
         ...s,
         [name]: {
           collision: (set.collision as string) ?? s[name]?.collision,
-          params: { ...(s[name]?.params ?? {}), ...((set.params as Record<string, unknown>) ?? {}) },
+          params: {
+            ...(s[name]?.params ?? {}),
+            ...((set.params as Record<string, unknown>) ?? {}),
+          },
         },
       }));
       setEdits((e) => {
@@ -132,9 +135,7 @@ export function TileSlotEditor({
           type="number"
           step="any"
           value={value as number}
-          onChange={(e) =>
-            setParam(name, key, e.target.value === "" ? 0 : Number(e.target.value))
-          }
+          onChange={(e) => setParam(name, key, e.target.value === "" ? 0 : Number(e.target.value))}
         />
       );
     }
@@ -155,11 +156,7 @@ export function TileSlotEditor({
           per tile type — all its slots update together; art/structure stay untouched
         </span>
       </div>
-      {note && (
-        <p style={{ fontSize: 11, color: "var(--accent)", margin: "2px 0 6px" }}>
-          {note}
-        </p>
-      )}
+      {note && <p style={{ fontSize: 11, color: "var(--accent)", margin: "2px 0 6px" }}>{note}</p>}
       <table style={{ borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ color: "var(--fg-dim)", fontSize: 11, textAlign: "left" }}>
@@ -189,7 +186,9 @@ export function TileSlotEditor({
                     onChange={(e) => setCollision(name, e.target.value)}
                   >
                     {COLLISION_CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
                     ))}
                   </select>
                 </td>
@@ -200,8 +199,7 @@ export function TileSlotEditor({
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     {Object.entries(base.knobs).map(([k, v]) => (
                       <label key={k} style={{ fontSize: 11, color: "var(--fg-dim)" }}>
-                        {k}{" "}
-                        {knobInput(name, k, v)}
+                        {k} {knobInput(name, k, v)}
                       </label>
                     ))}
                   </div>

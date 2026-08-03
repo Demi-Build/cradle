@@ -108,8 +108,8 @@ fn export_level(path: String, level_id: String) -> Result<Value, String> {
             String::from_utf8_lossy(&output.stderr)
         ));
     }
-    let parsed: Value = serde_json::from_slice(&output.stdout)
-        .map_err(|e| format!("parse canon output: {}", e))?;
+    let parsed: Value =
+        serde_json::from_slice(&output.stdout).map_err(|e| format!("parse canon output: {}", e))?;
     // Verb wraps the bundle as {"canon_version": ..., "level": {...}}.
     Ok(parsed.get("level").cloned().unwrap_or(parsed))
 }
@@ -125,7 +125,14 @@ fn save_level_edit(path: String, level_id: String, edit: Value) -> Result<Value,
     let output = std::process::Command::new(&canon_bin)
         .args(["level", "apply-edit"])
         .arg(root.as_os_str())
-        .args(["--level", &level_id, "--json", &edit_str, "--actor", "cradle:user"])
+        .args([
+            "--level",
+            &level_id,
+            "--json",
+            &edit_str,
+            "--actor",
+            "cradle:user",
+        ])
         .output()
         .map_err(|e| format!("failed to run '{}': {}", canon_bin, e))?;
     if !output.status.success() {
@@ -163,8 +170,15 @@ fn save_level_grids(path: String, level_id: String, collision: Value) -> Result<
         .map_err(|e| e.to_string())?;
     let root_s = root.to_string_lossy().to_string();
     run_canon(&[
-        "level", "import-grids", &root_s, "--level", &level_id, "--json", &payload,
-        "--actor", "cradle:user",
+        "level",
+        "import-grids",
+        &root_s,
+        "--level",
+        &level_id,
+        "--json",
+        &payload,
+        "--actor",
+        "cradle:user",
     ])
 }
 
@@ -174,8 +188,17 @@ fn create_level(path: String, stage_id: String, width: u32, height: u32) -> Resu
     let root = canon(path).to_string_lossy().to_string();
     let (w, h) = (width.to_string(), height.to_string());
     run_canon(&[
-        "level", "create", &root, "--stage", &stage_id, "--width", &w, "--height", &h,
-        "--actor", "cradle:user",
+        "level",
+        "create",
+        &root,
+        "--stage",
+        &stage_id,
+        "--width",
+        &w,
+        "--height",
+        &h,
+        "--actor",
+        "cradle:user",
     ])
 }
 
@@ -207,7 +230,13 @@ fn new_project(
 ) -> Result<Value, String> {
     let slug: String = name
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '_' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() {
+                c.to_ascii_lowercase()
+            } else {
+                '_'
+            }
+        })
         .collect();
     let slug = slug.trim_matches('_');
     let slug = if slug.is_empty() { "project" } else { slug };
@@ -219,15 +248,42 @@ fn new_project(
         "--name".into(),
         name,
     ];
-    if let Some(s) = stages { args.push("--stages".into()); args.push(s.to_string()); }
-    if let Some(l) = levels { args.push("--levels".into()); args.push(l.to_string()); }
-    if let Some(e) = enemies { args.push("--enemies".into()); args.push(e.to_string()); }
-    if let Some(i) = items { args.push("--items".into()); args.push(i.to_string()); }
-    if let Some(b) = llm_backend { args.push("--llm-backend".into()); args.push(b); }
-    if let Some(b) = image_backend { args.push("--image-backend".into()); args.push(b); }
-    if let Some(b) = music_backend { args.push("--music-backend".into()); args.push(b); }
-    if let Some(b) = sfx_backend { args.push("--sfx-backend".into()); args.push(b); }
-    if let Some(b) = vlm_backend { args.push("--vlm-backend".into()); args.push(b); }
+    if let Some(s) = stages {
+        args.push("--stages".into());
+        args.push(s.to_string());
+    }
+    if let Some(l) = levels {
+        args.push("--levels".into());
+        args.push(l.to_string());
+    }
+    if let Some(e) = enemies {
+        args.push("--enemies".into());
+        args.push(e.to_string());
+    }
+    if let Some(i) = items {
+        args.push("--items".into());
+        args.push(i.to_string());
+    }
+    if let Some(b) = llm_backend {
+        args.push("--llm-backend".into());
+        args.push(b);
+    }
+    if let Some(b) = image_backend {
+        args.push("--image-backend".into());
+        args.push(b);
+    }
+    if let Some(b) = music_backend {
+        args.push("--music-backend".into());
+        args.push(b);
+    }
+    if let Some(b) = sfx_backend {
+        args.push("--sfx-backend".into());
+        args.push(b);
+    }
+    if let Some(b) = vlm_backend {
+        args.push("--vlm-backend".into());
+        args.push(b);
+    }
     // Paid backends read their keys from CANON_ENV_FILE (harmless when fake).
     run_canon_owned(with_env_file(args))
 }
@@ -253,15 +309,38 @@ fn regenerate_layout(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
-        "level".into(), "regenerate".into(), root,
-        "--level".into(), level_id, "--brief".into(), brief,
-        "--actor".into(), "cradle:user".into(),
+        "level".into(),
+        "regenerate".into(),
+        root,
+        "--level".into(),
+        level_id,
+        "--brief".into(),
+        brief,
+        "--actor".into(),
+        "cradle:user".into(),
     ];
-    if let Some(d) = difficulty { args.push("--difficulty".into()); args.push(d.to_string()); }
-    if let Some(w) = width { args.push("--width".into()); args.push(w.to_string()); }
-    if let Some(h) = height { args.push("--height".into()); args.push(h.to_string()); }
-    if let Some(a) = axis { args.push("--axis".into()); args.push(a); }
-    if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
+    if let Some(d) = difficulty {
+        args.push("--difficulty".into());
+        args.push(d.to_string());
+    }
+    if let Some(w) = width {
+        args.push("--width".into());
+        args.push(w.to_string());
+    }
+    if let Some(h) = height {
+        args.push("--height".into());
+        args.push(h.to_string());
+    }
+    if let Some(a) = axis {
+        args.push("--axis".into());
+        args.push(a);
+    }
+    if let Some(s) = seed {
+        if !s.is_empty() {
+            args.push("--seed".into());
+            args.push(s);
+        }
+    }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
     let args = with_opt_flag(args, "--system-prompt", system_override);
@@ -291,13 +370,28 @@ fn improve_layout(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
-        "level".into(), "improve".into(), root,
-        "--level".into(), level_id, "--instruction".into(), instruction,
-        "--actor".into(), "cradle:user".into(),
+        "level".into(),
+        "improve".into(),
+        root,
+        "--level".into(),
+        level_id,
+        "--instruction".into(),
+        instruction,
+        "--actor".into(),
+        "cradle:user".into(),
     ];
-    if fix_problems { args.push("--fix-problems".into()); }
-    if reroll_placements { args.push("--reroll-placements".into()); }
-    if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
+    if fix_problems {
+        args.push("--fix-problems".into());
+    }
+    if reroll_placements {
+        args.push("--reroll-placements".into());
+    }
+    if let Some(s) = seed {
+        if !s.is_empty() {
+            args.push("--seed".into());
+            args.push(s);
+        }
+    }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
     let args = with_opt_flag(args, "--system-prompt", system_override);
@@ -314,8 +408,13 @@ fn publish_level(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
-        "level".into(), "publish".into(), root, "--level".into(), level_id,
-        "--actor".into(), "cradle:user".into(),
+        "level".into(),
+        "publish".into(),
+        root,
+        "--level".into(),
+        level_id,
+        "--actor".into(),
+        "cradle:user".into(),
     ];
     if let Some(p) = position {
         args.push("--position".into());
@@ -353,17 +452,46 @@ fn generate_level(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
-        "level".into(), "generate".into(), root,
-        "--stage".into(), stage_id, "--brief".into(), brief,
-        "--actor".into(), "cradle:user".into(),
+        "level".into(),
+        "generate".into(),
+        root,
+        "--stage".into(),
+        stage_id,
+        "--brief".into(),
+        brief,
+        "--actor".into(),
+        "cradle:user".into(),
     ];
-    if let Some(d) = difficulty { args.push("--difficulty".into()); args.push(d.to_string()); }
-    if let Some(w) = width { args.push("--width".into()); args.push(w.to_string()); }
-    if let Some(h) = height { args.push("--height".into()); args.push(h.to_string()); }
-    if let Some(a) = axis { args.push("--axis".into()); args.push(a); }
-    if let Some(e) = enemies { args.push("--enemies".into()); args.push(e.to_string()); }
-    if let Some(i) = items { args.push("--items".into()); args.push(i.to_string()); }
-    if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
+    if let Some(d) = difficulty {
+        args.push("--difficulty".into());
+        args.push(d.to_string());
+    }
+    if let Some(w) = width {
+        args.push("--width".into());
+        args.push(w.to_string());
+    }
+    if let Some(h) = height {
+        args.push("--height".into());
+        args.push(h.to_string());
+    }
+    if let Some(a) = axis {
+        args.push("--axis".into());
+        args.push(a);
+    }
+    if let Some(e) = enemies {
+        args.push("--enemies".into());
+        args.push(e.to_string());
+    }
+    if let Some(i) = items {
+        args.push("--items".into());
+        args.push(i.to_string());
+    }
+    if let Some(s) = seed {
+        if !s.is_empty() {
+            args.push("--seed".into());
+            args.push(s);
+        }
+    }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
     let args = with_opt_flag(args, "--system-prompt", system_override);
@@ -389,14 +517,27 @@ fn generate_level_music(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
-        "level".into(), "music".into(), "generate".into(), root,
-        "--level".into(), level_id,
-        "--brief".into(), brief.unwrap_or_default(),
-        "--music-backend".into(), music_backend.unwrap_or_else(|| "fake".into()),
-        "--actor".into(), "cradle:user".into(),
+        "level".into(),
+        "music".into(),
+        "generate".into(),
+        root,
+        "--level".into(),
+        level_id,
+        "--brief".into(),
+        brief.unwrap_or_default(),
+        "--music-backend".into(),
+        music_backend.unwrap_or_else(|| "fake".into()),
+        "--actor".into(),
+        "cradle:user".into(),
     ];
-    if let Some(s) = section { args.push("--section".into()); args.push(s.to_string()); }
-    if let Some(sec) = seconds { args.push("--seconds".into()); args.push(sec.to_string()); }
+    if let Some(s) = section {
+        args.push("--section".into());
+        args.push(s.to_string());
+    }
+    if let Some(sec) = seconds {
+        args.push("--seconds".into());
+        args.push(sec.to_string());
+    }
     let args = with_opt_flag(args, "--prompt", prompt_override);
     enqueue(&app, &queue, job_id, with_env_file(args))
 }
@@ -425,11 +566,24 @@ fn place_enemies(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
-        "level".into(), "place-enemies".into(), root,
-        "--level".into(), level_id, "--actor".into(), "cradle:user".into(),
+        "level".into(),
+        "place-enemies".into(),
+        root,
+        "--level".into(),
+        level_id,
+        "--actor".into(),
+        "cradle:user".into(),
     ];
-    if let Some(e) = enemies { args.push("--enemies".into()); args.push(e.to_string()); }
-    if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
+    if let Some(e) = enemies {
+        args.push("--enemies".into());
+        args.push(e.to_string());
+    }
+    if let Some(s) = seed {
+        if !s.is_empty() {
+            args.push("--seed".into());
+            args.push(s);
+        }
+    }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
     enqueue(&app, &queue, job_id, with_env_file(args))
@@ -450,11 +604,24 @@ fn place_items(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
-        "level".into(), "place-items".into(), root,
-        "--level".into(), level_id, "--actor".into(), "cradle:user".into(),
+        "level".into(),
+        "place-items".into(),
+        root,
+        "--level".into(),
+        level_id,
+        "--actor".into(),
+        "cradle:user".into(),
     ];
-    if let Some(i) = items { args.push("--items".into()); args.push(i.to_string()); }
-    if let Some(s) = seed { if !s.is_empty() { args.push("--seed".into()); args.push(s); } }
+    if let Some(i) = items {
+        args.push("--items".into());
+        args.push(i.to_string());
+    }
+    if let Some(s) = seed {
+        if !s.is_empty() {
+            args.push("--seed".into());
+            args.push(s);
+        }
+    }
     args.push("--llm-backend".into());
     args.push(llm_backend.unwrap_or_else(|| "fake".into()));
     enqueue(&app, &queue, job_id, with_env_file(args))
@@ -558,9 +725,15 @@ fn enqueue(
         .tx
         .lock()
         .map_err(|e| format!("job queue lock poisoned: {e}"))?
-        .send(QueuedJob { id: id.clone(), args })
+        .send(QueuedJob {
+            id: id.clone(),
+            args,
+        })
         .map_err(|e| format!("job worker is gone: {e}"))?;
-    let _ = app.emit("job-updated", serde_json::json!({ "id": id, "status": "queued" }));
+    let _ = app.emit(
+        "job-updated",
+        serde_json::json!({ "id": id, "status": "queued" }),
+    );
     Ok(serde_json::json!({ "job_id": id, "status": "queued" }))
 }
 
@@ -607,8 +780,15 @@ fn db_new(
     let root = canon(path).to_string_lossy().to_string();
     let fields_str = serde_json::to_string(&fields).map_err(|e| e.to_string())?;
     let mut args: Vec<String> = vec![
-        "db".into(), "new".into(), root, "--type".into(), entity_type,
-        "--fields".into(), fields_str, "--actor".into(), "cradle:user".into(),
+        "db".into(),
+        "new".into(),
+        root,
+        "--type".into(),
+        entity_type,
+        "--fields".into(),
+        fields_str,
+        "--actor".into(),
+        "cradle:user".into(),
     ];
     if complete {
         args.push("--complete".into());
@@ -631,10 +811,17 @@ fn db_complete(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
-        "db".into(), "complete".into(), root, "--type".into(), entity_type,
-        "--id".into(), id, "--llm-backend".into(),
+        "db".into(),
+        "complete".into(),
+        root,
+        "--type".into(),
+        entity_type,
+        "--id".into(),
+        id,
+        "--llm-backend".into(),
         llm_backend.unwrap_or_else(|| "anthropic".into()),
-        "--actor".into(), "cradle:user".into(),
+        "--actor".into(),
+        "cradle:user".into(),
     ];
     if !locked.is_empty() {
         args.push("--locked".into());
@@ -717,10 +904,26 @@ fn estimate_world(
         items.to_string(),
     );
     run_canon_module(&[
-        "world", "estimate", "--stages", &s, "--levels", &l, "--enemies", &e,
-        "--items", &i, "--llm-backend", &llm_backend, "--image-backend",
-        &image_backend, "--music-backend", &music_backend, "--sfx-backend",
-        &sfx_backend, "--vlm-backend", &vlm_backend,
+        "world",
+        "estimate",
+        "--stages",
+        &s,
+        "--levels",
+        &l,
+        "--enemies",
+        &e,
+        "--items",
+        &i,
+        "--llm-backend",
+        &llm_backend,
+        "--image-backend",
+        &image_backend,
+        "--music-backend",
+        &music_backend,
+        "--sfx-backend",
+        &sfx_backend,
+        "--vlm-backend",
+        &vlm_backend,
     ])
 }
 
@@ -736,8 +939,15 @@ fn estimate_level(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
-        "level".into(), "estimate".into(), root, "--level".into(), level_id,
-        "--op".into(), op, "--llm-backend".into(), llm_backend,
+        "level".into(),
+        "estimate".into(),
+        root,
+        "--level".into(),
+        level_id,
+        "--op".into(),
+        op,
+        "--llm-backend".into(),
+        llm_backend,
     ];
     if let Some(w) = width {
         args.push("--width".into());
@@ -764,10 +974,17 @@ fn estimate_asset(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
-        "asset".into(), "estimate".into(), root, "--target".into(), target,
-        "--op".into(), op,
-        "--image-backend".into(), image_backend,
-        "--vlm-backend".into(), vlm_backend,
+        "asset".into(),
+        "estimate".into(),
+        root,
+        "--target".into(),
+        target,
+        "--op".into(),
+        op,
+        "--image-backend".into(),
+        image_backend,
+        "--vlm-backend".into(),
+        vlm_backend,
     ];
     if reuse_spec {
         args.push("--reuse-spec".into());
@@ -791,7 +1008,13 @@ fn world_map_edit(path: String, edit: Value) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let edit_str = serde_json::to_string(&edit).map_err(|e| e.to_string())?;
     run_canon(&[
-        "world", "map-edit", &root, "--json", &edit_str, "--actor", "cradle:user",
+        "world",
+        "map-edit",
+        &root,
+        "--json",
+        &edit_str,
+        "--actor",
+        "cradle:user",
     ])
 }
 
@@ -826,17 +1049,21 @@ fn anim_inspect(path: String, target: String) -> Result<Value, String> {
 /// offsets, per-frame durations, loop mode. Synchronous: a JSON patch, not a
 /// generation run, so it stays out of the job queue.
 #[tauri::command]
-fn anim_edit(
-    path: String,
-    target: String,
-    state: String,
-    edit: Value,
-) -> Result<Value, String> {
+fn anim_edit(path: String, target: String, state: String, edit: Value) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let edit_str = serde_json::to_string(&edit).map_err(|e| e.to_string())?;
     run_canon(&[
-        "anim", "edit", &root, "--target", &target, "--state", &state,
-        "--json", &edit_str, "--actor", "cradle:user",
+        "anim",
+        "edit",
+        &root,
+        "--target",
+        &target,
+        "--state",
+        &state,
+        "--json",
+        &edit_str,
+        "--actor",
+        "cradle:user",
     ])
 }
 
@@ -871,9 +1098,18 @@ fn engine_sync(path: String, dry_run: bool, force: bool) -> Result<Value, String
 /// (capture, trajectory dumps, forced start level, plain rendering) — strip
 /// them all so Play starts from a clean slate, then set only what we mean.
 const PLAT_HOOK_VARS: [&str; 12] = [
-    "PLAT_CAPTURE", "PLAT_TRAJ", "PLAT_HOLD", "PLAT_HOLD_JUMP_EVERY",
-    "PLAT_ACTIONS", "PLAT_CAPTURE_TICKS", "PLAT_CAPTURE_EVERY", "PLAT_LEVEL",
-    "PLAT_PLAIN", "PLAT_ANIM", "PLAT_ANIM_MODE", "PLAT_SANDBOX",
+    "PLAT_CAPTURE",
+    "PLAT_TRAJ",
+    "PLAT_HOLD",
+    "PLAT_HOLD_JUMP_EVERY",
+    "PLAT_ACTIONS",
+    "PLAT_CAPTURE_TICKS",
+    "PLAT_CAPTURE_EVERY",
+    "PLAT_LEVEL",
+    "PLAT_PLAIN",
+    "PLAT_ANIM",
+    "PLAT_ANIM_MODE",
+    "PLAT_SANDBOX",
 ];
 
 /// Reap the detached child (a dropped Child is never waited on → zombie)
@@ -1064,13 +1300,31 @@ fn preview_prompt(
     brief: Option<String>,
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
-    let mut args: Vec<String> = vec![
-        "prompt".into(), "show".into(), root, "--kind".into(), kind,
-    ];
-    if let Some(l) = level_id { if !l.is_empty() { args.push("--level".into()); args.push(l); } }
-    if let Some(t) = target { if !t.is_empty() { args.push("--target".into()); args.push(t); } }
-    if let Some(i) = instruction { if !i.is_empty() { args.push("--instruction".into()); args.push(i); } }
-    if let Some(b) = brief { if !b.is_empty() { args.push("--brief".into()); args.push(b); } }
+    let mut args: Vec<String> = vec!["prompt".into(), "show".into(), root, "--kind".into(), kind];
+    if let Some(l) = level_id {
+        if !l.is_empty() {
+            args.push("--level".into());
+            args.push(l);
+        }
+    }
+    if let Some(t) = target {
+        if !t.is_empty() {
+            args.push("--target".into());
+            args.push(t);
+        }
+    }
+    if let Some(i) = instruction {
+        if !i.is_empty() {
+            args.push("--instruction".into());
+            args.push(i);
+        }
+    }
+    if let Some(b) = brief {
+        if !b.is_empty() {
+            args.push("--brief".into());
+            args.push(b);
+        }
+    }
     run_canon_owned(args)
 }
 
@@ -1086,8 +1340,15 @@ fn asset_lineage(path: String, target: String) -> Result<Value, String> {
 fn asset_restore(path: String, target: String, to: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "asset", "restore", &root, "--target", &target, "--to", &to,
-        "--actor", "cradle:user",
+        "asset",
+        "restore",
+        &root,
+        "--target",
+        &target,
+        "--to",
+        &to,
+        "--actor",
+        "cradle:user",
     ])
 }
 
@@ -1127,22 +1388,28 @@ fn library_list(
 fn library_publish(path: String, target: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "library", "publish", &root, "--target", &target,
-        "--actor", "cradle:user",
+        "library",
+        "publish",
+        &root,
+        "--target",
+        &target,
+        "--actor",
+        "cradle:user",
     ])
 }
 
 /// Import a library entry into the open pack via `canon library import`.
 #[tauri::command]
-fn library_import(
-    path: String,
-    id: String,
-    into: Option<String>,
-) -> Result<Value, String> {
+fn library_import(path: String, id: String, into: Option<String>) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let mut args: Vec<String> = vec![
-        "library".into(), "import".into(), root, "--id".into(), id,
-        "--actor".into(), "cradle:user".into(),
+        "library".into(),
+        "import".into(),
+        root,
+        "--id".into(),
+        id,
+        "--actor".into(),
+        "cradle:user".into(),
     ];
     if let Some(i) = into.filter(|s| !s.is_empty()) {
         args.push("--into".into());
@@ -1162,8 +1429,15 @@ fn library_cat(hash: String) -> Result<Value, String> {
 fn asset_assign(path: String, source: String, to: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "asset", "assign", &root, "--source", &source, "--to", &to,
-        "--actor", "cradle:user",
+        "asset",
+        "assign",
+        &root,
+        "--source",
+        &source,
+        "--to",
+        &to,
+        "--actor",
+        "cradle:user",
     ])
 }
 
@@ -1171,17 +1445,21 @@ fn asset_assign(path: String, source: String, to: String) -> Result<Value, Strin
 /// via `canon db update` — values land verbatim; canon rehashes, stamps
 /// user_edited, and journals op=edit with the field diff.
 #[tauri::command]
-fn db_update(
-    path: String,
-    entity_type: String,
-    id: String,
-    set: Value,
-) -> Result<Value, String> {
+fn db_update(path: String, entity_type: String, id: String, set: Value) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let set_str = serde_json::to_string(&set).map_err(|e| e.to_string())?;
     run_canon(&[
-        "db", "update", &root, "--type", &entity_type, "--id", &id,
-        "--set", &set_str, "--actor", "cradle:user",
+        "db",
+        "update",
+        &root,
+        "--type",
+        &entity_type,
+        "--id",
+        &id,
+        "--set",
+        &set_str,
+        "--actor",
+        "cradle:user",
     ])
 }
 
@@ -1195,16 +1473,19 @@ fn db_schema(path: String, entity_type: String) -> Result<Value, String> {
 /// Edit roll tables (validated fail-closed canon-side; lands as a pack-local
 /// override) via `canon db schema --set`.
 #[tauri::command]
-fn db_update_schema(
-    path: String,
-    entity_type: String,
-    set: Value,
-) -> Result<Value, String> {
+fn db_update_schema(path: String, entity_type: String, set: Value) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let set_str = serde_json::to_string(&set).map_err(|e| e.to_string())?;
     run_canon(&[
-        "db", "schema", &root, "--type", &entity_type,
-        "--set", &set_str, "--actor", "cradle:user",
+        "db",
+        "schema",
+        &root,
+        "--type",
+        &entity_type,
+        "--set",
+        &set_str,
+        "--actor",
+        "cradle:user",
     ])
 }
 
@@ -1227,8 +1508,13 @@ fn generate_asset(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let args: Vec<String> = vec![
-        "asset".into(), "generate".into(), root, "--target".into(), target,
-        "--actor".into(), "cradle:user".into(),
+        "asset".into(),
+        "generate".into(),
+        root,
+        "--target".into(),
+        target,
+        "--actor".into(),
+        "cradle:user".into(),
     ];
     let args = with_opt_flag(args, "--image-backend", image_backend);
     let args = with_opt_flag(args, "--image-model", image_model);
@@ -1263,8 +1549,13 @@ fn animate_asset(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let args: Vec<String> = vec![
-        "asset".into(), "animate".into(), root, "--target".into(), target,
-        "--actor".into(), "cradle:user".into(),
+        "asset".into(),
+        "animate".into(),
+        root,
+        "--target".into(),
+        target,
+        "--actor".into(),
+        "cradle:user".into(),
     ];
     let args = with_opt_flag(args, "--image-backend", image_backend);
     let args = with_opt_flag(args, "--image-model", image_model);
@@ -1287,8 +1578,15 @@ fn animate_asset(
 fn replace_asset(path: String, target: String, file: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "asset", "replace", &root, "--target", &target, "--from", &file,
-        "--actor", "cradle:user",
+        "asset",
+        "replace",
+        &root,
+        "--target",
+        &target,
+        "--from",
+        &file,
+        "--actor",
+        "cradle:user",
     ])
 }
 

@@ -386,7 +386,8 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           ...b.entities,
           {
             enemy_id: brush.enemyId,
-            x, y,
+            x,
+            y,
             variant: brush.variant,
             name: info?.name ?? brush.enemyId,
             archetype: null,
@@ -405,7 +406,8 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           ...b.items,
           {
             item_id: brush.itemId,
-            x, y,
+            x,
+            y,
             source: brush.source,
             name: info?.name ?? brush.itemId,
             kind: info?.kind ?? null,
@@ -515,15 +517,24 @@ export function LevelDetail({ levelId }: { levelId: string }) {
       const sparse: Record<string, unknown> = {};
       if (dirty.has("entities"))
         sparse.entities = b.entities.map((e) => ({
-          enemy_id: e.enemy_id, x: e.x, y: e.y, variant: e.variant,
+          enemy_id: e.enemy_id,
+          x: e.x,
+          y: e.y,
+          variant: e.variant,
         }));
       if (dirty.has("items"))
         sparse.items = b.items.map((it) => ({
-          item_id: it.item_id, x: it.x, y: it.y, source: it.source,
+          item_id: it.item_id,
+          x: it.x,
+          y: it.y,
+          source: it.source,
         }));
       if (dirty.has("triggers"))
         sparse.triggers = b.triggers.map((t) => ({
-          x: t.x, y: t.y, type: t.type, params: t.params ?? {},
+          x: t.x,
+          y: t.y,
+          type: t.type,
+          params: t.params ?? {},
         }));
       if (dirty.has("markers")) {
         sparse.spawn = b.spawn;
@@ -758,7 +769,12 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     return null;
   }, [bundle, selection]);
 
-  if (err) return <div className="detail-error" style={{ padding: 16 }}>Could not render level: {err}</div>;
+  if (err)
+    return (
+      <div className="detail-error" style={{ padding: 16 }}>
+        Could not render level: {err}
+      </div>
+    );
   if (!bundle) return <p style={{ padding: 16 }}>Rendering level…</p>;
 
   const isDraft = !bundle.display_name && !bundle.parent_level;
@@ -781,18 +797,30 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     </span>
   );
   const btn = (label: string, onClick: () => void, accent = false): React.ReactNode => (
-    <button
-      onClick={onClick}
-      className={accent ? "btn pri" : "btn"}
-      style={{ marginLeft: 8 }}
-    >
+    <button onClick={onClick} className={accent ? "btn pri" : "btn"} style={{ marginLeft: 8 }}>
       {label}
     </button>
   );
 
   return (
-    <div style={{ padding: 16, height: "100%", display: "flex", flexDirection: "column", minHeight: 0 }}>
-      <div style={{ marginBottom: 12, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+    <div
+      style={{
+        padding: 16,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+      }}
+    >
+      <div
+        style={{
+          marginBottom: 12,
+          display: "flex",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 6,
+        }}
+      >
         {chip(bundle.display_name ?? bundle.level_id)}
         {bundle.revision_short && (
           <span
@@ -850,11 +878,7 @@ export function LevelDetail({ levelId }: { levelId: string }) {
         {playNote && chip(playNote.slice(0, 70), "var(--special)", "play-note")}
         <span style={{ flex: 1 }} />
         {btn(validating ? "Validating…" : "✓ Validate", () => void doValidate())}
-        {btn(
-          mode === "blocks" ? "▶ Play blocks" : "▶ Play",
-          () => void doPlay(),
-          dirty.size === 0,
-        )}
+        {btn(mode === "blocks" ? "▶ Play blocks" : "▶ Play", () => void doPlay(), dirty.size === 0)}
         {btn("🪄 Layout", () => void openRegen())}
         <button
           className="btn"
@@ -893,14 +917,23 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           ))}
         </div>
         <label style={{ fontSize: 12, margin: "0 6px 0 10px", userSelect: "none" }}>
-          <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} /> grid
+          <input
+            type="checkbox"
+            checked={showGrid}
+            onChange={(e) => setShowGrid(e.target.checked)}
+          />{" "}
+          grid
         </label>
         <label style={{ fontSize: 12, userSelect: "none" }}>
-          <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} /> labels
+          <input
+            type="checkbox"
+            checked={showLabels}
+            onChange={(e) => setShowLabels(e.target.checked)}
+          />{" "}
+          labels
         </label>
-        {btn(
-          layout.focusMode ? "⤢ Exit focus" : "⤢ Focus",
-          () => setLayout({ focusMode: !layout.focusMode }),
+        {btn(layout.focusMode ? "⤢ Exit focus" : "⤢ Focus", () =>
+          setLayout({ focusMode: !layout.focusMode }),
         )}
         {btn(save.status === "saving" ? "Saving…" : "Save", () => void doSave(), dirty.size > 0)}
       </div>
@@ -968,7 +1001,15 @@ export function LevelDetail({ levelId }: { levelId: string }) {
               audioOpen={audioOpen}
             />
           </div>
-          <div style={{ margin: "10px 2px 0", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div
+            style={{
+              margin: "10px 2px 0",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
             {/* The interaction hint moved into the dock's armed-brush pane,
                 where it sits beside the thing it describes. */}
             <span style={{ flex: 1, minWidth: 120 }} />
@@ -1010,37 +1051,33 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           </div>
 
           <div className="dockwrap">
-          <AudioLane
-            bundle={bundle}
-            open={audioOpen}
-            onOpenMusic={() => setMusicOpen(true)}
-          />
+            <AudioLane bundle={bundle} open={audioOpen} onOpenMusic={() => setMusicOpen(true)} />
 
-          {/* The bottom dock: armed brush · palette tabs · contextual tray.
+            {/* The bottom dock: armed brush · palette tabs · contextual tray.
               The inspector is no longer a third column beside the canvas —
               it IS the tray pane, so selecting something doesn't shrink the
               map you're editing. */}
-          <Dock
-            bundle={bundle}
-            brush={brush}
-            onBrush={setBrush}
-            onReplaceArt={replaceArt}
-            tray={
-              selection ? (
-                <Inspector
-                  bundle={bundle}
-                  selection={selection}
-                  selected={selected}
-                  enemyIds={Object.keys(enemyDb)}
-                  itemIds={Object.keys(itemDb)}
-                  onOpenEntity={(typeId, id) => select({ kind: "entity", typeId, id })}
-                  onDelete={() => deleteSelection(selection)}
-                  onReplaceArt={replaceArt}
-                  onSwitch={(newId) => onSwitch(selection, newId)}
-                />
-              ) : undefined
-            }
-          />
+            <Dock
+              bundle={bundle}
+              brush={brush}
+              onBrush={setBrush}
+              onReplaceArt={replaceArt}
+              tray={
+                selection ? (
+                  <Inspector
+                    bundle={bundle}
+                    selection={selection}
+                    selected={selected}
+                    enemyIds={Object.keys(enemyDb)}
+                    itemIds={Object.keys(itemDb)}
+                    onOpenEntity={(typeId, id) => select({ kind: "entity", typeId, id })}
+                    onDelete={() => deleteSelection(selection)}
+                    onReplaceArt={replaceArt}
+                    onSwitch={(newId) => onSwitch(selection, newId)}
+                  />
+                ) : undefined
+              }
+            />
           </div>
         </div>
       </div>
@@ -1136,9 +1173,13 @@ function Inspector({
         style={{ flex: 1, fontSize: 12 }}
       >
         <option value="">choose…</option>
-        {ids.filter((id) => id !== current).map((id) => (
-          <option key={id} value={id}>{id}</option>
-        ))}
+        {ids
+          .filter((id) => id !== current)
+          .map((id) => (
+            <option key={id} value={id}>
+              {id}
+            </option>
+          ))}
       </select>
     </div>
   );
@@ -1147,7 +1188,12 @@ function Inspector({
     const e = selected as LevelBundle["entities"][number];
     return (
       <div>
-        <Header title={e.name} sub="enemy placement" sprite={e.sprite_path_abs} color={e.placeholder_color} />
+        <Header
+          title={e.name}
+          sub="enemy placement"
+          sprite={e.sprite_path_abs}
+          color={e.placeholder_color}
+        />
         {row("enemy", e.enemy_id)}
         {row("variant", e.variant ?? "—")}
         {row("size", `${e.size}`)}
@@ -1163,7 +1209,12 @@ function Inspector({
     const it = selected as LevelBundle["items"][number];
     return (
       <div>
-        <Header title={it.name} sub="item placement" sprite={it.sprite_path_abs} color={it.placeholder_color} />
+        <Header
+          title={it.name}
+          sub="item placement"
+          sprite={it.sprite_path_abs}
+          color={it.placeholder_color}
+        />
         {row("item", it.item_id)}
         {row("kind", it.kind ?? "—")}
         {row("source", it.source ?? "—")}
@@ -1198,7 +1249,17 @@ function Inspector({
   );
 }
 
-function Header({ title, sub, sprite, color }: { title: string; sub: string; sprite?: string | null; color?: string }) {
+function Header({
+  title,
+  sub,
+  sprite,
+  color,
+}: {
+  title: string;
+  sub: string;
+  sprite?: string | null;
+  color?: string;
+}) {
   return (
     <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
       <div
@@ -1214,7 +1275,18 @@ function Header({ title, sub, sprite, color }: { title: string; sub: string; spr
           overflow: "hidden",
         }}
       >
-        {sprite && <img src={sprite} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", imageRendering: "pixelated" }} />}
+        {sprite && (
+          <img
+            src={sprite}
+            alt=""
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              imageRendering: "pixelated",
+            }}
+          />
+        )}
       </div>
       <div>
         <div style={{ fontWeight: 600, textTransform: "capitalize" }}>{title}</div>
@@ -1230,7 +1302,9 @@ function Header({ title, sub, sprite, color }: { title: string; sub: string; spr
 function ValidationPanel({ report }: { report: ValidationReport }) {
   const rows: React.ReactNode[] = [];
   const line = (color: string, text: string, key: string) => (
-    <li key={key} style={{ color, fontSize: 12, margin: "2px 0" }}>{text}</li>
+    <li key={key} style={{ color, fontSize: 12, margin: "2px 0" }}>
+      {text}
+    </li>
   );
   const renderOne = (r: ValidationReport, label: string) => {
     for (const c of r.checks) {
@@ -1263,8 +1337,8 @@ function ValidationPanel({ report }: { report: ValidationReport }) {
       }}
     >
       <div style={{ fontSize: 11, color: "var(--fg-dim)", marginBottom: 2 }}>
-        canon level validate · {report.ok ? "playable" : "NOT playable as-is"} —
-        reachability simulated under this level's own physics
+        canon level validate · {report.ok ? "playable" : "NOT playable as-is"} — reachability
+        simulated under this level's own physics
       </div>
       <ul style={{ margin: 0, paddingLeft: 18 }}>{rows}</ul>
     </div>

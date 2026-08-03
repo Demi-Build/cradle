@@ -96,9 +96,7 @@ export function RecentsRail({
           </button>
         </div>
         <button className="see-all" onClick={() => setRoute("recents")}>
-          {overflow > 0
-            ? `See all ${recents.length} projects →`
-            : `All projects →`}
+          {overflow > 0 ? `See all ${recents.length} projects →` : `All projects →`}
         </button>
       </section>
 

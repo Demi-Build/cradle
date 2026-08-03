@@ -41,26 +41,15 @@ export function WorldInspector({
   areaArt: Record<string, HTMLImageElement>;
   actions: InspectorActions;
 }) {
-  const node =
-    sel?.kind === "node" ? map.nodes.find((n) => n.level_id === sel.id) : undefined;
-  const area =
-    sel?.kind === "area" ? map.areas.find((a) => a.stage_id === sel.id) : undefined;
+  const node = sel?.kind === "node" ? map.nodes.find((n) => n.level_id === sel.id) : undefined;
+  const area = sel?.kind === "area" ? map.areas.find((a) => a.stage_id === sel.id) : undefined;
   const edge = sel?.kind === "edge" ? map.edges[sel.index] : undefined;
 
   if (node) {
-    return (
-      <NodePanel
-        map={map}
-        node={node}
-        thumb={thumbs[node.level_id]}
-        actions={actions}
-      />
-    );
+    return <NodePanel map={map} node={node} thumb={thumbs[node.level_id]} actions={actions} />;
   }
   if (area) {
-    return (
-      <AreaPanel map={map} area={area} art={areaArt[area.stage_id]} actions={actions} />
-    );
+    return <AreaPanel map={map} area={area} art={areaArt[area.stage_id]} actions={actions} />;
   }
   if (edge && sel?.kind === "edge") {
     return <EdgePanel map={map} edge={edge} index={sel.index} actions={actions} />;
@@ -74,9 +63,8 @@ export function WorldInspector({
       </div>
       <div className="wm-bd">
         <p className="note">
-          Click a level, an area or a path. Areas are the pack's stages — they
-          already carry the theme, blocks, roster and music every level inside
-          inherits.
+          Click a level, an area or a path. Areas are the pack's stages — they already carry the
+          theme, blocks, roster and music every level inside inherits.
         </p>
       </div>
     </>
@@ -110,10 +98,7 @@ function Field({
   );
 }
 
-function statusPill(
-  node: WorldMapNode,
-  verdict: { ok: boolean; problems: number } | undefined,
-) {
+function statusPill(node: WorldMapNode, verdict: { ok: boolean; problems: number } | undefined) {
   if (node.status === "planned") return { cls: "new", text: "not built" };
   if (!verdict) return { cls: "", text: "not validated" };
   if (verdict.ok) return { cls: "ok", text: "validated" };
@@ -135,9 +120,7 @@ function NodePanel({
   const report = levelValidation[node.level_id];
   // Same count the status dot and the level editor's chip use — rooms folded
   // in, so the pill can never disagree with them.
-  const verdict = report
-    ? { ok: report.ok, problems: countProblems(report) }
-    : undefined;
+  const verdict = report ? { ok: report.ok, problems: countProblems(report) } : undefined;
   const pill = statusPill(node, verdict);
   const area = map.areas.find((a) => a.stage_id === node.stage_id);
   const planned = node.status === "planned";
@@ -180,7 +163,10 @@ function NodePanel({
                 value={area ? areaName(area) : "unassigned"}
                 action={
                   area ? (
-                    <button className="lnk" onClick={() => actions.select({ kind: "area", id: area.stage_id })}>
+                    <button
+                      className="lnk"
+                      onClick={() => actions.select({ kind: "area", id: area.stage_id })}
+                    >
                       open
                     </button>
                   ) : undefined
@@ -221,7 +207,10 @@ function NodePanel({
                 value={area ? areaName(area) : "unassigned"}
                 action={
                   area ? (
-                    <button className="lnk" onClick={() => actions.select({ kind: "area", id: area.stage_id })}>
+                    <button
+                      className="lnk"
+                      onClick={() => actions.select({ kind: "area", id: area.stage_id })}
+                    >
                       open
                     </button>
                   ) : undefined
@@ -270,11 +259,7 @@ function NodePanel({
               />
               <Field
                 label="Enemy pool"
-                value={
-                  area?.enemy_pool?.length
-                    ? `${area.enemy_pool.length} enemies`
-                    : "—"
-                }
+                value={area?.enemy_pool?.length ? `${area.enemy_pool.length} enemies` : "—"}
                 title={area?.enemy_pool?.join(", ")}
                 badge={inherited("enemies")}
                 action={overrideLink}
@@ -376,10 +361,7 @@ function AreaPanel({
         </div>
       </div>
       <div className="wm-bd">
-        <div
-          className="wm-thumb"
-          style={art ? { backgroundImage: `url(${art.src})` } : undefined}
-        >
+        <div className="wm-thumb" style={art ? { backgroundImage: `url(${art.src})` } : undefined}>
           <span className="ov">area art</span>
         </div>
         <p className="note">{area.theme || "No design note on this area."}</p>
@@ -404,8 +386,8 @@ function AreaPanel({
                 {overriding.length} level{overriding.length > 1 ? "s" : ""}
               </b>{" "}
               depart{overriding.length > 1 ? "" : "s"} from this —{" "}
-              {overriding.map((n) => nodeLabel(n)).join(", ")}. Changing a default
-              here leaves those alone.
+              {overriding.map((n) => nodeLabel(n)).join(", ")}. Changing a default here leaves those
+              alone.
             </>
           ) : (
             "No level inside departs from these yet."
@@ -536,8 +518,8 @@ function EdgePanel({
                 />
               </label>
               <p className="note">
-                Players can pause here and jump. Attach a secret exit or a hidden
-                reward to make poking around pay.
+                Players can pause here and jump. Attach a secret exit or a hidden reward to make
+                poking around pay.
               </p>
               <button className="btn wide" onClick={() => patch({ stop: undefined })}>
                 Remove stop
@@ -545,13 +527,8 @@ function EdgePanel({
             </>
           ) : (
             <>
-              <p className="note">
-                No stop on this path — the player walks straight through.
-              </p>
-              <button
-                className="btn wide"
-                onClick={() => patch({ stop: "jump · secret exit?" })}
-              >
+              <p className="note">No stop on this path — the player walks straight through.</p>
+              <button className="btn wide" onClick={() => patch({ stop: "jump · secret exit?" })}>
                 ＋ Add stop
               </button>
             </>

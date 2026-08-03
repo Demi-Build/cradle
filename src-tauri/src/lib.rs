@@ -804,6 +804,61 @@ fn spend_list(path: String) -> Result<Value, String> {
     run_canon(&["spend", "list", &root])
 }
 
+/// Every measurable fact about one actor's animation (`canon anim inspect`):
+/// the shared frame square, playback timing, authored offsets, and the measured
+/// content box of every frame. Pure read — console-script path (the anim verbs
+/// live in the canon package, not examples.*).
+#[tauri::command]
+fn anim_inspect(path: String, target: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&["anim", "inspect", &root, "--target", &target])
+}
+
+/// Hand-correct one animation state's playback (`canon anim edit`) — per-frame
+/// offsets, per-frame durations, loop mode. Synchronous: a JSON patch, not a
+/// generation run, so it stays out of the job queue.
+#[tauri::command]
+fn anim_edit(
+    path: String,
+    target: String,
+    state: String,
+    edit: Value,
+) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let edit_str = serde_json::to_string(&edit).map_err(|e| e.to_string())?;
+    run_canon(&[
+        "anim", "edit", &root, "--target", &target, "--state", &state,
+        "--json", &edit_str, "--actor", "cradle:user",
+    ])
+}
+
+/// Is this pack's Godot runtime current with canon's template
+/// (`canon engine status`)? The runtime is COPIED into a pack when it is
+/// generated, so a pack keeps whatever engine code existed that day and every
+/// engine fix shipped since is invisible to it. Pure read.
+#[tauri::command]
+fn engine_status(path: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&["engine", "status", &root])
+}
+
+/// Refresh a pack's Godot runtime from the template (`canon engine sync`).
+/// Hand-edited runtime files are refused by name unless `force`; only the
+/// runtime is touched, never generated content. Synchronous — it is a local
+/// file copy, not a generation run, so it has no place in the job queue.
+#[tauri::command]
+fn engine_sync(path: String, dry_run: bool, force: bool) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<&str> = vec!["engine", "sync", &root, "--actor", "cradle:user"];
+    if dry_run {
+        args.push("--dry-run");
+    }
+    if force {
+        args.push("--force");
+    }
+    run_canon(&args)
+}
+
 /// The PLAT_* hooks turn the play surfaces into scripted/headless sessions
 /// (capture, trajectory dumps, forced start level, plain rendering) — strip
 /// them all so Play starts from a clean slate, then set only what we mean.
@@ -1303,6 +1358,10 @@ pub fn run() {
             world_map_edit,
             spend_record,
             spend_list,
+            engine_status,
+            engine_sync,
+            anim_inspect,
+            anim_edit,
             get_bundled_demo_path,
         ])
         .run(tauri::generate_context!())

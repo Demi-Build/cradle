@@ -1,6 +1,7 @@
 import { useStore } from "../store";
 import { kbd } from "../lib/keys";
 import { Icon, IconSymbols } from "./start/Icons";
+import { EngineChip } from "./EngineChip";
 
 export function TopBar() {
   const world = useStore((s) => s.world);
@@ -43,6 +44,7 @@ export function TopBar() {
       </div>
       <div className="spacer" />
       <div className="right">
+        {world && <EngineChip />}
         {world && (
           <button
             className="crumb-link"

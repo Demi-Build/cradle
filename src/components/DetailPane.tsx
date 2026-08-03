@@ -11,6 +11,7 @@ import { hasTreeView, type PuzzleEvent } from "./event/types";
 import { QuestDetail } from "./quest/QuestDetail";
 import { LevelDetail } from "./level/LevelDetail";
 import { LibraryPanel } from "./db/LibraryPanel";
+import { AnimationTab } from "./anim/AnimationTab";
 import { WorldMapView } from "./world/WorldMapView";
 import { LineagePanel } from "./db/LineagePanel";
 import { WorldBibleView } from "./WorldBibleView";
@@ -104,6 +105,23 @@ export function DetailPane() {
         id: "puzzle",
         label,
         content: <PuzzleTab event={data as PuzzleEvent} />,
+      });
+    }
+    // Animation: the frame inspector. Only the types that HAVE animation —
+    // canon animates actors, not tilesets or audio.
+    const animTarget =
+      selection.typeId === "player"
+        ? "player"
+        : selection.typeId === "enemies"
+          ? `enemy:${selection.id}`
+          : selection.typeId === "items"
+            ? `item:${selection.id}`
+            : null;
+    if (animTarget) {
+      tabs.push({
+        id: "animation",
+        label: "Animation",
+        content: <AnimationTab target={animTarget} />,
       });
     }
     // Lineage/History (Library A): platformer asset artifacts whose journal

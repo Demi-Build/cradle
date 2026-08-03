@@ -842,6 +842,137 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
           llm: String(args.llmBackend ?? "fake"),
         }),
       };
+    // Animation geometry. Shaped like the real pack's PLAYER, including the
+    // defect: every state flush to the cell edge, `fall` narrow-but-full-height.
+    // A mock showing healthy art would never exercise the warnings.
+    case "anim_inspect": {
+      const mk = (
+        state: string,
+        n: number,
+        loop: string,
+        boxes: [number, number, number, number][],
+      ) => {
+        const key = `${String(args.target)}::${state}`;
+        return {
+          state,
+          frames: n,
+          frame_width: 32,
+          frame_height: 32,
+          path: `sprite/player/${state}.png`,
+          path_abs: `/__mockassets__/sprite/player/${state}.png`,
+          loop: MOCK_ANIM[key]?.loop ?? loop,
+          durations_ms: MOCK_ANIM[key]?.durations_ms ?? Array(n).fill(120),
+          offsets: MOCK_ANIM[key]?.offsets ?? null,
+          boxes: boxes.map(([x, y, w, h], index) => ({
+            index,
+            box: { x, y, w, h },
+            foot_gap: 32 - (y + h),
+          })),
+          widest: Math.max(...boxes.map((b) => b[2])),
+          tallest: Math.max(...boxes.map((b) => b[3])),
+          flush: boxes.some((b) => b[2] >= 31 || b[3] >= 31),
+          foot_wander:
+            Math.max(...boxes.map((b) => 32 - (b[1] + b[3]))) -
+            Math.min(...boxes.map((b) => 32 - (b[1] + b[3]))),
+        };
+      };
+      const states = [
+        mk("fall", 3, "loop", [[9, 12, 14, 20], [11, 0, 10, 32], [11, 0, 10, 32]]),
+        mk("idle", 3, "loop", [[5, 0, 22, 32], [4, 1, 24, 31], [4, 0, 24, 32]]),
+        mk("jump", 4, "once", [[2, 0, 28, 32], [3, 0, 26, 32], [2, 0, 28, 32], [3, 1, 26, 31]]),
+        mk("land", 3, "once", [[3, 0, 26, 32], [3, 2, 26, 30], [3, 0, 26, 32]]),
+        mk("walk", 8, "loop", [
+          [6, 1, 20, 31], [6, 0, 20, 32], [7, 1, 18, 31], [6, 0, 20, 32],
+          [6, 1, 20, 31], [6, 0, 20, 32], [7, 1, 18, 31], [6, 0, 20, 32],
+        ]),
+      ];
+      const flush = states.filter((s) => s.flush).map((s) => s.state);
+      return {
+        animation: {
+          target: String(args.target ?? "player"),
+          label: String(args.target ?? "player").split(":").pop(),
+          sprite_dir: "sprite/player",
+          has_atlas: true,
+          atlas_path_abs: "/__mockassets__/sprite/player/atlas.png",
+          states,
+          flush_states: flush,
+          independently_sized: flush.length > 1,
+        },
+      };
+    }
+    case "anim_edit": {
+      const key = `${String(args.target)}::${String(args.state)}`;
+      const patch = (args.edit ?? {}) as Record<string, unknown>;
+      const cur = MOCK_ANIM[key] ?? {};
+      const next = { ...cur };
+      let changed = false;
+      for (const [k, v] of Object.entries(patch)) {
+        if (v === null) {
+          if (k in next) {
+            delete (next as Record<string, unknown>)[k];
+            changed = true;
+          }
+          continue;
+        }
+        if (JSON.stringify((next as Record<string, unknown>)[k]) !== JSON.stringify(v)) {
+          (next as Record<string, unknown>)[k] = v;
+          changed = true;
+        }
+      }
+      MOCK_ANIM[key] = next;
+      return changed
+        ? { frames_edit: "updated", target: args.target, state: args.state, fields: Object.keys(patch).sort() }
+        : { frames_edit: "no_change", target: args.target, state: args.state };
+    }
+    // Engine runtime staleness. The mock starts BEHIND on purpose — that's
+    // the state every real pack was in when this was built, and a mock that
+    // starts current would never exercise the chip.
+    case "engine_status":
+      return {
+        status: {
+          pack: String(args.path ?? ""),
+          has_engine: true,
+          stamped: MOCK_ENGINE.stamped,
+          current: MOCK_ENGINE.current,
+          template_hash: "sha256:c65aea07f2de2865",
+          pack_hash: MOCK_ENGINE.stamped ? "sha256:0000000000000000" : null,
+          files: [
+            {
+              path: "godot/main.gd",
+              state: MOCK_ENGINE.current
+                ? "current"
+                : MOCK_ENGINE.stamped
+                  ? "stale"
+                  : "unstamped",
+            },
+            { path: "godot/main.tscn", state: "current" },
+            { path: "project.godot", state: "current" },
+          ],
+          behind: MOCK_ENGINE.current ? [] : ["godot/main.gd"],
+          modified: [],
+        },
+      };
+    case "engine_sync": {
+      if (args.dryRun) {
+        return {
+          engine: "dry_run",
+          would_write: MOCK_ENGINE.current ? [] : ["godot/main.gd"],
+          refused: [],
+          current: MOCK_ENGINE.current,
+        };
+      }
+      if (MOCK_ENGINE.current) {
+        return { engine: "no_change", written: [], refused: [] };
+      }
+      MOCK_ENGINE.current = true;
+      MOCK_ENGINE.stamped = true;
+      return {
+        engine: "updated",
+        written: ["godot/main.gd"],
+        refused: [],
+        template_hash: "sha256:c65aea07f2de2865",
+      };
+    }
     case "world_map": {
       // Mock: derive the graph from the mock pack's own levels + stages so the
       // canvas is exercised against realistic shape (13 levels, 3 stages).
@@ -989,6 +1120,16 @@ const MOCK_WORLD_MAP: WorldMap = {
   locked: false,
   manual_count: 0,
 };
+
+/** Engine-runtime staleness for the mock. Starts BEHIND, like every real pack
+ *  did — syncing flips it so the chip's whole lifecycle is exercisable. */
+const MOCK_ENGINE = { current: false, stamped: false };
+
+/** Hand-authored animation playback, keyed `<target>::<state>`. */
+const MOCK_ANIM: Record<
+  string,
+  { offsets?: [number, number][]; durations_ms?: number[]; loop?: string }
+> = {};
 
 const MOCK_SPEND: Record<string, unknown>[] = [];
 /** In-memory job ledger for the browser mock (native writes .canon/jobs.jsonl). */

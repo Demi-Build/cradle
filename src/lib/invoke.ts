@@ -245,6 +245,78 @@ export type LineageTree = {
   edges: LineageEdge[];
   metadata: { total_nodes: number; max_depth: number; pruned: boolean };
 };
+/** One frame's measured opaque content box, in FRAME pixel space. `null` when
+ *  the frame has no opaque pixel at all. */
+export type AnimFrameBox = {
+  index: number;
+  box: { x: number; y: number; w: number; h: number } | null;
+  /** How far the content's feet sit above the cell's bottom edge. */
+  foot_gap?: number;
+};
+export type AnimState = {
+  state: string;
+  frames: number;
+  frame_width: number;
+  frame_height: number;
+  path: string;
+  path_abs: string | null;
+  loop: string;
+  durations_ms: number[];
+  /** Authored per-frame nudges, or null when generation's seating is untouched. */
+  offsets: [number, number][] | null;
+  boxes: AnimFrameBox[];
+  widest: number;
+  tallest: number;
+  /** Content reaches the cell edge. */
+  flush: boolean;
+  /** Feet moving between frames of one state — reads as bobbing. */
+  foot_wander: number;
+};
+export type AnimationInfo = {
+  target: string;
+  label: string;
+  sprite_dir: string;
+  has_atlas: boolean;
+  atlas_path_abs: string | null;
+  states: AnimState[];
+  flush_states: string[];
+  /** More than one flush state ⇒ the states were squared separately. */
+  independently_sized: boolean;
+};
+export type AnimEditPatch = {
+  offsets?: [number, number][] | null;
+  durations_ms?: number[];
+  loop?: string;
+};
+
+/** One runtime file's standing versus canon's current engine template.
+ *  `modified` = differs from its own stamp, i.e. hand-edited — sync refuses
+ *  those by name. `unstamped` = the pack predates stamping, so a hand edit
+ *  can't be told from an old build. */
+export type EngineFileState =
+  | "current"
+  | "stale"
+  | "missing"
+  | "modified"
+  | "unstamped";
+export type EngineStatus = {
+  pack: string;
+  has_engine: boolean;
+  stamped: boolean;
+  current: boolean;
+  template_hash: string;
+  pack_hash: string | null;
+  files: { path: string; state: EngineFileState }[];
+  behind: string[];
+  modified: string[];
+};
+export type EngineSyncResult = {
+  engine: "updated" | "no_change" | "dry_run";
+  written?: string[];
+  would_write?: string[];
+  refused: string[];
+  template_hash?: string;
+};
 export type WorldMapNode = {
   level_id: string;
   display_name: string | null;
@@ -593,6 +665,28 @@ export const api = {
     }),
   /** The level graph: nodes + typed edges + the areas (stages) they cluster
    *  under. Pure read. */
+  /** Measured animation geometry + playback for one actor. Pure read. */
+  animInspect: (path: string, target: string) =>
+    invoke<{ animation: AnimationInfo }>("anim_inspect", { path, target }),
+  /** Correct one state's playback by hand. Frame geometry is not editable —
+   *  these are corrections layered on generation's output. */
+  animEdit: (path: string, target: string, state: string, edit: AnimEditPatch) =>
+    invoke<{ frames_edit: string; fields?: string[] }>("anim_edit", {
+      path,
+      target,
+      state,
+      edit,
+    }),
+  /** Is the pack's game runtime current with canon's template? Pure read. */
+  engineStatus: (path: string) => invoke<{ status: EngineStatus }>("engine_status", { path }),
+  /** Refresh the pack's game runtime. `dryRun` reports without writing;
+   *  `force` overwrites hand-edited runtime files (refused by default). */
+  engineSync: (path: string, opts?: { dryRun?: boolean; force?: boolean }) =>
+    invoke<EngineSyncResult>("engine_sync", {
+      path,
+      dryRun: opts?.dryRun ?? false,
+      force: opts?.force ?? false,
+    }),
   worldMap: (path: string) => invoke<WorldMap>("world_map", { path }),
   /** Hand-author the map. Overrides are DURABLE (the map itself is recomputed
    *  from the seed on every resume). */

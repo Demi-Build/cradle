@@ -77,6 +77,69 @@ fn synthesize_audio_entity(type_id: &str, id: &str, filename: &str) -> Value {
     Value::Object(m)
 }
 
+/// The PLAYER row, synthesized. No pack has a `player.json` — canon keeps the
+/// hero's art under `sprite/player/` and its physics in the manifest, with no
+/// row file anywhere — but canon DOES treat `player` as a first-class asset
+/// target (`asset generate`/`animate`/`replace`, library publish, lineage), so
+/// the editor was the only place it didn't exist.
+///
+/// Shaped like an enemy row (`sprite_path` + `stats.animation`) so every
+/// existing surface — Portrait, the card grid, the animation preview — works
+/// on it unchanged. Same synthesize-a-row precedent as audio above.
+fn synthesize_player_entity(root: &Path) -> Value {
+    let mut m = serde_json::Map::new();
+    m.insert("player_id".into(), Value::String("player".into()));
+    m.insert("artifact_id".into(), Value::String("player".into()));
+    m.insert("name".into(), Value::String("Player".into()));
+    m.insert("kind".into(), Value::String("player".into()));
+    // Empty (not null, not absent) when there is no art: the portrait
+    // resolvers pick the first NON-EMPTY hint, and canon itself writes "" for
+    // "no art" — matching that keeps the loud fallback working.
+    let base = root.join("sprite/player/base.png");
+    m.insert(
+        "sprite_path".into(),
+        Value::String(if base.is_file() {
+            "sprite/player/base.png".into()
+        } else {
+            String::new()
+        }),
+    );
+    if let Some(frames) = read_json_opt(&root.join("sprite/player/frames.json")) {
+        let mut anim = serde_json::Map::new();
+        let states: Vec<Value> = frames
+            .as_object()
+            .map(|o| o.keys().map(|k| Value::String(k.clone())).collect())
+            .unwrap_or_default();
+        anim.insert("states".into(), frames);
+        m.insert("animation_states".into(), Value::Array(states));
+        let mut stats = serde_json::Map::new();
+        stats.insert("animation".into(), Value::Object(anim));
+        m.insert("stats".into(), Value::Object(stats));
+    }
+    if let Some(manifest) = read_json_opt(&root.join("manifest.json")) {
+        if let Some(movement) = manifest.get("movement") {
+            m.insert("movement".into(), movement.clone());
+        }
+    }
+    Value::Object(m)
+}
+
+/// One ref when the pack has player art, none otherwise — a pack generated
+/// without the art track shows `Player (0)`, exactly as `audio` already does.
+fn platformer_player_refs(root: &Path) -> Result<Vec<EntityRef>, String> {
+    let has_art = root.join("sprite/player/base.png").is_file()
+        || root.join("sprite/player/frames.json").is_file();
+    Ok(if has_art {
+        vec![EntityRef {
+            type_id: "player".into(),
+            id: "player".into(),
+            name: Some("Player".into()),
+        }]
+    } else {
+        Vec::new()
+    })
+}
+
 pub fn canon_world_root(input: &Path) -> PathBuf {
     // If the user selected a `/data` subfolder that actually contains world_bible.json,
     // treat the parent as the canonical world root. Otherwise return the path unchanged.
@@ -87,6 +150,213 @@ pub fn canon_world_root(input: &Path) -> PathBuf {
         }
     }
     input.to_path_buf()
+}
+
+// ---------------------------------------------------------------------------
+// Platformer pack support
+//
+// Canon's platformer output is grid/tilemap-centric and structurally distinct
+// from MazeWorld (see `manifest.json` + `world.json` + `level/<stage>/<level>/`
+// + `enemy/<id>.json`, no `world_bible.json`). We detect it and expose two
+// entity types — `levels` and `enemies` — instead of the MazeWorld set. Level
+// geometry (binary `.npz` grids) is NOT read here; the frontend renders a level
+// from the JSON bundle emitted by `canon level export`, which we shell out to.
+// ---------------------------------------------------------------------------
+
+pub fn is_platformer_pack(root: &Path) -> bool {
+    root.join("manifest.json").is_file() && root.join("level").is_dir()
+}
+
+fn read_json_opt(path: &Path) -> Option<Value> {
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+}
+
+fn platformer_level_display_names(root: &Path) -> std::collections::HashMap<String, String> {
+    let mut out = std::collections::HashMap::new();
+    if let Some(nodes) = read_json_opt(&root.join("manifest.json"))
+        .as_ref()
+        .and_then(|m| m.get("world_map"))
+        .and_then(|w| w.get("nodes"))
+        .and_then(|n| n.as_array())
+    {
+        for node in nodes {
+            if let (Some(lid), Some(dn)) = (
+                node.get("level_id").and_then(|x| x.as_str()),
+                node.get("display_name").and_then(|x| x.as_str()),
+            ) {
+                out.insert(lid.to_string(), dn.to_string());
+            }
+        }
+    }
+    out
+}
+
+fn platformer_level_order(root: &Path) -> Vec<String> {
+    read_json_opt(&root.join("manifest.json"))
+        .and_then(|m| {
+            m.get("levels").and_then(|l| l.as_array()).map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                    .collect()
+            })
+        })
+        .unwrap_or_default()
+}
+
+fn platformer_level_refs(root: &Path) -> Result<Vec<EntityRef>, String> {
+    let display = platformer_level_display_names(root);
+    let order = platformer_level_order(root);
+    // Discover levels on disk (level/<stage>/<level>/level.json), carrying each
+    // level's parent_level so secret rooms can slot in beside their parent.
+    let mut found: Vec<(String, Option<String>)> = Vec::new();
+    let level_root = root.join("level");
+    if level_root.is_dir() {
+        for stage in std::fs::read_dir(&level_root).map_err(|e| e.to_string())? {
+            let stage = stage.map_err(|e| e.to_string())?;
+            if !stage.path().is_dir() {
+                continue;
+            }
+            for lvl in std::fs::read_dir(stage.path()).map_err(|e| e.to_string())? {
+                let lvl = lvl.map_err(|e| e.to_string())?;
+                let level_json = lvl.path().join("level.json");
+                if level_json.is_file() {
+                    if let Some(name) = lvl.file_name().to_str() {
+                        let parent = read_json_opt(&level_json).and_then(|v| {
+                            v.get("parent_level")
+                                .and_then(|x| x.as_str())
+                                .map(|s| s.to_string())
+                        });
+                        found.push((name.to_string(), parent));
+                    }
+                }
+            }
+        }
+    }
+    // Manifest play-order; a secret room sorts DIRECTLY AFTER its parent level
+    // (never as a trailing appendix — with 100 levels that's unusable).
+    let pos = |id: &str| order.iter().position(|x| x == id).unwrap_or(usize::MAX);
+    let key = |entry: &(String, Option<String>)| {
+        let (id, parent) = entry;
+        match parent {
+            Some(p) => (pos(p.as_str()), 1u8, id.clone()),
+            None => (pos(id.as_str()), 0u8, id.clone()),
+        }
+    };
+    found.sort_by_cached_key(|e| key(e));
+    Ok(found
+        .into_iter()
+        .map(|(id, parent)| {
+            let name = if parent.is_some() {
+                format!("↳ {}", id)
+            } else {
+                display.get(&id).cloned().unwrap_or_else(|| id.clone())
+            };
+            EntityRef {
+                type_id: "levels".to_string(),
+                name: Some(name),
+                id,
+            }
+        })
+        .collect())
+}
+
+/// Flat per-file DBs: `<dir>/<id>.json` with a display `name` field
+/// (enemy/, item/).
+fn platformer_file_db_refs(
+    root: &Path,
+    dir: &str,
+    type_id: &str,
+) -> Result<Vec<EntityRef>, String> {
+    let base = root.join(dir);
+    let mut out = Vec::new();
+    if base.is_dir() {
+        for entry in std::fs::read_dir(&base).map_err(|e| e.to_string())? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let fname = entry.file_name().to_string_lossy().to_string();
+            if let Some(stem) = fname.strip_suffix(".json") {
+                let name = read_json_opt(&entry.path())
+                    .and_then(|v| {
+                        v.get("name")
+                            .and_then(|n| n.as_str())
+                            .map(|s| s.to_string())
+                    })
+                    .unwrap_or_else(|| stem.to_string());
+                out.push(EntityRef {
+                    type_id: type_id.to_string(),
+                    id: stem.to_string(),
+                    name: Some(name),
+                });
+            }
+        }
+    }
+    out.sort_by(|a, b| a.id.cmp(&b.id));
+    Ok(out)
+}
+
+/// Per-stage manifest DBs: `<dir>/<stage>/manifest.json`
+/// (tileset/, backdrop/, audio/). The stage id is the entity id.
+fn platformer_stage_manifest_refs(
+    root: &Path,
+    dir: &str,
+    type_id: &str,
+) -> Result<Vec<EntityRef>, String> {
+    let base = root.join(dir);
+    let mut out = Vec::new();
+    if base.is_dir() {
+        for entry in std::fs::read_dir(&base).map_err(|e| e.to_string())? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            if entry.path().join("manifest.json").is_file() {
+                if let Some(stage) = entry.file_name().to_str() {
+                    out.push(EntityRef {
+                        type_id: type_id.to_string(),
+                        id: stage.to_string(),
+                        name: Some(stage.to_string()),
+                    });
+                }
+            }
+        }
+    }
+    out.sort_by(|a, b| a.id.cmp(&b.id));
+    Ok(out)
+}
+
+/// The platformer catalog: every browsable type and its refs.
+const PLATFORMER_TYPES: &[&str] = &[
+    "levels",
+    "player",
+    "enemies",
+    "items",
+    "tilesets",
+    "backdrops",
+    "audio",
+];
+
+fn platformer_refs(root: &Path, type_id: &str) -> Result<Vec<EntityRef>, String> {
+    match type_id {
+        "levels" => platformer_level_refs(root),
+        "player" => platformer_player_refs(root),
+        "enemies" => platformer_file_db_refs(root, "enemy", "enemies"),
+        "items" => platformer_file_db_refs(root, "item", "items"),
+        "tilesets" => platformer_stage_manifest_refs(root, "tileset", "tilesets"),
+        "backdrops" => platformer_stage_manifest_refs(root, "backdrop", "backdrops"),
+        "audio" => platformer_stage_manifest_refs(root, "audio", "audio"),
+        _ => Ok(Vec::new()),
+    }
+}
+
+fn find_level_json(root: &Path, level_id: &str) -> Option<PathBuf> {
+    let level_root = root.join("level");
+    if let Ok(stages) = std::fs::read_dir(&level_root) {
+        for stage in stages.flatten() {
+            let candidate = stage.path().join(level_id).join("level.json");
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+    None
 }
 
 impl LocalFsDataSource {
@@ -190,12 +460,21 @@ impl DataSource for LocalFsDataSource {
             return Err(format!("world path is not a directory: {}", path.display()));
         }
         let mut counts = Vec::new();
-        for t in ENTITY_TYPES {
-            let refs = Self::collection_entries(&root, t)?;
-            counts.push(EntityTypeCount {
-                type_id: (*t).to_string(),
-                count: refs.len(),
-            });
+        if is_platformer_pack(&root) {
+            for t in PLATFORMER_TYPES {
+                counts.push(EntityTypeCount {
+                    type_id: (*t).to_string(),
+                    count: platformer_refs(&root, t)?.len(),
+                });
+            }
+        } else {
+            for t in ENTITY_TYPES {
+                let refs = Self::collection_entries(&root, t)?;
+                counts.push(EntityTypeCount {
+                    type_id: (*t).to_string(),
+                    count: refs.len(),
+                });
+            }
         }
         let name = path
             .file_name()
@@ -228,11 +507,25 @@ impl DataSource for LocalFsDataSource {
     }
 
     fn list_entities(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRef>, String> {
-        Self::collection_entries(&Self::data_root(path), type_id)
+        let root = Self::data_root(path);
+        if is_platformer_pack(&root) {
+            return platformer_refs(&root, type_id);
+        }
+        Self::collection_entries(&root, type_id)
     }
 
     fn list_entity_rows(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRow>, String> {
         let root = Self::data_root(path);
+        if is_platformer_pack(&root) {
+            let refs = platformer_refs(&root, type_id)?;
+            return Ok(refs
+                .into_iter()
+                .map(|r| {
+                    let data = self.get_entity(path, type_id, &r.id).unwrap_or(Value::Null);
+                    EntityRow { id: r.id, data }
+                })
+                .collect());
+        }
         if is_audio_type(type_id) {
             let dir = root.join(type_id);
             let stems = audio_file_stems(&dir)?;
@@ -307,6 +600,16 @@ impl DataSource for LocalFsDataSource {
             }
         };
 
+        // Platformer packs reference assets by output-relative path
+        // (sprite/…, tileset/…, review/…, music/…): resolve directly against
+        // the pack root. `join` passes absolute hints through unchanged, so
+        // the same accept() containment check covers both forms.
+        if is_platformer_pack(&root) {
+            if let Some(s) = accept(root.join(&normalized)) {
+                return Some(s);
+            }
+        }
+
         // 1) Audio lookup by basename. Path::join silently returns an absolute
         //    argument unchanged, so we must match on basename — never on the
         //    raw hint — to avoid escaping the world tree.
@@ -347,6 +650,34 @@ impl DataSource for LocalFsDataSource {
 
     fn get_entity(&self, path: &Path, type_id: &str, id: &str) -> Result<Value, String> {
         let root = Self::data_root(path);
+        if is_platformer_pack(&root) {
+            match type_id {
+                "levels" => {
+                    let lp = find_level_json(&root, id)
+                        .ok_or_else(|| format!("level {} not found", id))?;
+                    return Self::read_json(&lp);
+                }
+                "player" => {
+                    return Ok(synthesize_player_entity(&root));
+                }
+                "enemies" => {
+                    return Self::read_json(&root.join("enemy").join(format!("{}.json", id)));
+                }
+                "items" => {
+                    return Self::read_json(&root.join("item").join(format!("{}.json", id)));
+                }
+                "tilesets" => {
+                    return Self::read_json(&root.join("tileset").join(id).join("manifest.json"));
+                }
+                "backdrops" => {
+                    return Self::read_json(&root.join("backdrop").join(id).join("manifest.json"));
+                }
+                "audio" => {
+                    return Self::read_json(&root.join("audio").join(id).join("manifest.json"));
+                }
+                _ => {}
+            }
+        }
         if is_audio_type(type_id) {
             let dir = root.join(type_id);
             let stems = audio_file_stems(&dir)?;

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { kbd } from "../../lib/keys";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useStore } from "../../store";
 import { type RecentProject, relativeTimeFrom } from "../../lib/recents";
@@ -109,7 +110,7 @@ export function RecentProjectsPage() {
           <button className="head-cta" onClick={openFromDisk}>
             <Icon id="g-plus" size={14} className="g g-on-cta" />
             Open world from disk
-            <span className="kbd kbd-on-cta">⌘O</span>
+            <span className="kbd kbd-on-cta">{kbd("O")}</span>
           </button>
         </div>
 

@@ -4,15 +4,18 @@ import { Branding } from "./BrandMark";
 import { Icon } from "./Icons";
 import { envImageFor } from "./envImages";
 import { useAssetUrl } from "./useAssetUrl";
+import { WorldGlance } from "./WorldGlance";
 
 export function ReturningHero({
   last,
   onEnter,
   onOpenAnother,
+  onNewProject,
 }: {
   last: RecentProject;
   onEnter: () => void;
   onOpenAnother: () => void;
+  onNewProject: () => void;
 }) {
   const env = envKeyFor(last.primaryEnv, last.path);
   const resolvedStart = useAssetUrl(last.path, last.startPortrait);
@@ -69,12 +72,16 @@ export function ReturningHero({
               Enter world
               <span className="kbd">⏎</span>
             </button>
+            <button className="cta-secondary" onClick={onNewProject}>
+              ＋ New project
+            </button>
             <button className="cta-secondary" onClick={onOpenAnother}>
               <Icon id="g-folder" size={14} />
               Open another…
             </button>
           </div>
         </div>
+        <WorldGlance recent={last} />
       </div>
     </>
   );

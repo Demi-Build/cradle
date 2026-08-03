@@ -16,6 +16,8 @@ export function StartScreen() {
   const setError = useStore((s) => s.setError);
   const loadWorldByPath = useStore((s) => s.loadWorldByPath);
   const enrichRecent = useStore((s) => s.enrichRecent);
+  const setNewProjectOpen = useStore((s) => s.setNewProjectOpen);
+  const openNewProject = useCallback(() => setNewProjectOpen(true), [setNewProjectOpen]);
 
   const mode = recents.length > 0 ? "returning" : "firstrun";
   const last = recents[0];
@@ -76,16 +78,26 @@ export function StartScreen() {
       <main className="atmo">
         <section className="atmo-hero">
           {mode === "returning" && last && (
-            <ReturningHero last={last} onEnter={enterLast} onOpenAnother={openFromDisk} />
+            <ReturningHero
+              last={last}
+              onEnter={enterLast}
+              onOpenAnother={openFromDisk}
+              onNewProject={openNewProject}
+            />
           )}
           {mode === "firstrun" && (
-            <FirstRunCard onOpenFromDisk={openFromDisk} onTryDemo={tryDemo} />
+            <FirstRunCard
+              onOpenFromDisk={openFromDisk}
+              onTryDemo={tryDemo}
+              onNewProject={openNewProject}
+            />
           )}
         </section>
 
         {mode === "returning" && (
           <RecentsRail
             recents={recents}
+            excludePath={last?.path}
             onOpenRecent={(p) => loadWorldByPath(p)}
             onAddNew={openFromDisk}
           />

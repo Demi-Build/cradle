@@ -8,6 +8,10 @@ export type RecentProject = {
   seed?: string | number;
   rooms?: number;
   npcs?: number;
+  /** Platformer packs count these instead of rooms/npcs, so a card can say
+   *  something true about either kind of project. */
+  levels?: number;
+  enemies?: number;
   events?: number;
   quests?: number;
   cost?: number;
@@ -17,6 +21,10 @@ export type RecentProject = {
   validation?: ValidationStatus;
   lastOpenedAt: number;
   pinned?: boolean;
+  /** Hidden from the recents view. NOT deleted: the project is still on disk
+   *  and still openable from "Open another…". This distinction is the point
+   *  of the card menu, so it's modelled rather than implied. */
+  hidden?: boolean;
 };
 
 const STORAGE_KEY = "cradle.recents.v1";
@@ -44,7 +52,13 @@ export function saveRecents(recents: RecentProject[]): void {
 
 export function upsertRecent(recents: RecentProject[], next: RecentProject): RecentProject[] {
   const filtered = recents.filter((r) => r.path !== next.path);
-  const merged = [next, ...filtered].slice(0, MAX_RECENTS);
+  // Order by WHEN IT WAS OPENED, not by when it was last written to this list.
+  // The start page enriches every recent on mount, and each enrichment used to
+  // re-insert its project at the front — so the hero showed whichever one
+  // happened to finish LAST, which is a race, not a choice.
+  const merged = [next, ...filtered]
+    .sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0))
+    .slice(0, MAX_RECENTS);
   saveRecents(merged);
   return merged;
 }
@@ -57,6 +71,14 @@ export function removeRecent(recents: RecentProject[], path: string): RecentProj
 
 export function togglePin(recents: RecentProject[], path: string): RecentProject[] {
   const next = recents.map((r) => (r.path === path ? { ...r, pinned: !r.pinned } : r));
+  saveRecents(next);
+  return next;
+}
+
+/** Hide/show a project in the recents view. The entry is KEPT — hiding a card
+ *  never touches the project on disk, and "show" brings it straight back. */
+export function toggleHidden(recents: RecentProject[], path: string): RecentProject[] {
+  const next = recents.map((r) => (r.path === path ? { ...r, hidden: !r.hidden } : r));
   saveRecents(next);
   return next;
 }

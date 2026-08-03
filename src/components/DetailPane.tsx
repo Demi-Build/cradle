@@ -9,6 +9,11 @@ import type { DialogueTree } from "./dialogue/types";
 import { PuzzleTab } from "./event/PuzzleTab";
 import { hasTreeView, type PuzzleEvent } from "./event/types";
 import { QuestDetail } from "./quest/QuestDetail";
+import { LevelDetail } from "./level/LevelDetail";
+import { LibraryPanel } from "./db/LibraryPanel";
+import { AnimationTab } from "./anim/AnimationTab";
+import { WorldMapView } from "./world/WorldMapView";
+import { LineagePanel } from "./db/LineagePanel";
 import { WorldBibleView } from "./WorldBibleView";
 
 type Json = Record<string, unknown>;
@@ -24,7 +29,13 @@ export function DetailPane() {
     setPayload(null);
     setLocalErr(null);
     setActiveTab(selection.kind === "entity" && selection.tab ? selection.tab : "overview");
-    if (!worldPath || selection.kind === "none") return;
+    if (
+      !worldPath ||
+      selection.kind === "none" ||
+      selection.kind === "library" ||
+      selection.kind === "worldmap"
+    )
+      return;
     setLoading(true);
     (async () => {
       try {
@@ -47,7 +58,9 @@ export function DetailPane() {
     if (selection.kind !== "entity" || !payload) return null;
     const data = payload as Json;
     const overviewContent =
-      selection.typeId === "quests" ? (
+      selection.typeId === "levels" ? (
+        <LevelDetail levelId={selection.id} />
+      ) : selection.typeId === "quests" ? (
         <QuestDetail
           data={data as Parameters<typeof QuestDetail>[0]["data"]}
           entityId={selection.id}
@@ -94,6 +107,49 @@ export function DetailPane() {
         content: <PuzzleTab event={data as PuzzleEvent} />,
       });
     }
+    // Animation: the frame inspector. Only the types that HAVE animation —
+    // canon animates actors, not tilesets or audio.
+    const animTarget =
+      selection.typeId === "player"
+        ? "player"
+        : selection.typeId === "enemies"
+          ? `enemy:${selection.id}`
+          : selection.typeId === "items"
+            ? `item:${selection.id}`
+            : null;
+    if (animTarget) {
+      tabs.push({
+        id: "animation",
+        label: "Animation",
+        content: <AnimationTab target={animTarget} />,
+      });
+    }
+    // Lineage/History (Library A): platformer asset artifacts whose journal
+    // chains cradle can browse and restore from.
+    const artifactPrefix: Record<string, string> = {
+      enemies: "enemy",
+      items: "item",
+      tilesets: "tileset",
+      backdrops: "backdrop",
+    };
+    // The player's artifact id is the BARE string "player" — canon journals it
+    // that way (there is no "player:player"), so a prefixed id would look up an
+    // empty history.
+    const artifactId =
+      selection.typeId === "player"
+        ? "player"
+        : artifactPrefix[selection.typeId]
+          ? `${artifactPrefix[selection.typeId]}:${selection.id}`
+          : null;
+    if (artifactId) {
+      tabs.push({
+        id: "history",
+        label: "History",
+        content: (
+          <LineagePanel artifactId={artifactId} typeId={selection.typeId} entityId={selection.id} />
+        ),
+      });
+    }
     tabs.push({
       id: "raw",
       label: "Raw JSON",
@@ -138,6 +194,24 @@ export function DetailPane() {
   }
   if (selection.kind === "none") {
     return <main className="detail detail-empty">Select something in the nav.</main>;
+  }
+  // The library browser needs no per-entity payload — render before the
+  // loading/payload guards.
+  if (selection.kind === "library") {
+    return (
+      <main className="detail">
+        <LibraryPanel />
+      </main>
+    );
+  }
+  // Same as the library: no per-entity payload, so it must render before the
+  // loading/payload guards below.
+  if (selection.kind === "worldmap") {
+    return (
+      <main className="detail">
+        <WorldMapView />
+      </main>
+    );
   }
   if (loading)
     return (

@@ -110,9 +110,63 @@ code {
 
 .app-body {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  /* 208px is the design's sidebar width on both the level editor and the
+     world map (README "Fidelity" — panel widths are fixed, the canvas
+     absorbs the remainder). */
+  grid-template-columns: 208px 1fr;
   overflow: hidden;
   min-height: 0;
+}
+
+/* =========================================================
+   FOCUS MODE — give the map the window
+   The design's "hud" chrome: the nav and the pane's tab header
+   collapse away so the stage takes nearly everything. The
+   titlebar stays (it holds the way back out).
+   ========================================================= */
+.app[data-focus="1"] .app-body,
+/* Collapsing the nav is the same geometry as focus mode's, minus everything
+   else focus mode does — one rule, two entry points (⌘B and the titlebar
+   chevron). */
+.app[data-nav="0"] .app-body {
+  grid-template-columns: 0 1fr;
+}
+.app[data-focus="1"] .leftnav,
+.app[data-nav="0"] .leftnav {
+  width: 0;
+  border-right-width: 0;
+  overflow: hidden;
+}
+.app[data-focus="1"] .tabs-header {
+  display: none;
+}
+.app[data-focus="1"] .tabs-body {
+  padding: 10px 14px 12px;
+}
+/* The dock detaches into a centered floating panel over the stage. */
+.app[data-focus="1"] .dockwrap {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  width: min(1420px, calc(100% - 28px));
+  z-index: 6;
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-raised) 94%, transparent);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+.app[data-focus="1"] .dockwrap .dock,
+.app[data-focus="1"] .dockwrap .alane {
+  margin-top: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+.app[data-focus="1"] .dockwrap .alane[data-open="1"] {
+  border-bottom: 1px solid var(--border);
 }
 
 /* =========================================================
@@ -619,6 +673,140 @@ button.portrait-badge:hover {
   background: var(--bg-sunken);
   color: var(--fg-muted);
   border-color: var(--border);
+}
+/* Selected/active chip — accent border + text over a 10% accent wash. */
+.chip.on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: oklch(72% 0.13 78 / 0.1);
+}
+
+/* =========================================================
+   SHARED CHROME PRIMITIVES (design system)
+   One definition each, so surfaces can't drift the way the
+   hand-rolled inline style objects did. Specs are from the
+   design handoff's "Shared chrome primitives" table.
+   ========================================================= */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  line-height: 1.45;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease,
+    opacity 0.12s ease;
+}
+.btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+/* Primary: accent fill, no border, ink-on-accent. */
+.btn.pri {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+  font-weight: 500;
+}
+.btn.pri:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--accent-ink);
+  filter: brightness(1.06);
+}
+/* Destructive: red border + text, never a red fill (fills read as primary). */
+.btn.dang {
+  border-color: oklch(62% 0.18 25 / 0.55);
+  color: oklch(76% 0.16 25);
+}
+.btn.dang:hover:not(:disabled) {
+  background: oklch(62% 0.18 25 / 0.12);
+  color: oklch(76% 0.16 25);
+}
+
+/* 30x30 icon button (tool rails, zoom pills). */
+.tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+.tool:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.tool.on {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.tool:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Keyboard hint. The 2px bottom border is the keycap edge. */
+.kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--border-hi);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  background: var(--bg-sunken);
+  color: var(--fg-muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+/* Tooltip panel. Positioning (right, flipped left on overflow, clamped to the
+   frame) is done by the component that owns it; this is the surface only. */
+.tip {
+  position: fixed;
+  z-index: 1200;
+  max-width: 214px;
+  padding: 7px 9px;
+  border: 1px solid var(--border-hi);
+  border-radius: 5px;
+  background: var(--bg-sunken);
+  box-shadow: var(--shadow-2);
+  pointer-events: none;
+}
+.tip-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--fg);
+}
+.tip-desc {
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--fg-dim);
 }
 
 .portrait {
@@ -1637,6 +1825,459 @@ button.portrait-badge:hover {
 .val-item {
   font-variant-numeric: tabular-nums;
 }
+/* =========================================================
+   LEVEL EDITOR DOCK (design screen 04)
+   The bottom tray: [armed 218px][tabs + swatch strip][tray 372px].
+   Replaces the tall left-hand palette rail so the canvas gets
+   the full width. Values are the handoff's.
+   ========================================================= */
+.dock {
+  flex: none;
+  min-width: 0;
+  /* A FIXED band, so the stage above keeps its height no matter how much the
+     tray has to say. Each pane scrolls internally instead. */
+  height: 182px;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-top: 10px;
+}
+.dock .pane {
+  padding: 10px 13px 12px;
+  min-width: 0;
+  overflow-y: auto;
+}
+.dock .armed {
+  flex: 0 1 218px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+.dock .mid {
+  flex: 1;
+  overflow: hidden;
+}
+.dock .tray {
+  flex: 0 1 372px;
+  border-left: 1px solid var(--border);
+  background: var(--bg-sunken);
+}
+.dock-sect {
+  font-size: 9.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+  color: var(--fg-dim);
+}
+.dock-hint {
+  margin-top: auto;
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  line-height: 1.5;
+}
+.dock-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 9px;
+  flex-wrap: wrap;
+}
+.dock-tabs {
+  display: flex;
+  gap: 2px;
+}
+.dtab {
+  padding: 5px 11px;
+  font-size: 11.5px;
+  font-family: inherit;
+  color: var(--fg-muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.dtab:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.dtab.on {
+  background: var(--bg-hover);
+  color: var(--fg);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.dtab .c {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  margin-left: 6px;
+}
+/* The dock's chips are lowercase data labels, unlike the uppercase
+   type chips elsewhere in the app. */
+.dock .chip {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  color: var(--fg-muted);
+}
+.dock .chip.on {
+  color: var(--accent);
+}
+.strip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+.brush {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 60px;
+  flex: none;
+  cursor: pointer;
+}
+.brush-nm {
+  font-size: 10px;
+  color: var(--fg-muted);
+  text-align: center;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+.brush:hover .brush-nm {
+  color: var(--fg);
+}
+.sw {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+  background-size: cover;
+  background-position: center;
+  image-rendering: pixelated;
+}
+.sw.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px oklch(72% 0.13 78 / 0.3);
+}
+.sw-id {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--fg-dim);
+  text-shadow: 0 1px 2px #000;
+}
+.sw-art {
+  position: absolute;
+  left: 1px;
+  top: 0;
+  font-size: 9px;
+  opacity: 0;
+  cursor: pointer;
+  text-shadow: 0 1px 2px #000;
+}
+.brush:hover .sw-art {
+  opacity: 0.8;
+}
+.dock-tray-empty p {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-dim);
+}
+
+/* Audio lane — collapses to nothing, opens to 112px above the dock. Its
+   horizontal axis is the LEVEL (music here is spatial, not temporal). */
+.alane {
+  flex: none;
+  height: 0;
+  overflow: hidden;
+  /* NO height transition. The design animates it, but this lane sits in a flex
+     column above a canvas that measures its own container: animating height
+     re-lays-out the canvas every frame, which re-measures, which re-renders,
+     which restarts the transition — it never settled and the lane stayed
+     collapsed at its 2px borders. Snapping open costs nothing visually. */
+}
+.alane[data-open="1"] {
+  height: 112px;
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+}
+.alane-inner {
+  display: flex;
+  height: 110px;
+}
+.alane-gut {
+  width: 104px;
+  flex: none;
+  border-right: 1px solid var(--border);
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.alane-r {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+.alane-lanes {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 14px;
+  position: relative;
+}
+.alane-scale {
+  position: relative;
+  height: 12px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--fg-dim);
+}
+.alane-scale span {
+  position: absolute;
+  transform: translateX(-50%);
+}
+.alane-rail {
+  position: relative;
+  height: 30px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+.alane-base {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 9px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.alane-edit {
+  align-self: center;
+  margin-right: 12px;
+}
+.rgn {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.rgn b {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex: none;
+}
+.rgn i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  opacity: 0.72;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rgn.a {
+  background: oklch(72% 0.13 78 / 0.18);
+  border-color: oklch(72% 0.13 78 / 0.55);
+  color: oklch(84% 0.1 78);
+}
+.rgn.b {
+  background: oklch(62% 0.18 25 / 0.15);
+  border-color: oklch(62% 0.18 25 / 0.5);
+  color: oklch(80% 0.13 25);
+}
+.rgn.c {
+  background: oklch(68% 0.13 220 / 0.15);
+  border-color: oklch(68% 0.13 220 / 0.5);
+  color: oklch(82% 0.1 220);
+}
+
+/* Minimap — floating panel, top-right of the stage (design: 334px). */
+.mini {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 3;
+  width: 334px;
+  padding: 7px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-raised) 93%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  /* Never taller than the stage — a tall level in a short window would
+     otherwise run past the canvas and get clipped mid-map. */
+  max-height: calc(100% - 28px);
+  overflow: hidden;
+}
+.mini-lbl {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 5px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+.mini-lbl:hover {
+  color: var(--fg-muted);
+}
+.mini-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mini-chev {
+  font-size: 11px;
+  line-height: 1;
+}
+/* Collapsed: the header bar alone, and no bottom gap under it. */
+.mini[data-collapsed="1"] {
+  width: 168px;
+}
+.mini[data-collapsed="1"] .mini-lbl {
+  margin-bottom: 0;
+}
+.mini-map {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #0a0a0d;
+  cursor: grab;
+}
+.mini-map:active {
+  cursor: grabbing;
+}
+.mini-map canvas {
+  image-rendering: pixelated;
+  opacity: 0.85;
+}
+.mini-vp {
+  position: absolute;
+  border: 1.5px solid var(--accent);
+  background: oklch(72% 0.13 78 / 0.13);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.mini-kill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 9%;
+  pointer-events: none;
+  border-top: 1px dashed oklch(62% 0.18 25 / 0.8);
+  background: repeating-linear-gradient(
+    135deg,
+    oklch(62% 0.18 25 / 0.4) 0 1px,
+    transparent 1px 5px
+  );
+}
+
+/* Floating tool rail over the level canvas (design: bottom-left of the stage).
+   Panel treatment matches the handoff's floating-panel spec. */
+.tool-rail {
+  position: absolute;
+  left: 10px;
+  bottom: var(--dock-clear, 10px);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-raised) 93%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.tool-rail-div {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--border-hi);
+}
+/* Drag handle. A dedicated grip, not the whole panel — dragging from the
+   buttons would eat tool clicks. Double-click resets to the anchor. */
+.tool-grip {
+  width: 12px;
+  height: 22px;
+  flex: none;
+  margin-right: 2px;
+  border-radius: 3px;
+  cursor: grab;
+  touch-action: none;
+  background-image: radial-gradient(var(--fg-dim) 1px, transparent 1px);
+  background-size: 4px 5px;
+  background-position: center;
+  opacity: 0.55;
+}
+.tool-grip:hover {
+  opacity: 1;
+  background-color: var(--bg-hover);
+}
+.tool-grip:active {
+  cursor: grabbing;
+}
+
+/* Right-aligned palette affordance in the statusbar. */
+.val-palette {
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.val-palette:hover {
+  opacity: 1;
+}
 .val-pending {
   color: var(--fg-dim);
 }
@@ -1671,17 +2312,23 @@ button.portrait-badge:hover {
   background: none;
   color: var(--fg-muted);
   border: 0;
-  padding: 4px 12px;
-  font-size: 11.5px;
+  padding: 2px 9px;
+  font-size: 11px;
   border-radius: 3px;
   cursor: pointer;
   font-family: inherit;
   font-weight: 500;
 }
+/* Selected: raised fill + an accent underline INSIDE the track. The earlier
+   --bg-raised + shadow-1 read as a floating card rather than a selection. */
 .seg-btn.active {
-  background: var(--bg-raised);
+  background: var(--bg-hover);
   color: var(--fg);
-  box-shadow: var(--shadow-1);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.seg-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 .dialogue-meta {
   color: var(--fg-dim);
@@ -2625,7 +3272,7 @@ button.portrait-badge:hover {
 .bible-hero-img {
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: var(--bg-elev);
+  background: var(--bg-sunken);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   margin-bottom: 8px;
@@ -2967,4 +3614,962 @@ button.portrait-badge:hover {
 }
 .lightbox-close:hover {
   background: rgba(0, 0, 0, 0.85);
+}
+
+/* =========================================================
+   WORLD MAP (design screen 05)
+   Two canvas treatments over one graph; areas are the pack's
+   stages, auto-hulled from member node bounds every render.
+   Metrics come from `05 World map.html`: 208px sidebar,
+   308px inspector, 78px inspector label column.
+   ========================================================= */
+.wm {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.wm-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.wm-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+.wm-meta b {
+  color: var(--fg);
+  font-weight: 500;
+}
+.wm-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.wm-stage {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  background: #08090b;
+  cursor: grab;
+}
+.wm-stage:active {
+  cursor: grabbing;
+}
+/* Placing and stop-dropping are aimed acts, not drags. */
+.wm-stage[data-tool="place"],
+.wm-stage[data-tool="path"],
+.wm-stage[data-tool="stop"] {
+  cursor: crosshair;
+}
+.wm-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-dim);
+  pointer-events: none;
+}
+
+/* ---- floating panels over the stage (design `.float`) ---- */
+.wm-stage .float {
+  position: absolute;
+  z-index: 8;
+  background: color-mix(in srgb, var(--bg-raised) 93%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+/* Layout provenance — top-left, per the design. */
+.wm-lay {
+  left: 14px;
+  top: 14px;
+  padding: 6px 8px 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+.wm-lay b {
+  font-weight: 500;
+  color: var(--fg);
+}
+.wm-lay .n {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+}
+.wm-div {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+}
+.wm-lay .btn.sm {
+  padding: 2px 7px;
+  font-size: 10.5px;
+  gap: 5px;
+}
+.wm-lay .btn.on {
+  border-color: oklch(72% 0.13 78 / 0.5);
+  color: var(--accent);
+}
+/* The tool rail sits top-right here (the level editor's is bottom-left), and
+   is movable from the same grip. */
+.wm-rail {
+  right: 14px;
+  top: 14px;
+  bottom: auto;
+  left: auto;
+  flex-direction: column;
+}
+.wm-rail .tool-grip {
+  width: 22px;
+  height: 12px;
+  margin: 0 0 2px;
+}
+.wm-rail .tool-rail-div {
+  width: 18px;
+  height: 1px;
+  margin: 4px 3px;
+}
+
+/* Legend — bottom-left, documenting the five path and node states. */
+.wm-legend {
+  left: 14px;
+  bottom: 14px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--fg-muted);
+  letter-spacing: 0.03em;
+  pointer-events: none;
+}
+.wm-legend .l {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.wm-legend .l.dim {
+  color: var(--fg-dim);
+  margin-top: 2px;
+}
+.wm-legend .k {
+  width: 22px;
+  flex: none;
+  height: 0;
+  border-top: 2px solid rgba(232, 230, 223, 0.4);
+}
+.wm-legend .k.lock {
+  border-top: 2px dashed oklch(72% 0.14 45 / 0.8);
+}
+.wm-legend .k.new {
+  border-top: 2px dashed var(--fg-dim);
+}
+.wm-legend .k.m {
+  height: 10px;
+  width: 10px;
+  border: 0;
+  border-left: 2px solid var(--accent);
+  background: var(--bg-raised);
+}
+.wm-legend .k.s {
+  height: 8px;
+  width: 8px;
+  border: 1.5px solid oklch(74% 0.12 300);
+  transform: rotate(45deg);
+  margin: 0 7px 0 5px;
+}
+
+/* View chips + zoom pill, stacked bottom-right. */
+.wm-chips {
+  right: 14px;
+  bottom: 56px;
+  padding: 5px 8px;
+  display: flex;
+  gap: 8px;
+}
+.wm-chips .chip {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.wm-zoom {
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.wm-zoom button {
+  padding: 3px 8px;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font: inherit;
+}
+.wm-zoom button:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.wm-zoom .v {
+  padding: 3px 8px;
+  color: var(--fg);
+}
+/* Transient status — what just happened, or what the current gesture wants. */
+.wm-toast {
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ok);
+  max-width: 60%;
+}
+.wm-toast.err {
+  color: var(--err);
+}
+
+/* ---- inspector (308px, design `.insp`) ---- */
+.wm-inspector {
+  width: 308px;
+  flex: none;
+  border-left: 1px solid var(--border);
+  background: var(--bg-raised);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.wm-hd {
+  padding: 12px 14px 11px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: none;
+}
+.wm-hd .t {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.wm-hd h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.wm-hd .id {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+.wm-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+.wm-bd {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  overflow-y: auto;
+  flex: 1;
+}
+.wm-bd .pill {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border-hi);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.wm-hd .pill {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border-hi);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.wm-hd .pill.ok,
+.wm-bd .pill.ok {
+  color: var(--ok);
+  border-color: oklch(68% 0.13 150 / 0.5);
+}
+.wm-hd .pill.warn,
+.wm-bd .pill.warn {
+  color: var(--warn);
+  border-color: oklch(72% 0.14 45 / 0.5);
+}
+.wm-hd .pill.new,
+.wm-bd .pill.new {
+  color: var(--fg-dim);
+}
+/* 96px thumbnail with a mono overlay, per the design. */
+.wm-thumb {
+  height: 96px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background-size: cover;
+  background-position: center;
+  background-color: #0a0a0d;
+  image-rendering: pixelated;
+  position: relative;
+}
+.wm-thumb .ov {
+  position: absolute;
+  left: 8px;
+  bottom: 7px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--fg-muted);
+  background: rgba(10, 11, 14, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 7px;
+}
+.wm-thumb.empty {
+  display: grid;
+  place-items: center;
+  border-style: dashed;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  letter-spacing: 0.06em;
+}
+.wm-bd .blk {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wm-bd .sect {
+  font-size: 9.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  font-weight: 500;
+}
+/* One field row: 78px label column, mono value, badge, inline action. */
+.wm-bd .f {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+}
+.wm-bd .f > span:first-child {
+  width: 78px;
+  flex: none;
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+.wm-bd .f .v {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wm-bd .f .inh {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex: none;
+}
+.wm-bd .f .inh.ovr {
+  color: var(--accent);
+  border-color: oklch(72% 0.13 78 / 0.5);
+}
+.wm-bd .lnk {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-muted);
+  flex: none;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.wm-bd .lnk:hover:not(:disabled) {
+  color: var(--accent);
+}
+.wm-bd .lnk:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+/* Connection / member rows — clickable, and they select the same objects the
+   canvas does. */
+.wm-bd .conn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-muted);
+  text-align: left;
+  cursor: pointer;
+}
+.wm-bd button.conn:hover {
+  border-color: var(--border-hi);
+  color: var(--fg);
+}
+.wm-bd .conn b {
+  color: var(--fg);
+  font-weight: 500;
+}
+.wm-bd .conn .sp {
+  flex: 1;
+}
+.wm-bd .acts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+.wm-bd .note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--fg-dim);
+  text-wrap: pretty;
+}
+.wm-bd .note .accent {
+  color: var(--accent);
+}
+.wm-bd .hr {
+  height: 1px;
+  background: var(--border);
+}
+.wm-bd .segmented.wide,
+.wm-bd .btn.wide {
+  width: 100%;
+  justify-content: center;
+}
+.wm-bd .segmented.wide .seg-btn {
+  flex: 1;
+}
+.wm-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+.wm-field input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+/* =========================================================
+   WORLD-MAP SIDEBAR
+   Replaces the type list inside the left nav while the map is
+   open — the design has one 208px column, area-centric here.
+   ========================================================= */
+.wm-side {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.wm-side-empty {
+  padding: 14px 12px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+}
+.wm-side h4 {
+  margin: 0;
+  padding: 14px 12px 6px;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  font-weight: 500;
+}
+.wm-grp {
+  padding: 6px 12px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+.wm-grp.as-btn {
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px 0;
+  font: inherit;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.wm-grp.as-btn:hover {
+  color: var(--fg-muted);
+}
+.wm-side .n,
+.wm-grp .n {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.wm-row {
+  width: 100%;
+  padding: 4px 12px 4px 18px;
+  font-size: 12px;
+  color: var(--fg-muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.wm-row:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.wm-row.on {
+  background: var(--bg-hover);
+  color: var(--fg);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.wm-row.sub {
+  padding-left: 30px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+.wm-ar {
+  width: 100%;
+  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-left: 2px solid transparent;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.wm-ar:hover,
+.wm-ar.on {
+  background: var(--bg-hover);
+}
+.wm-ar.on {
+  border-left-color: var(--accent);
+}
+.wm-ar .sw {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  flex: none;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+}
+.wm-ar .m {
+  min-width: 0;
+  flex: 1;
+}
+.wm-ar .m b {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+}
+.wm-ar .m i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--fg-dim);
+}
+.wm-hr {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+.wm-side-foot {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.wm-side-foot .btn.wide {
+  width: 100%;
+  justify-content: center;
+}
+
+/* =========================================================
+   ENGINE RUNTIME STALENESS
+   A pack's Godot code is copied in at generation time, so it
+   keeps whatever engine existed that day. Silent when current.
+   ========================================================= */
+.engine-chip {
+  margin-right: 8px;
+  padding: 2px 9px;
+  border: 1px solid oklch(72% 0.14 45 / 0.5);
+  border-radius: 99px;
+  background: oklch(72% 0.14 45 / 0.1);
+  color: var(--warn);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.engine-chip:hover {
+  background: oklch(72% 0.14 45 / 0.18);
+}
+.engine-modal {
+  width: 480px;
+}
+.engine-files {
+  margin: 12px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+.engine-file {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-muted);
+}
+.engine-file:last-child {
+  border-bottom: none;
+}
+.engine-file code {
+  color: var(--fg);
+}
+.engine-file span {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 9px;
+}
+.engine-file[data-state="current"] span {
+  color: var(--ok);
+}
+.engine-file[data-state="stale"] span,
+.engine-file[data-state="unstamped"] span,
+.engine-file[data-state="missing"] span {
+  color: var(--warn);
+}
+.engine-file[data-state="modified"] span {
+  color: var(--special);
+}
+
+/* =========================================================
+   ANIMATION TAB — the frame inspector
+   Every frame at 6x with its cell grid, measured content box
+   and baseline drawn on top: the defect is invisible watching
+   it play and obvious once you can see the box.
+   ========================================================= */
+.anim-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 2px 16px;
+}
+.anim-empty {
+  padding: 20px 4px;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+.anim-warn {
+  padding: 10px 12px;
+  border: 1px solid oklch(72% 0.14 45 / 0.5);
+  border-radius: var(--radius-sm);
+  background: oklch(72% 0.14 45 / 0.08);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--fg-muted);
+  text-wrap: pretty;
+}
+.anim-warn b {
+  color: var(--warn);
+}
+.anim-states {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.anim-state {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  color: var(--fg-muted);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.anim-state:hover {
+  border-color: var(--border-hi);
+  color: var(--fg);
+}
+.anim-state.on {
+  border-color: var(--accent);
+  color: var(--fg);
+  background: oklch(72% 0.13 78 / 0.1);
+}
+.anim-state span {
+  font-size: 12px;
+  font-weight: 500;
+}
+.anim-state i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--fg-dim);
+}
+.anim-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  flex-wrap: wrap;
+}
+.anim-meta b {
+  color: var(--fg);
+  font-weight: 500;
+}
+.anim-meta .warn {
+  color: var(--warn);
+}
+.anim-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+/* Stage (watch the motion) beside the filmstrip (compare the frames). */
+.anim-viewer {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.anim-stage-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.anim-stage {
+  position: relative;
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+.anim-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+}
+.anim-transport {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.anim-count {
+  margin-left: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.anim-film {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.anim-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 18px;
+  flex-wrap: wrap;
+}
+.anim-cell {
+  position: relative;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-sunken);
+  cursor: pointer;
+  overflow: visible;
+}
+.anim-cell.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.anim-img {
+  position: absolute;
+  inset: 0;
+  image-rendering: pixelated;
+  background-repeat: no-repeat;
+}
+/* The cell grid: one line per source pixel. */
+.anim-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(232, 230, 223, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(232, 230, 223, 0.07) 1px, transparent 1px);
+}
+/* Where the actor's feet are supposed to land. */
+.anim-baseline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  border-top: 1px solid oklch(72% 0.13 78 / 0.65);
+  pointer-events: none;
+}
+/* The measured opaque content box — the thing you are actually judging. */
+.anim-box {
+  position: absolute;
+  border: 1px solid oklch(68% 0.13 150 / 0.85);
+  pointer-events: none;
+}
+.anim-idx {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -14px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--fg-dim);
+  text-align: center;
+  white-space: nowrap;
+}
+.anim-controls {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.anim-nudge,
+.anim-timing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  flex: none;
+  width: 260px;
+}
+/* The columns are content panels, not a stretch layout — a full-width
+   "Reset" button reads as a primary action, which it isn't. */
+.anim-nudge .btn,
+.anim-timing .btn {
+  align-self: flex-start;
+}
+.anim-nudge .note {
+  margin: 0;
+}
+.anim-pad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  align-self: center;
+}
+.anim-pad > div {
+  display: flex;
+  gap: 4px;
+}
+.anim-pad .btn {
+  width: 34px;
+  justify-content: center;
+}
+.anim-offset-now {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+}
+.anim-unit {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+}
+.anim-note {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ok);
 }

@@ -31,3 +31,12 @@ bibles/
 .claude
 **/.DS_Store
 .vscode
+
+docs/
+design_handoff_editor_worldmap_start/
+
+# Browser-mock scaffolding (dev-only: VITE_CRADLE_MOCK): never commit, and the
+# __mockassets__ symlink points at a whole generated pack — keep it out of any
+# release build's public/ copy too.
+public/__mockdata__/
+public/__mockassets__

@@ -1,4 +1,8 @@
 :root {
+  /* Content cap. Chrome (cards, forms, toolbars, hero copy) centres inside
+     this; atmospheric ART and editor CANVASES deliberately bleed past it —
+     an ultrawide was bought to see more map, not more margin. */
+  --shell-max: 1440px;
   --ui: "Inter Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --mono:
     "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -10,6 +14,13 @@
   --ok: oklch(68% 0.13 150);
   --warn: oklch(72% 0.14 45);
   --err: oklch(62% 0.18 25);
+  /* Two more semantic roles the design's four didn't name, added here rather
+     than left as one-off hexes scattered through components: `info` for
+     neutral machine activity (a job running, a regeneration), `special` for
+     the off-critical-path things — secret rooms, path stops, imports. Same
+     value in both themes, like the other semantics. */
+  --info: oklch(70% 0.12 260);
+  --special: oklch(74% 0.12 300);
 }
 
 [data-theme="dark"] {

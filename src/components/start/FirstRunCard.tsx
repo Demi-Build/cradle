@@ -1,12 +1,15 @@
 import { Branding } from "./BrandMark";
+import { kbd } from "../../lib/keys";
 import { Icon } from "./Icons";
 
 export function FirstRunCard({
   onOpenFromDisk,
   onTryDemo,
+  onNewProject,
 }: {
   onOpenFromDisk: () => void;
   onTryDemo: () => void;
+  onNewProject: () => void;
 }) {
   return (
     <div className="firstrun-wrap">
@@ -42,17 +45,20 @@ export function FirstRunCard({
             <span>
               <b>Don't have a world yet?</b>{" "}
               <span className="dim">
-                — generate one with canon's MazeWorld reference implementation.
+                — create a fresh platformer project below (free, no API keys).
               </span>
             </span>
           </div>
         </div>
 
         <div className="cta-row">
-          <button className="cta-primary" onClick={onOpenFromDisk}>
-            <Icon id="g-folder" size={14} className="g g-on-cta" />
+          <button className="cta-primary" onClick={onNewProject}>
+            ＋ New platformer project
+          </button>
+          <button className="cta-secondary" onClick={onOpenFromDisk}>
+            <Icon id="g-folder" size={14} />
             Open world from disk
-            <span className="kbd">⌘O</span>
+            <span className="kbd">{kbd("O")}</span>
           </button>
           <button className="cta-secondary" onClick={onTryDemo}>
             <Icon id="g-doc" size={14} />

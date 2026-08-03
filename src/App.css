@@ -110,7 +110,10 @@ code {
 
 .app-body {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  /* 208px is the design's sidebar width on both the level editor and the
+     world map (README "Fidelity" — panel widths are fixed, the canvas
+     absorbs the remainder). */
+  grid-template-columns: 208px 1fr;
   overflow: hidden;
   min-height: 0;
 }
@@ -121,10 +124,15 @@ code {
    collapse away so the stage takes nearly everything. The
    titlebar stays (it holds the way back out).
    ========================================================= */
-.app[data-focus="1"] .app-body {
+.app[data-focus="1"] .app-body,
+/* Collapsing the nav is the same geometry as focus mode's, minus everything
+   else focus mode does — one rule, two entry points (⌘B and the titlebar
+   chevron). */
+.app[data-nav="0"] .app-body {
   grid-template-columns: 0 1fr;
 }
-.app[data-focus="1"] .leftnav {
+.app[data-focus="1"] .leftnav,
+.app[data-nav="0"] .leftnav {
   width: 0;
   border-right-width: 0;
   overflow: hidden;
@@ -3608,10 +3616,13 @@ button.portrait-badge:hover {
   background: rgba(0, 0, 0, 0.85);
 }
 
+
 /* =========================================================
    WORLD MAP (design screen 05)
    Two canvas treatments over one graph; areas are the pack's
    stages, auto-hulled from member node bounds every render.
+   Metrics come from `05 World map.html`: 208px sidebar,
+   308px inspector, 78px inspector label column.
    ========================================================= */
 .wm {
   display: flex;
@@ -3622,16 +3633,19 @@ button.portrait-badge:hover {
 .wm-head {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 7px 12px;
   border-bottom: 1px solid var(--border);
   flex: none;
 }
-.wm-meta,
-.wm-prov {
+.wm-meta {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--fg-dim);
+}
+.wm-meta b {
+  color: var(--fg);
+  font-weight: 500;
 }
 .wm-body {
   flex: 1;
@@ -3643,86 +3657,600 @@ button.portrait-badge:hover {
   min-width: 0;
   position: relative;
   overflow: hidden;
+  background: #08090b;
+  cursor: grab;
 }
+.wm-stage:active {
+  cursor: grabbing;
+}
+/* Placing and stop-dropping are aimed acts, not drags. */
+.wm-stage[data-tool="place"],
+.wm-stage[data-tool="path"],
+.wm-stage[data-tool="stop"] {
+  cursor: crosshair;
+}
+.wm-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-dim);
+  pointer-events: none;
+}
+
+/* ---- floating panels over the stage (design `.float`) ---- */
+.wm-stage .float {
+  position: absolute;
+  z-index: 8;
+  background: color-mix(in srgb, var(--bg-raised) 93%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+/* Layout provenance — top-left, per the design. */
+.wm-lay {
+  left: 14px;
+  top: 14px;
+  padding: 6px 8px 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+.wm-lay b {
+  font-weight: 500;
+  color: var(--fg);
+}
+.wm-lay .n {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+}
+.wm-div {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+}
+.wm-lay .btn.sm {
+  padding: 2px 7px;
+  font-size: 10.5px;
+  gap: 5px;
+}
+.wm-lay .btn.on {
+  border-color: oklch(72% 0.13 78 / 0.5);
+  color: var(--accent);
+}
+/* The tool rail sits top-right here (the level editor's is bottom-left), and
+   is movable from the same grip. */
+.wm-rail {
+  right: 14px;
+  top: 14px;
+  bottom: auto;
+  left: auto;
+  flex-direction: column;
+}
+.wm-rail .tool-grip {
+  width: 22px;
+  height: 12px;
+  margin: 0 0 2px;
+}
+.wm-rail .tool-rail-div {
+  width: 18px;
+  height: 1px;
+  margin: 4px 3px;
+}
+
+/* Legend — bottom-left, documenting the five path and node states. */
+.wm-legend {
+  left: 14px;
+  bottom: 14px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--fg-muted);
+  letter-spacing: 0.03em;
+  pointer-events: none;
+}
+.wm-legend .l {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.wm-legend .l.dim {
+  color: var(--fg-dim);
+  margin-top: 2px;
+}
+.wm-legend .k {
+  width: 22px;
+  flex: none;
+  height: 0;
+  border-top: 2px solid rgba(232, 230, 223, 0.4);
+}
+.wm-legend .k.lock {
+  border-top: 2px dashed oklch(72% 0.14 45 / 0.8);
+}
+.wm-legend .k.new {
+  border-top: 2px dashed var(--fg-dim);
+}
+.wm-legend .k.m {
+  height: 10px;
+  width: 10px;
+  border: 0;
+  border-left: 2px solid var(--accent);
+  background: var(--bg-raised);
+}
+.wm-legend .k.s {
+  height: 8px;
+  width: 8px;
+  border: 1.5px solid oklch(74% 0.12 300);
+  transform: rotate(45deg);
+  margin: 0 7px 0 5px;
+}
+
+/* View chips + zoom pill, stacked bottom-right. */
+.wm-chips {
+  right: 14px;
+  bottom: 56px;
+  padding: 5px 8px;
+  display: flex;
+  gap: 8px;
+}
+.wm-chips .chip {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.wm-zoom {
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.wm-zoom button {
+  padding: 3px 8px;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font: inherit;
+}
+.wm-zoom button:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.wm-zoom .v {
+  padding: 3px 8px;
+  color: var(--fg);
+}
+/* Transient status — what just happened, or what the current gesture wants. */
+.wm-toast {
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ok);
+  max-width: 60%;
+}
+.wm-toast.err {
+  color: var(--err);
+}
+
+/* ---- inspector (308px, design `.insp`) ---- */
 .wm-inspector {
   width: 308px;
   flex: none;
   border-left: 1px solid var(--border);
   background: var(--bg-raised);
-  padding: 14px 16px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.wm-title {
+.wm-hd {
+  padding: 12px 14px 11px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: none;
+}
+.wm-hd .t {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.wm-hd h3 {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
-.wm-sub {
+.wm-hd .id {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+.wm-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+.wm-bd {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  overflow-y: auto;
+  flex: 1;
+}
+.wm-bd .pill {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border-hi);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.wm-hd .pill {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border-hi);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.wm-hd .pill.ok,
+.wm-bd .pill.ok {
+  color: var(--ok);
+  border-color: oklch(68% 0.13 150 / 0.5);
+}
+.wm-hd .pill.warn,
+.wm-bd .pill.warn {
+  color: var(--warn);
+  border-color: oklch(72% 0.14 45 / 0.5);
+}
+.wm-hd .pill.new,
+.wm-bd .pill.new {
+  color: var(--fg-dim);
+}
+/* 96px thumbnail with a mono overlay, per the design. */
+.wm-thumb {
+  height: 96px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background-size: cover;
+  background-position: center;
+  background-color: #0a0a0d;
+  image-rendering: pixelated;
+  position: relative;
+}
+.wm-thumb .ov {
+  position: absolute;
+  left: 8px;
+  bottom: 7px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--fg-muted);
+  background: rgba(10, 11, 14, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 7px;
+}
+.wm-thumb.empty {
+  display: grid;
+  place-items: center;
+  border-style: dashed;
   font-family: var(--mono);
   font-size: 10.5px;
   color: var(--fg-dim);
-  margin-bottom: 10px;
+  letter-spacing: 0.06em;
 }
-.wm-row {
+.wm-bd .blk {
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 4px 0;
-  font-size: 12px;
+  flex-direction: column;
+  gap: 6px;
+}
+.wm-bd .sect {
+  font-size: 9.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  font-weight: 500;
+}
+/* One field row: 78px label column, mono value, badge, inline action. */
+.wm-bd .f {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+}
+.wm-bd .f > span:first-child {
+  width: 78px;
+  flex: none;
+  font-size: 11px;
   color: var(--fg-dim);
 }
-.wm-row b {
+.wm-bd .f .v {
   font-family: var(--mono);
   font-size: 11px;
-  font-weight: 500;
   color: var(--fg);
-  text-align: right;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.wm-note {
-  margin: 10px 0 0;
-  font-size: 11px;
-  line-height: 1.5;
+.wm-bd .f .inh {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--fg-dim);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex: none;
 }
-.wm-actions,
-.wm-arealist {
+.wm-bd .f .inh.ovr {
+  color: var(--accent);
+  border-color: oklch(72% 0.13 78 / 0.5);
+}
+.wm-bd .lnk {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-muted);
+  flex: none;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+.wm-bd .lnk:hover:not(:disabled) {
+  color: var(--accent);
+}
+.wm-bd .lnk:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+/* Connection / member rows — clickable, and they select the same objects the
+   canvas does. */
+.wm-bd .conn {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-muted);
+  text-align: left;
+  cursor: pointer;
+}
+.wm-bd button.conn:hover {
+  border-color: var(--border-hi);
+  color: var(--fg);
+}
+.wm-bd .conn b {
+  color: var(--fg);
+  font-weight: 500;
+}
+.wm-bd .conn .sp {
+  flex: 1;
+}
+.wm-bd .acts {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
-  margin-top: 12px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+.wm-bd .note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--fg-dim);
+  text-wrap: pretty;
+}
+.wm-bd .note .accent {
+  color: var(--accent);
+}
+.wm-bd .hr {
+  height: 1px;
+  background: var(--border);
+}
+.wm-bd .segmented.wide,
+.wm-bd .btn.wide {
+  width: 100%;
+  justify-content: center;
+}
+.wm-bd .segmented.wide .seg-btn {
+  flex: 1;
 }
 .wm-field {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 10px;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--fg-dim);
 }
 .wm-field input {
   flex: 1;
-  font-size: 12px;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 11px;
 }
-.wm-saved {
-  margin-top: 14px;
+
+/* =========================================================
+   WORLD-MAP SIDEBAR
+   Replaces the type list inside the left nav while the map is
+   open — the design has one 208px column, area-centric here.
+   ========================================================= */
+.wm-side {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.wm-side-empty {
+  padding: 14px 12px;
   font-family: var(--mono);
   font-size: 10.5px;
-  color: var(--ok);
+  color: var(--fg-dim);
 }
-.wm-zoom {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
+.wm-side h4 {
+  margin: 0;
+  padding: 14px 12px 6px;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  font-weight: 500;
+}
+.wm-grp {
+  padding: 6px 12px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
   display: flex;
+  justify-content: space-between;
   gap: 6px;
-  align-items: center;
 }
-.wm-legend {
-  position: absolute;
-  left: 12px;
-  bottom: 14px;
+.wm-grp.as-btn {
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px 0;
+  font: inherit;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.wm-grp.as-btn:hover {
+  color: var(--fg-muted);
+}
+.wm-side .n,
+.wm-grp .n {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.wm-row {
+  width: 100%;
+  padding: 4px 12px 4px 18px;
+  font-size: 12px;
+  color: var(--fg-muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.wm-row:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.wm-row.on {
+  background: var(--bg-hover);
+  color: var(--fg);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.wm-row.sub {
+  padding-left: 30px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+.wm-ar {
+  width: 100%;
+  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-left: 2px solid transparent;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.wm-ar:hover,
+.wm-ar.on {
+  background: var(--bg-hover);
+}
+.wm-ar.on {
+  border-left-color: var(--accent);
+}
+.wm-ar .sw {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  flex: none;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+}
+.wm-ar .m {
+  min-width: 0;
+  flex: 1;
+}
+.wm-ar .m b {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+}
+.wm-ar .m i {
+  font-style: normal;
   font-family: var(--mono);
   font-size: 9.5px;
   color: var(--fg-dim);
-  pointer-events: none;
+}
+.wm-hr {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+.wm-side-foot {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.wm-side-foot .btn.wide {
+  width: 100%;
+  justify-content: center;
 }

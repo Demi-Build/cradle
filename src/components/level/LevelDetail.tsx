@@ -21,7 +21,7 @@ import { Dock } from "./Dock";
 import { RegenerateLayoutModal } from "./RegenerateLayoutModal";
 import { ImproveLayoutModal } from "./ImproveLayoutModal";
 import { MusicPanel } from "./MusicPanel";
-import { ToolRail, type Tool } from "./ToolRail";
+import { ToolRail, TOOL_KEYS, type Tool } from "./ToolRail";
 import { Minimap } from "./Minimap";
 import { AudioLane } from "./AudioLane";
 import type { CamApi, CamState } from "./LevelCanvas";
@@ -626,6 +626,18 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     setRegenOpen(true);
   };
 
+  // A world-map action can ask to land IN a flow rather than at the editor's
+  // front door — "Generate from <area>" on a planned node means "open this
+  // draft with the layout modal up". One-shot: consumed, then cleared.
+  const pendingAction = useStore((s) => s.pendingLevelAction);
+  const setPendingLevelAction = useStore((s) => s.setPendingLevelAction);
+  useEffect(() => {
+    if (pendingAction !== "layout" || !bundle) return;
+    setPendingLevelAction(null);
+    setRegenOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAction, !!bundle]);
+
   // Flush pending edits, then open the context-aware "improve this level" modal
   // (the LLM sees the current level from disk + an instruction and refines it).
   /** A level that has only ever been CREATED is a flat empty scaffold — there
@@ -724,7 +736,14 @@ export function LevelDetail({ levelId }: { levelId: string }) {
       if ((e.key === "Delete" || e.key === "Backspace") && selection) {
         e.preventDefault();
         deleteSelection(selection);
+        return;
       }
+      // The rail's tooltips have advertised V/B/G/E since it was built, but
+      // nothing bound them — the same "hint with no handler" bug keys.ts was
+      // written to stop. Modified keys are handled above and must not fall in.
+      if (e.metaKey || e.ctrlKey || e.altKey || target?.isContentEditable) return;
+      const t = TOOL_KEYS[e.key.toLowerCase()];
+      if (t) setTool(t);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -807,13 +826,13 @@ export function LevelDetail({ levelId }: { levelId: string }) {
             )}
           </span>
         )}
-        {isDraft && chip("draft — not in world", "#e0a15a")}
-        {bundle.parent_level && chip(`secret room of ${bundle.parent_level}`, "#a78bfa")}
+        {isDraft && chip("draft — not in world", "var(--accent)")}
+        {bundle.parent_level && chip(`secret room of ${bundle.parent_level}`, "var(--special)")}
         {chip(`${bundle.entities.length} enemies`)}
         {chip(`${bundle.items.length} items`)}
-        {dirty.size > 0 && chip(`unsaved: ${[...dirty].join(" ")}`, "#e2b714", "dirty")}
-        {save.status === "saved" && dirty.size === 0 && chip("saved ✓", "#3ddc84")}
-        {save.status === "error" && chip(`save failed: ${save.msg?.slice(0, 60)}`, "#e0453a")}
+        {dirty.size > 0 && chip(`unsaved: ${[...dirty].join(" ")}`, "var(--warn)", "dirty")}
+        {save.status === "saved" && dirty.size === 0 && chip("saved ✓", "var(--ok)")}
+        {save.status === "error" && chip(`save failed: ${save.msg?.slice(0, 60)}`, "var(--err)")}
         {valReport &&
           chip(
             !valReport.ok
@@ -822,13 +841,13 @@ export function LevelDetail({ levelId }: { levelId: string }) {
                 ? `playable · ${valReport.repair_count} placement notes`
                 : "valid ✓",
             !valReport.ok
-              ? "#e0453a"
+              ? "var(--err)"
               : (valReport.repair_count ?? 0) > 0
-                ? "#e0a15a"
-                : "#3ddc84",
+                ? "var(--accent)"
+                : "var(--ok)",
             "validation",
           )}
-        {playNote && chip(playNote.slice(0, 70), "#a78bfa", "play-note")}
+        {playNote && chip(playNote.slice(0, 70), "var(--special)", "play-note")}
         <span style={{ flex: 1 }} />
         {btn(validating ? "Validating…" : "✓ Validate", () => void doValidate())}
         {btn(
@@ -1094,9 +1113,9 @@ function Inspector({
       onClick={onClick}
       style={{
         background: "var(--bg-hover)",
-        border: `1px solid ${danger ? "#e0453a" : "var(--border)"}`,
+        border: `1px solid ${danger ? "var(--err)" : "var(--border)"}`,
         borderRadius: 6,
-        color: danger ? "#e0453a" : "var(--accent)",
+        color: danger ? "var(--err)" : "var(--accent)",
         cursor: "pointer",
         fontSize: 12,
         padding: "3px 8px",
@@ -1216,11 +1235,11 @@ function ValidationPanel({ report }: { report: ValidationReport }) {
   const renderOne = (r: ValidationReport, label: string) => {
     for (const c of r.checks) {
       for (const [i, p] of c.problems.entries())
-        rows.push(line("#e0453a", `${label}${c.name}: ${p}`, `${label}${c.name}p${i}`));
+        rows.push(line("var(--err)", `${label}${c.name}: ${p}`, `${label}${c.name}p${i}`));
       for (const [i, p] of (c.repairs ?? []).entries())
         rows.push(
           line(
-            "#e0a15a",
+            "var(--accent)",
             `${label}${c.name} (placement defect — playable, but generation would relocate/drop it): ${p}`,
             `${label}${c.name}r${i}`,
           ),
@@ -1236,7 +1255,7 @@ function ValidationPanel({ report }: { report: ValidationReport }) {
     <div
       style={{
         border: "1px solid var(--border)",
-        borderLeft: `3px solid ${report.ok ? "#3ddc84" : "#e0453a"}`,
+        borderLeft: `3px solid ${report.ok ? "var(--ok)" : "var(--err)"}`,
         borderRadius: 8,
         padding: "8px 14px",
         margin: "0 0 12px",

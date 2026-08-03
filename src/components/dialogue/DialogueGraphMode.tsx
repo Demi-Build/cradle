@@ -35,10 +35,10 @@ const nodeTypes = { card: CardFlowNode };
 
 const EDGE_STYLE: Record<string, { stroke: string; labelFill: string; dashed?: boolean }> = {
   tree: { stroke: "#555", labelFill: "#999" },
-  gate: { stroke: "#d4a942", labelFill: "#e0b85a" },
-  success: { stroke: "#4a8a4a", labelFill: "#8abb8a" },
-  failure: { stroke: "#7a3d3d", labelFill: "#c38a8a" },
-  exhausted: { stroke: "#b48442", labelFill: "#d4a942", dashed: true },
+  gate: { stroke: "var(--warn)", labelFill: "var(--warn)" },
+  success: { stroke: "var(--ok)", labelFill: "var(--ok)" },
+  failure: { stroke: "var(--err)", labelFill: "var(--err)" },
+  exhausted: { stroke: "var(--warn)", labelFill: "var(--warn)", dashed: true },
 };
 
 function layout(nodes: CardNode[], edges: Edge[]): CardNode[] {
@@ -93,7 +93,7 @@ export function DialogueGraphMode({ beats, beatEdges }: { beats: Beat[]; beatEdg
         minZoom={0.2}
         maxZoom={2}
       >
-        <Background color="#2a2a2a" gap={20} />
+        <Background color="var(--border-hi)" gap={20} />
         <Controls showInteractive={false} />
       </ReactFlow>
     </div>

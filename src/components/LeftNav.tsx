@@ -3,6 +3,7 @@ import { api, type CostEstimate, type EntityRow } from "../lib/invoke";
 import { fmtRange } from "../lib/cost";
 import { enqueueJob } from "../lib/jobs";
 import { PromptOverride } from "./PromptOverride";
+import { WorldSidebar } from "./world/WorldSidebar";
 import { useStore } from "../store";
 
 /** Inline "+ New level" form: a blank DRAFT to paint, or a generated DRAFT
@@ -357,6 +358,12 @@ export function LeftNav() {
           {playingGame ? "launching…" : "▶ Play game"}
         </button>
       )}
+      {/* On the world map this 208px column IS the map's sidebar — the design
+          has exactly one, and on that screen it's area-centric. The root
+          buttons above stay, so you can always get back to the type list. */}
+      {selection.kind === "worldmap" ? (
+        <WorldSidebar />
+      ) : (
       <div className="nav-types">
         {world.entity_counts.map(({ type_id, count }, i) => {
           const hasPartition = !!PARTITION_FIELD[type_id];
@@ -457,6 +464,7 @@ export function LeftNav() {
           );
         })}
       </div>
+      )}
     </aside>
   );
 }

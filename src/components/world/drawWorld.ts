@@ -8,6 +8,7 @@
 // fork: same nodes, same edges, same hulls, different paint.
 
 import type { WorldMap, WorldMapArea, WorldMapEdge, WorldMapNode } from "../../lib/invoke";
+import { readCanvasTheme, type CanvasTheme } from "../../lib/canvasTheme";
 
 export type WorldMode = "schematic" | "overworld";
 export type WorldSel =
@@ -37,9 +38,26 @@ const HULL_PAD = { schematic: 22, overworld: 30 };
 export function areaHue(index: number): number {
   return (78 + index * 97) % 360;
 }
-const areaStroke = (i: number) => `oklch(72% 0.13 ${areaHue(i)})`;
+export const areaStroke = (i: number) => `oklch(72% 0.13 ${areaHue(i)})`;
 const areaFill = (i: number) => `oklch(60% 0.13 ${areaHue(i)} / 0.10)`;
-const areaInk = (i: number) => `oklch(82% 0.10 ${areaHue(i)})`;
+/** Label ink for an area. Lightness FLIPS with the theme — a 82% amber is
+ *  legible on the dark stage and near-invisible on the light one. */
+const areaInk = (i: number, dark: boolean) =>
+  `oklch(${dark ? 82 : 42}% 0.10 ${areaHue(i)})`;
+/** Path stops get their own hue — they are neither a state nor a surface. */
+const STOP_COLOR = "oklch(74% 0.12 300)";
+
+/** An area's display name is its STAGE id — the authored name ("ember grove"),
+ *  not its biome ("forest"), which is one of the defaults it carries. */
+export function areaName(area: WorldMapArea): string {
+  return (area.stage_id || "").replace(/_/g, " ");
+}
+
+/** What a node is called on screen: canon's display name ("1-1") when the
+ *  level is published, else its raw id — a draft has no display name yet. */
+export function nodeLabel(n: WorldMapNode): string {
+  return n.display_name ?? n.level_id;
+}
 
 export function nodeXY(n: WorldMapNode): { x: number; y: number } {
   return { x: n.pos[0] * WORLD_W, y: n.pos[1] * WORLD_H };
@@ -57,6 +75,9 @@ export function areaHull(
   const pad = HULL_PAD[mode];
   const halfW = NODE_W[mode] / 2;
   const halfH = NODE_H[mode] / 2;
+  // The overworld's id pills hang BELOW their tile, so the hull needs 20px
+  // more at the bottom or they land on top of the area's meta line.
+  const padBottom = pad + (mode === "overworld" ? 20 : 0);
   const xs = members.map((n) => nodeXY(n).x);
   const ys = members.map((n) => nodeXY(n).y);
   const x = Math.min(...xs) - halfW - pad;
@@ -65,7 +86,7 @@ export function areaHull(
     x,
     y,
     w: Math.max(...xs) + halfW + pad - x,
-    h: Math.max(...ys) + halfH + pad - y,
+    h: Math.max(...ys) + halfH + padBottom - y,
   };
 }
 
@@ -137,6 +158,12 @@ export interface DrawWorldOpts {
    *  validated, which is drawn as "unknown", NOT as passing. */
   status?: Record<string, { ok: boolean; problems: number }>;
   showStops?: boolean;
+  /** Area terrain art, by stage id — the overworld treatment paints it into
+   *  the hull. Toggled by the "world art" view chip. */
+  areaArt?: Record<string, HTMLImageElement>;
+  /** Resolved design tokens. Pass one in to avoid re-reading the DOM on every
+   *  wheel tick; omitted, it is read fresh. */
+  theme?: CanvasTheme;
 }
 
 export function drawWorld(
@@ -149,6 +176,7 @@ export function drawWorld(
   const mode: WorldMode = opts.mode ?? "schematic";
   const cam = opts.camera;
   const sel = opts.selection ?? null;
+  const t = opts.theme ?? readCanvasTheme(canvas);
   const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
 
   canvas.width = cam.viewW * dpr;
@@ -159,12 +187,14 @@ export function drawWorld(
   ctx.clearRect(0, 0, cam.viewW, cam.viewH);
 
   // Backdrop, then the world through the camera.
-  ctx.fillStyle = mode === "overworld" ? "#100e0b" : "#08090b";
+  // The stage is the recessed surface in BOTH themes — never a baked dark
+  // literal, which is what made the map look dark inside a light app.
+  ctx.fillStyle = t.bgSunken;
   ctx.fillRect(0, 0, cam.viewW, cam.viewH);
   ctx.setTransform(dpr * cam.zoom, 0, 0, dpr * cam.zoom, -cam.ox * dpr * cam.zoom, -cam.oy * dpr * cam.zoom);
   ctx.imageSmoothingEnabled = false;
 
-  if (mode === "schematic") drawDotGrid(ctx, cam);
+  if (mode === "schematic") drawDotGrid(ctx, cam, t);
 
   const byId = new Map(map.nodes.map((n) => [n.level_id, n]));
 
@@ -173,23 +203,36 @@ export function drawWorld(
     const h = areaHull(area, map.nodes, mode);
     if (!h) return;
     const selected = sel?.kind === "area" && sel.id === area.stage_id;
+    const radius = mode === "overworld" ? 30 : 16;
     ctx.save();
     ctx.strokeStyle = areaStroke(i);
     ctx.fillStyle = areaFill(i);
     ctx.lineWidth = mode === "overworld" ? 2 : 1;
     if (mode === "schematic" && !selected) ctx.setLineDash([6, 5]);
-    roundRect(ctx, h.x, h.y, h.w, h.h, mode === "overworld" ? 30 : 16);
+    roundRect(ctx, h.x, h.y, h.w, h.h, radius);
     ctx.fill();
     ctx.stroke();
     ctx.setLineDash([]);
+    // Painted terrain: the design's overworld areas carry the area art at 22%
+    // under a luminosity blend, so the hull reads as ground rather than a box.
+    const art = opts.areaArt?.[area.stage_id];
+    if (art && mode === "overworld") {
+      ctx.save();
+      roundRect(ctx, h.x, h.y, h.w, h.h, radius);
+      ctx.clip();
+      ctx.globalAlpha = 0.22;
+      ctx.globalCompositeOperation = "luminosity";
+      ctx.drawImage(art, h.x, h.y, h.w, h.h);
+      ctx.restore();
+    }
     if (selected) {
-      ctx.strokeStyle = areaStroke(i);
+      ctx.strokeStyle = mode === "overworld" ? t.fg : areaStroke(i);
       ctx.lineWidth = 2;
-      roundRect(ctx, h.x - 2, h.y - 2, h.w + 4, h.h + 4, 18);
+      roundRect(ctx, h.x - 2, h.y - 2, h.w + 4, h.h + 4, radius + 2);
       ctx.stroke();
     }
     // Label tab: top-left in schematic, centred banner in overworld.
-    const label = (area.biome || area.stage_id).toUpperCase();
+    const label = areaName(area).toUpperCase();
     ctx.font =
       mode === "overworld"
         ? "600 12.5px ui-monospace, monospace"
@@ -199,19 +242,25 @@ export function drawWorld(
     const bx = mode === "overworld" ? h.x + h.w / 2 - (tw + padX * 2) / 2 : h.x + 14;
     const by = mode === "overworld" ? h.y - 13 : h.y - 9;
     const bh = mode === "overworld" ? 24 : 16;
-    ctx.fillStyle = "#0a0b0e";
+    ctx.fillStyle = t.bgSunken;
     ctx.strokeStyle = areaStroke(i);
     roundRect(ctx, bx, by, tw + padX * 2, bh, 3);
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = areaInk(i);
+    ctx.fillStyle = areaInk(i, t.dark);
     ctx.textBaseline = "middle";
     ctx.fillText(label, bx + padX, by + bh / 2);
-    // Member count, bottom-right inside the hull.
+    // Meta line, bottom-right inside the hull: what the area sets for every
+    // level in it (design: `3 levels · ember · lantern_dusk`).
+    const meta = [
+      `${area.level_ids.length} levels`,
+      area.biome || area.theme,
+      area.music ?? "no music",
+    ].filter(Boolean);
     ctx.font = "9.5px ui-monospace, monospace";
     ctx.textAlign = "right";
     ctx.globalAlpha = 0.8;
-    ctx.fillText(`${area.level_ids.length} levels`, h.x + h.w - 12, h.y + h.h - 12);
+    ctx.fillText(meta.join(" · "), h.x + h.w - 12, h.y + h.h - 12);
     ctx.globalAlpha = 1;
     ctx.textAlign = "left";
     ctx.restore();
@@ -228,12 +277,12 @@ export function drawWorld(
     ctx.save();
     ctx.lineCap = mode === "overworld" ? "round" : "butt";
     ctx.lineWidth = mode === "overworld" ? 4 : 2;
-    ctx.strokeStyle = edgeColor(e, mode);
+    ctx.strokeStyle = edgeColor(e, mode, t);
     if (mode === "overworld") ctx.setLineDash([2, 9]);
     if (e.kind === "lock") ctx.setLineDash([7, 5]);
     if (e.kind === "new") ctx.setLineDash([3, 6]);
     if (selected) {
-      ctx.strokeStyle = "oklch(72% 0.13 78)";
+      ctx.strokeStyle = t.accent;
       ctx.lineWidth = mode === "overworld" ? 5 : 3;
     }
     ctx.beginPath();
@@ -246,7 +295,7 @@ export function drawWorld(
       const mx = (p.x + q.x) / 2;
       const my = (p.y + q.y) / 2;
       const ang = Math.atan2(q.y - p.y, q.x - p.x);
-      ctx.fillStyle = "rgba(232,230,223,0.6)";
+      ctx.fillStyle = t.ink(0.6);
       ctx.beginPath();
       ctx.moveTo(mx + Math.cos(ang) * 8, my + Math.sin(ang) * 8);
       ctx.lineTo(mx + Math.cos(ang + 2.5) * 8, my + Math.sin(ang + 2.5) * 8);
@@ -261,8 +310,8 @@ export function drawWorld(
       ctx.save();
       ctx.translate(mx, my);
       ctx.rotate(Math.PI / 4);
-      ctx.fillStyle = "#0a0b0e";
-      ctx.strokeStyle = "oklch(74% 0.12 300)";
+      ctx.fillStyle = t.bgSunken;
+      ctx.strokeStyle = STOP_COLOR;
       ctx.lineWidth = 1.5;
       ctx.fillRect(-5, -5, 10, 10);
       ctx.strokeRect(-5, -5, 10, 10);
@@ -282,8 +331,8 @@ export function drawWorld(
     const top = y - h / 2;
     ctx.save();
     // A planned node is translucent + dashed: placed, but not yet built.
-    ctx.fillStyle = planned ? "rgba(21,23,28,0.5)" : "#15171c";
-    ctx.strokeStyle = selected ? "#e8e6df" : "#2e323b";
+    ctx.fillStyle = planned ? t.ink(0.05) : t.bgRaised;
+    ctx.strokeStyle = selected ? t.fg : t.borderHi;
     ctx.lineWidth = selected ? 2 : mode === "overworld" ? 2 : 1;
     if (planned && !selected) ctx.setLineDash([4, 4]);
     roundRect(ctx, left, top, w, h, mode === "overworld" ? 7 : 5);
@@ -302,15 +351,15 @@ export function drawWorld(
       }
       // Id pill below the tile.
       ctx.font = "500 10px ui-monospace, monospace";
-      const label = n.display_name ?? n.level_id;
+      const label = nodeLabel(n);
       const tw = ctx.measureText(label).width;
-      ctx.fillStyle = "rgba(10,11,14,0.86)";
-      ctx.strokeStyle = "#2e323b";
+      ctx.fillStyle = t.bgSunken;
+      ctx.strokeStyle = t.borderHi;
       ctx.lineWidth = 1;
       roundRect(ctx, x - (tw + 14) / 2, top + h + 7, tw + 14, 16, 3);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = "#e8e6df";
+      ctx.fillStyle = t.fg;
       ctx.textBaseline = "middle";
       ctx.fillText(label, x - tw / 2, top + h + 15);
     } else {
@@ -321,12 +370,12 @@ export function drawWorld(
         ctx.drawImage(thumb, left + 8, top + 8, 24, 24);
         ctx.restore();
       } else {
-        ctx.fillStyle = "#0a0a0d";
+        ctx.fillStyle = t.bgSunken;
         roundRect(ctx, left + 8, top + 8, 24, 24, 3);
         ctx.fill();
         if (planned) {
           // No art yet — the design uses a + glyph in place of a thumbnail.
-          ctx.fillStyle = "#5e5d55";
+          ctx.fillStyle = t.fgDim;
           ctx.font = "15px ui-monospace, monospace";
           ctx.textBaseline = "middle";
           ctx.fillText("+", left + 16, y);
@@ -334,18 +383,34 @@ export function drawWorld(
       }
       ctx.textBaseline = "middle";
       ctx.font = "500 11px ui-monospace, monospace";
-      ctx.fillStyle = planned ? "#9a988e" : "#e8e6df";
-      ctx.fillText(n.display_name ?? n.level_id, left + 40, y - 6);
+      ctx.fillStyle = planned ? t.fgMuted : t.fg;
+      ctx.fillText(nodeLabel(n), left + 40, y - 6);
       ctx.font = "9px ui-monospace, monospace";
-      ctx.fillStyle = "#5e5d55";
+      ctx.fillStyle = t.fgDim;
       ctx.fillText(n.level_id, left + 40, y + 7);
       // Manual placement gets an accent bar on the card's left edge.
       if (n.origin === "manual") {
-        ctx.fillStyle = "oklch(72% 0.13 78)";
+        ctx.fillStyle = t.accent;
         ctx.fillRect(left, top + 1, 2, h - 2);
       }
     }
-    drawStatusDot(ctx, n, opts.status?.[n.level_id], left + w, top);
+    drawStatusDot(ctx, n, opts.status?.[n.level_id], left + w, top, t);
+    // Selected nodes get four 6px corner handles outside the ring, so a
+    // selection reads as "grabbable" and not just "highlighted".
+    if (selected) {
+      ctx.fillStyle = t.fg;
+      ctx.strokeStyle = t.bg;
+      ctx.lineWidth = 1;
+      for (const [hx, hy] of [
+        [left - 3, top - 3],
+        [left + w - 3, top - 3],
+        [left - 3, top + h - 3],
+        [left + w - 3, top + h - 3],
+      ]) {
+        ctx.fillRect(hx, hy, 6, 6);
+        ctx.strokeRect(hx, hy, 6, 6);
+      }
+    }
     ctx.restore();
   }
 }
@@ -359,43 +424,42 @@ function drawStatusDot(
   verdict: { ok: boolean; problems: number } | undefined,
   x: number,
   y: number,
+  t: CanvasTheme,
 ) {
   ctx.save();
   ctx.beginPath();
   ctx.arc(x - 3, y + 3, 3.5, 0, Math.PI * 2);
   if (n.status === "planned") {
-    ctx.fillStyle = "#5e5d55";
+    ctx.fillStyle = t.fgDim;
     ctx.fill();
   } else if (!verdict) {
-    ctx.strokeStyle = "#5e5d55";
+    ctx.strokeStyle = t.fgDim;
     ctx.lineWidth = 1.2;
     ctx.stroke();
   } else {
-    ctx.fillStyle = verdict.ok
-      ? "oklch(68% 0.13 150)"
-      : "oklch(62% 0.18 25)";
+    ctx.fillStyle = verdict.ok ? t.ok : t.err;
     ctx.fill();
   }
-  ctx.strokeStyle = "#0e0f12";
+  ctx.strokeStyle = t.bg;
   ctx.lineWidth = 1.5;
   ctx.stroke();
   ctx.restore();
 }
 
-function edgeColor(e: WorldMapEdge, mode: WorldMode): string {
+function edgeColor(e: WorldMapEdge, mode: WorldMode, t: CanvasTheme): string {
   if (e.kind === "lock") return "oklch(72% 0.14 45 / 0.8)";
-  if (e.kind === "new") return "#5e5d55";
-  if (mode === "overworld") return "rgba(232,230,223,0.5)";
-  return e.kind === "one" ? "rgba(232,230,223,0.38)" : "rgba(232,230,223,0.26)";
+  if (e.kind === "new") return t.fgDim;
+  if (mode === "overworld") return t.ink(0.5);
+  return e.kind === "one" ? t.ink(0.38) : t.ink(0.26);
 }
 
-function drawDotGrid(ctx: CanvasRenderingContext2D, cam: WorldCamera) {
+function drawDotGrid(ctx: CanvasRenderingContext2D, cam: WorldCamera, t: CanvasTheme) {
   const step = 26;
   const x0 = Math.floor(cam.ox / step) * step;
   const y0 = Math.floor(cam.oy / step) * step;
   const x1 = cam.ox + cam.viewW / cam.zoom;
   const y1 = cam.oy + cam.viewH / cam.zoom;
-  ctx.fillStyle = "rgba(232,230,223,0.085)";
+  ctx.fillStyle = t.ink(0.085);
   for (let x = x0; x <= x1; x += step) {
     for (let y = y0; y <= y1; y += step) ctx.fillRect(x, y, 1, 1);
   }

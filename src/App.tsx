@@ -86,6 +86,20 @@ export default function App() {
         e.preventDefault();
         const st = useStore.getState();
         st.setLayout({ focusMode: !st.layout.focusMode });
+        return;
+      }
+      // The two side panels. mod+B is the sidebar convention; mod+I pairs with
+      // it for the inspector on the other edge.
+      if (isShortcut(e, "b") && !inTextField(e)) {
+        e.preventDefault();
+        const st = useStore.getState();
+        st.setLayout({ navCollapsed: !st.layout.navCollapsed });
+        return;
+      }
+      if (isShortcut(e, "i") && !inTextField(e)) {
+        e.preventDefault();
+        const st = useStore.getState();
+        st.setLayout({ inspectorCollapsed: !st.layout.inspectorCollapsed });
       }
     };
     window.addEventListener("keydown", onKey);
@@ -146,6 +160,22 @@ export default function App() {
         hint: kbd("."),
         keywords: "fullscreen zen distraction nav sidebar bigger map",
         run: () => setLayout({ focusMode: !layout.focusMode }),
+      },
+      {
+        id: "app.nav",
+        label: layout.navCollapsed ? "Show the sidebar" : "Hide the sidebar",
+        group: "View",
+        hint: kbd("B"),
+        keywords: "left nav panel collapse levels list",
+        run: () => setLayout({ navCollapsed: !layout.navCollapsed }),
+      },
+      {
+        id: "app.inspector",
+        label: layout.inspectorCollapsed ? "Show the inspector" : "Hide the inspector",
+        group: "View",
+        hint: kbd("I"),
+        keywords: "right panel properties tray collapse",
+        run: () => setLayout({ inspectorCollapsed: !layout.inspectorCollapsed }),
       },
       {
         id: "app.theme",
@@ -296,7 +326,11 @@ export default function App() {
         : selection.kind;
 
   return (
-    <div className="app" data-focus={layout.focusMode ? "1" : "0"}>
+    <div
+      className="app"
+      data-focus={layout.focusMode ? "1" : "0"}
+      data-nav={layout.navCollapsed ? "0" : "1"}
+    >
       <TopBar />
       <div className="app-body">
         <LeftNav />

@@ -215,7 +215,7 @@ export function ImproveLayoutModal({
           <strong>{est ? fmtRange(est.total_usd) : "…"}</strong>
         </div>
         {err && (
-          <div style={{ color: "#e0453a", fontSize: 12, marginTop: 6, whiteSpace: "pre-wrap" }}>{err}</div>
+          <div style={{ color: "var(--err)", fontSize: 12, marginTop: 6, whiteSpace: "pre-wrap" }}>{err}</div>
         )}
         {busy && <div style={{ fontSize: 12, marginTop: 6, opacity: 0.85 }}>Improving…</div>}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>

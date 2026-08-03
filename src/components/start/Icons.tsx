@@ -97,6 +97,43 @@ export function IconSymbols() {
         <symbol id="g-star" viewBox="0 0 16 16">
           <path d="M8 1.5l2 4.5 5 0.5-3.8 3.3 1.2 4.7L8 12l-4.4 2.5 1.2-4.7L1 6.5l5-0.5z" />
         </symbol>
+        {/* World-map tools + chrome. Paths copied from `05 World map.html`,
+            which is the contract for this screen. */}
+        <symbol id="g-select" viewBox="0 0 16 16">
+          <path d="M2 2h4M10 2h4M2 14h4M10 14h4M2 2v4M2 10v4M14 2v4M14 10v4" />
+        </symbol>
+        <symbol id="g-place" viewBox="0 0 16 16">
+          <path d="M2 4h12v8H2z" />
+          <path d="M8 6v4M6 8h4" />
+        </symbol>
+        <symbol id="g-path" viewBox="0 0 16 16">
+          <path d="M3 12h4a3 3 0 000-6H6" />
+          <circle cx="3" cy="12" r="1.6" />
+          <circle cx="12" cy="6" r="1.6" />
+          <path d="M9 6h1.5" />
+        </symbol>
+        <symbol id="g-area" viewBox="0 0 16 16">
+          <path d="M2 5a3 3 0 013-3h6a3 3 0 013 3v6a3 3 0 01-3 3H5a3 3 0 01-3-3z" />
+        </symbol>
+        <symbol id="g-stop" viewBox="0 0 16 16">
+          <path d="M2 8h3M11 8h3" />
+          <path d="M8 5l3 3-3 3-3-3z" />
+        </symbol>
+        <symbol id="g-start" viewBox="0 0 16 16">
+          <circle cx="8" cy="4" r="2" />
+          <path d="M8 6v5M5 14l3-3 3 3M5 8h6" />
+        </symbol>
+        <symbol id="g-rerun" viewBox="0 0 16 16">
+          <path d="M13 8a5 5 0 11-2-4M13 2v3h-3" />
+        </symbol>
+        <symbol id="g-lock" viewBox="0 0 16 16">
+          <path d="M4 7h8v7H4z" />
+          <path d="M6 7V5a2 2 0 014 0v2" />
+        </symbol>
+        <symbol id="g-unlock" viewBox="0 0 16 16">
+          <path d="M4 7h8v7H4z" />
+          <path d="M6 7V5a2 2 0 013.9-.5" />
+        </symbol>
       </defs>
     </svg>
   );

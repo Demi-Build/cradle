@@ -87,7 +87,7 @@ export function PromptOverride({
       >
         {open ? "▾" : "▸"} {label}
         {edited && (
-          <span style={{ marginLeft: 6, color: "#d9a441", fontWeight: 600 }}>· edited</span>
+          <span style={{ marginLeft: 6, color: "var(--accent)", fontWeight: 600 }}>· edited</span>
         )}
       </button>
 
@@ -103,7 +103,7 @@ export function PromptOverride({
         >
           {loading && <div style={{ opacity: 0.7 }}>Loading the default prompt…</div>}
           {err && (
-            <div style={{ color: "#e0453a", whiteSpace: "pre-wrap" }}>{err}</div>
+            <div style={{ color: "var(--err)", whiteSpace: "pre-wrap" }}>{err}</div>
           )}
           {preview && (
             <>

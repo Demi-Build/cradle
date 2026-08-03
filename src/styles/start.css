@@ -1338,3 +1338,551 @@
   color: var(--fg);
   font-family: var(--mono);
 }
+
+/* =========================================================
+   RECENTS CARD MENU (design screen 06)
+   Remove from recents is NOT delete — the menu exists to keep
+   that distinction visible, so both live here side by side.
+   ========================================================= */
+.recent-tile-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.recent-tile-wrap[data-hidden="1"] .recent-tile {
+  opacity: 0.5;
+  border-style: dashed;
+}
+.recent-tile-wrap[data-hidden="1"] .thumb-img {
+  filter: grayscale(1);
+}
+.tile-pin {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--fg-muted);
+}
+.tile-dots {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-sunken) 78%, transparent);
+  color: var(--fg-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.recent-tile-wrap:hover .tile-dots,
+.tile-dots.on,
+.tile-dots:focus-visible {
+  opacity: 1;
+}
+.tile-dots:hover {
+  color: var(--fg);
+  background: var(--bg-hover);
+}
+
+.rmenu {
+  position: fixed;
+  z-index: 1200;
+  width: 206px;
+  padding: 4px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.6);
+}
+.rmenu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.rmenu-item:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+.rmenu-item:disabled {
+  color: var(--fg-dim);
+  cursor: not-allowed;
+}
+.rmenu-item.dang {
+  color: oklch(72% 0.16 25);
+}
+.rmenu-div {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border);
+}
+.rmenu-hint {
+  padding: 0 8px 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+  line-height: 1.45;
+  color: var(--fg-dim);
+}
+.hidden-notice {
+  margin-left: 10px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  color: var(--fg-dim);
+  cursor: pointer;
+}
+.hidden-notice:hover {
+  color: var(--fg-muted);
+}
+
+/* Shared modal frame — the delete confirm and the new-project modal. */
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 6, 12, 0.6);
+}
+.modal {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px 18px;
+  color: var(--fg);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+  max-width: 92vw;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.modal h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.modal .note {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  text-wrap: pretty;
+}
+.modal .note.dim {
+  color: var(--fg-dim);
+}
+.modal .note code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg);
+  word-break: break-all;
+}
+.modal .check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.modal-foot {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.delete-dialog {
+  width: 452px;
+}
+
+/* Tray panes beyond the changelog (Updates / Links). The tabs became buttons,
+   which needs two corrections: `background` must be set per-state (a blanket
+   `background: none` here would beat `.drawer-tab.on` above and flatten the
+   segmented control), and the selector needs two classes because
+   `.start-app button { padding: 0 }` outranks a bare `.drawer-tab` — these
+   were <span>s until now, so that reset never touched them. */
+.drawer-tabs .drawer-tab {
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  padding: 5px 12px;
+}
+.drawer-tabs .drawer-tab.on {
+  background-color: var(--bg-raised);
+}
+.upd-card {
+  padding: 12px 14px;
+  border: 1px solid oklch(72% 0.13 78 / 0.5);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+}
+.upd-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12.5px;
+  color: var(--fg-muted);
+}
+.upd-row b {
+  font-family: var(--mono);
+  color: var(--fg);
+  font-weight: 500;
+}
+.upd-state {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ok);
+}
+.upd-note {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--fg-dim);
+  text-wrap: pretty;
+}
+.upd-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.upd-channel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+}
+.upd-channel .sect {
+  font-size: 9.5px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  font-weight: 500;
+}
+.upd-mono {
+  margin-top: 14px;
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--fg-dim);
+  text-wrap: pretty;
+}
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 4px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  text-align: left;
+  color: var(--fg);
+  cursor: pointer;
+}
+.link-row:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.link-row:hover:not(:disabled) .link-meta b {
+  color: var(--accent);
+}
+.link-ico {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+}
+.link-meta {
+  min-width: 0;
+}
+.link-meta b {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.link-meta i {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
+/* =========================================================
+   WORLD AT A GLANCE (design screen 06)
+   392px panel in the hero's right column. Deliberately the same
+   node/area/edge vocabulary as the world map screen, so the two
+   read as one product.
+   ========================================================= */
+.glance {
+  width: 392px;
+  justify-self: end;
+  align-self: start;
+  padding: 12px 14px 11px;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-sunken) 72%, transparent);
+  backdrop-filter: blur(10px);
+}
+.glance-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.glance-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.glance-meta {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--fg-dim);
+}
+.glance-min {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: none;
+  color: var(--fg-dim);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.glance-min:hover {
+  color: var(--fg);
+}
+.glance[data-open="0"] .glance-min {
+  transform: rotate(-90deg);
+}
+.glance-tabs {
+  display: flex;
+  gap: 14px;
+  margin: 10px 0 8px;
+}
+.glance-tab {
+  border: none;
+  background: none;
+  padding: 0 0 4px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+}
+.glance-tab:hover {
+  color: var(--fg-muted);
+}
+.glance-tab.on {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
+}
+.glance-pane {
+  height: 196px;
+  overflow-y: auto;
+}
+.glance-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.glance-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 0 24px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--fg-dim);
+}
+.glance-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.glance-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 2px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+}
+.glance-list li b {
+  color: var(--fg);
+  font-weight: 500;
+}
+.glance-foot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--fg-dim);
+}
+.glance-foot span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.glance-foot .ok {
+  margin-left: auto;
+  color: var(--ok);
+}
+.glance-foot .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+}
+.glance-foot .dot.built {
+  background: var(--border-hi);
+}
+.glance-foot .dot.planned {
+  border: 1px dashed var(--fg-dim);
+}
+
+/* New-project modal — step 1 template cards, step 2 form + cost box. */
+.np-modal {
+  width: 612px;
+}
+.tpl-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 14px 0 12px;
+}
+.tpl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sunken);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+.tpl-card:hover {
+  border-color: var(--border-hi);
+}
+.tpl-card.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.tpl-art {
+  display: block;
+  height: 104px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(160deg, oklch(38% 0.05 78 / 0.6), transparent 70%);
+}
+.tpl-art[data-kind="dungeon"] {
+  background: linear-gradient(160deg, oklch(38% 0.06 260 / 0.6), transparent 70%);
+}
+.tpl-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.tpl-beta {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border: 1px solid var(--border-hi);
+  border-radius: 3px;
+  color: var(--fg-dim);
+}
+.tpl-desc {
+  padding: 0 12px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--fg-muted);
+}
+.tpl-vocab {
+  padding: 2px 12px 0;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--fg-dim);
+}
+.cost-box {
+  margin-top: 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+}
+.cost-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.cost-head strong {
+  font-family: var(--mono);
+  font-size: 17px;
+  color: var(--fg);
+}
+.cost-free {
+  color: var(--fg-dim);
+}
+.cost-detail {
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.55;
+  color: var(--fg-dim);
+}
+.np-err {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--err);
+  white-space: pre-wrap;
+}

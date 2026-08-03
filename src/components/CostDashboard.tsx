@@ -106,7 +106,7 @@ export function CostDashboard() {
           </div>
         </div>
 
-        {err && <div style={{ color: "#e0453a", fontSize: 12, marginBottom: 10 }}>{err}</div>}
+        {err && <div style={{ color: "var(--err)", fontSize: 12, marginBottom: 10 }}>{err}</div>}
 
         {byOp.length > 0 && (
           <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>

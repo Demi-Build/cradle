@@ -18,7 +18,7 @@ export function ValidationBar() {
           {current ? (
             <span
               className="val-item"
-              style={{ color: current.ok ? "#3ddc84" : "#e0453a" }}
+              style={{ color: current.ok ? "var(--ok)" : "var(--err)" }}
             >
               Validator: {current.level_id}{" "}
               {current.ok

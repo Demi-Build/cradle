@@ -158,7 +158,7 @@ export function LibraryPanel() {
       {note && (
         <p style={{ fontSize: 12, color: "var(--accent)", margin: "8px 0 0" }}>{note}</p>
       )}
-      {err && <p style={{ color: "#e0453a", fontSize: 13 }}>{err}</p>}
+      {err && <p style={{ color: "var(--err)", fontSize: 13 }}>{err}</p>}
       {!entries && !err && <p style={{ fontSize: 13, marginTop: 12 }}>Loading library…</p>}
       {entries && entries.length === 0 && (
         <p style={{ fontSize: 13, marginTop: 12, color: "var(--fg-dim)" }}>

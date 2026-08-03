@@ -5,6 +5,7 @@
 
 import { DB_NESTING } from "./dbNesting";
 import { handleJobEvent } from "./jobs";
+import type { WorldMap } from "./invoke";
 
 type Ref = { type_id: string; id: string; name: string };
 type JsonMap = Record<string, unknown>;
@@ -856,6 +857,11 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
               display_name: `${si + 1}-${li}`,
               stage_id: stages[si],
               pos: [0.05 + i * 0.11, 0.5 + (i % 2 ? 0.14 : -0.14)],
+              size: `${40 + i * 3}×16`,
+              entities: 3 + (i % 5),
+              items: 6 + (i % 4),
+              ...(li === 1 ? { rooms: [`${lid}r1`] } : {}),
+              ...(li === 3 ? { overrides: ["physics"] } : {}),
             });
             if (i > 0) {
               MOCK_WORLD_MAP.edges.push({
@@ -871,6 +877,9 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
           biome: ["forest", "caves", "volcanic"][idx],
           level_ids: MOCK_WORLD_MAP.nodes.filter((n) => n.stage_id === sid).map((n) => n.level_id),
           music: null,
+          blocks: sid,
+          enemy_pool: ["lantern_sentinel", "tallow_bloom", "ember_hopper"],
+          boss: "",
         }));
       }
       return JSON.parse(JSON.stringify(MOCK_WORLD_MAP));
@@ -969,14 +978,17 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
 }
 
 /** In-memory spend ledger for the browser mock (native writes .canon/spend.jsonl). */
-const MOCK_WORLD_MAP: {
-  world: string;
-  nodes: { level_id: string; display_name: string | null; stage_id: string; pos: [number, number]; origin?: "manual"; status?: "planned" }[];
-  edges: { a: string; b: string; kind: string; condition?: string; stop?: string }[];
-  areas: { stage_id: string; index: number; theme: string; biome: string; level_ids: string[]; music: string | null }[];
-  locked: boolean;
-  manual_count: number;
-} = { world: "The Wandering Wick", nodes: [], edges: [], areas: [], locked: false, manual_count: 0 };
+// Typed against the real payload so a field canon adds can't be forgotten here
+// — a mock that drifts from the read verb hides exactly the bugs it should
+// catch (this file once made a read/write split invisible for a whole cycle).
+const MOCK_WORLD_MAP: WorldMap = {
+  world: "The Wandering Wick",
+  nodes: [],
+  edges: [],
+  areas: [],
+  locked: false,
+  manual_count: 0,
+};
 
 const MOCK_SPEND: Record<string, unknown>[] = [];
 /** In-memory job ledger for the browser mock (native writes .canon/jobs.jsonl). */

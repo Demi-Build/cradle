@@ -130,8 +130,8 @@ export function PuzzleGraphMode({ event }: { event: PuzzleEvent }) {
         source: cid,
         target: sid,
         label: c.auto_success ? "auto" : "success",
-        style: { stroke: "#4a8a4a", strokeWidth: 1.5 },
-        labelStyle: { fill: "#8abb8a", fontSize: 10 },
+        style: { stroke: "var(--ok)", strokeWidth: 1.5 },
+        labelStyle: { fill: "var(--ok)", fontSize: 10 },
       });
       if (!c.auto_success && failRange) {
         const fid = `${cid}-f`;
@@ -149,8 +149,8 @@ export function PuzzleGraphMode({ event }: { event: PuzzleEvent }) {
           source: cid,
           target: fid,
           label: "failure",
-          style: { stroke: "#7a3d3d", strokeWidth: 1.5 },
-          labelStyle: { fill: "#c38a8a", fontSize: 10 },
+          style: { stroke: "var(--err)", strokeWidth: 1.5 },
+          labelStyle: { fill: "var(--err)", fontSize: 10 },
         });
       }
     });
@@ -168,7 +168,7 @@ export function PuzzleGraphMode({ event }: { event: PuzzleEvent }) {
         minZoom={0.2}
         maxZoom={2}
       >
-        <Background color="#2a2a2a" gap={20} />
+        <Background color="var(--border-hi)" gap={20} />
         <Controls showInteractive={false} />
       </ReactFlow>
     </div>

@@ -287,7 +287,7 @@ export function RowEditor({
           </>
         )}
       </p>
-      {err && <p style={{ color: "#e0453a", fontSize: 12 }}>{err}</p>}
+      {err && <p style={{ color: "var(--err)", fontSize: 12 }}>{err}</p>}
       {note && <p style={{ color: "var(--accent)", fontSize: 12 }}>{note}</p>}
       {!spec && !err && <p style={{ fontSize: 12 }}>Loading field spec…</p>}
       {spec && (

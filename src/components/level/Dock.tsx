@@ -83,6 +83,7 @@ export function Dock({
 }) {
   const enemies = useDbEntries("enemies");
   const items = useDbEntries("items");
+  const collapsed = useStore((s) => s.layout.inspectorCollapsed);
   const [tab, setTab] = useState<TabId>("tiles");
   const [variant, setVariant] = useState<string | null>(null);
   const [source, setSource] = useState<string>("trail");
@@ -329,7 +330,7 @@ export function Dock({
               on={brush?.kind === "checkpoint"}
               onClick={() => toggle({ kind: "checkpoint" })}
               label="checkpoint"
-              color="#4ec9b0"
+              color="var(--special)"
             />
             <Brushly
               on={brush?.kind === "eraser"}
@@ -341,18 +342,22 @@ export function Dock({
         )}
       </div>
 
-      <div className="pane tray">
-        {tray ?? (
-          <div className="dock-tray-empty">
-            <div className="dock-sect">Nothing selected</div>
-            <p>
-              Click a placement on the canvas to inspect it, or arm a brush to
-              paint. Tile types are the physics vocabulary — art is a skin bound
-              to them, swappable per level.
-            </p>
-          </div>
-        )}
-      </div>
+      {/* The tray is this screen's right-hand panel, so it answers the same
+          collapse toggle (and ⌘I) the world map's inspector does. */}
+      {!collapsed && (
+        <div className="pane tray">
+          {tray ?? (
+            <div className="dock-tray-empty">
+              <div className="dock-sect">Nothing selected</div>
+              <p>
+                Click a placement on the canvas to inspect it, or arm a brush to
+                paint. Tile types are the physics vocabulary — art is a skin bound
+                to them, swappable per level.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

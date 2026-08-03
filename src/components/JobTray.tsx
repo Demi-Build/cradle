@@ -97,7 +97,7 @@ export function JobTray() {
                   <strong>{opLabel(r.op)}</strong>{" "}
                   <span style={{ opacity: 0.7 }}>{r.target}</span>
                   {r.error && (
-                    <div style={{ color: "#e0453a", fontSize: 11, marginTop: 2 }}>
+                    <div style={{ color: "var(--err)", fontSize: 11, marginTop: 2 }}>
                       {r.error.slice(0, 120)}
                     </div>
                   )}
@@ -209,19 +209,19 @@ function fmtDur(ms: number): string {
 function StatusBadge({ status, changed }: { status: string; changed?: boolean }) {
   const [label, color] =
     status === "queued"
-      ? ["queued", "#8a7fa0"]
+      ? ["queued", "var(--fg-dim)"]
       : status === "running"
-        ? ["running…", "#e0a15a"]
+        ? ["running…", "var(--accent)"]
         : status === "failed"
-          ? ["failed", "#e0453a"]
+          ? ["failed", "var(--err)"]
           : status === "no_change" || (status === "ok" && !changed)
-            ? ["no change", "#8a7fa0"]
-            : ["changed", "#3ddc84"];
+            ? ["no change", "var(--fg-dim)"]
+            : ["changed", "var(--ok)"];
   return (
     <span
       style={{
         fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999,
-        color: "#120e18", background: color, whiteSpace: "nowrap",
+        color: "var(--bg-sunken)", background: color, whiteSpace: "nowrap",
       }}
     >
       {label}

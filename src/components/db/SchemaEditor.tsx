@@ -307,7 +307,7 @@ export function SchemaEditor({
         lookup rows is refused here.
       </p>
       {err && (
-        <p style={{ color: "#e0453a", fontSize: 12, whiteSpace: "pre-wrap" }}>{err}</p>
+        <p style={{ color: "var(--err)", fontSize: 12, whiteSpace: "pre-wrap" }}>{err}</p>
       )}
       {note && <p style={{ color: "var(--accent)", fontSize: 12 }}>{note}</p>}
       {!fields && !err && <p style={{ fontSize: 12 }}>Loading schema…</p>}

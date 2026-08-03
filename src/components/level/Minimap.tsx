@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { drawLevel, type LevelBundle } from "./drawLevel";
 import { useStore } from "../../store";
+import { useDraggablePanel } from "../../lib/useDraggablePanel";
 import type { CamApi, CamState } from "./LevelCanvas";
 
 /** Whole-level overview with a draggable viewport rectangle (design: top-right
@@ -26,6 +27,8 @@ export function Minimap({
   // the overview while you work or you don't.
   const collapsed = useStore((st) => st.layout.minimapCollapsed);
   const setLayout = useStore((st) => st.setLayout);
+  // Movable, through the same grip and persistence the tool rail uses.
+  const { ref: panelRef, style, gripProps } = useDraggablePanel("minimapPos");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
@@ -71,7 +74,8 @@ export function Minimap({
     : null;
 
   return (
-    <div className="mini" data-collapsed={collapsed ? "1" : "0"}>
+    <div ref={panelRef} className="mini" data-collapsed={collapsed ? "1" : "0"} style={style}>
+      <span className="tool-grip mini-grip" {...gripProps} />
       <button
         className="mini-lbl"
         onClick={() => setLayout({ minimapCollapsed: !collapsed })}

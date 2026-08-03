@@ -5,6 +5,8 @@
 // drive every mode. `images` is a preloaded url->HTMLImageElement cache; any
 // missing image degrades gracefully to the block representation for that element.
 
+import { readCanvasTheme } from "../../lib/canvasTheme";
+
 export interface TileSlot {
   index: number;
   tile_type: number;
@@ -310,6 +312,9 @@ function drawRulers(
   scale: number,
   cam: Camera,
 ) {
+  // Rulers are CHROME, not level art — they read against the app surface, so
+  // they take the design tokens rather than baked dark literals.
+  const t = readCanvasTheme();
   const px = scale * cam.zoom; // on-screen size of one cell
   // Aim for a label roughly every 56px.
   const stepFor = (n: number) => {
@@ -323,10 +328,10 @@ function drawRulers(
 
   ctx.save();
   ctx.font = "9px ui-monospace, monospace";
-  ctx.fillStyle = "rgba(10,11,14,0.72)";
+  ctx.fillStyle = t.bgSunken;
   ctx.fillRect(0, 0, w, RULER_T);
   ctx.fillRect(0, 0, RULER_L, h);
-  ctx.strokeStyle = "rgba(232,230,223,0.12)";
+  ctx.strokeStyle = t.ink(0.12);
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(0, RULER_T + 0.5);
@@ -335,7 +340,7 @@ function drawRulers(
   ctx.lineTo(RULER_L + 0.5, h);
   ctx.stroke();
 
-  ctx.fillStyle = "#9a988e";
+  ctx.fillStyle = t.fgMuted;
   ctx.textBaseline = "middle";
 
   // Columns: world x = cell * scale → screen = (world - ox) * zoom
@@ -345,9 +350,9 @@ function drawRulers(
     const x = (c * scale - cam.ox) * cam.zoom;
     if (x < RULER_L || x > w) continue;
     ctx.fillText(String(c), x, RULER_T / 2);
-    ctx.fillStyle = "rgba(232,230,223,0.2)";
+    ctx.fillStyle = t.ink(0.2);
     ctx.fillRect(x, RULER_T - 5, 1, 5);
-    ctx.fillStyle = "#9a988e";
+    ctx.fillStyle = t.fgMuted;
   }
 
   // Rows
@@ -357,9 +362,9 @@ function drawRulers(
     const y = (r * scale - cam.oy) * cam.zoom;
     if (y < RULER_T || y > h) continue;
     ctx.fillText(String(r), RULER_L - 6, y);
-    ctx.fillStyle = "rgba(232,230,223,0.2)";
+    ctx.fillStyle = t.ink(0.2);
     ctx.fillRect(RULER_L - 5, y, 5, 1);
-    ctx.fillStyle = "#9a988e";
+    ctx.fillStyle = t.fgMuted;
   }
   ctx.restore();
 }
@@ -438,7 +443,8 @@ function drawBounds(ctx: CanvasRenderingContext2D, bundle: LevelBundle, scale: n
   ctx.lineTo(W * scale, 0.5);
   ctx.stroke();
   ctx.setLineDash([]);
-  chip(`CEILING y0`, scale * 0.3, scale * 0.42, "rgba(20,21,25,0.85)", "#e8e6df");
+  const chrome = readCanvasTheme();
+  chip(`CEILING y0`, scale * 0.3, scale * 0.42, chrome.bgSunken, chrome.fg);
 
   // Floor — solid accent, along the TOP edge of the last row (what the player
   // actually stands on).

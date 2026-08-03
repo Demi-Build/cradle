@@ -281,7 +281,7 @@ export function AnimateModal({
         </div>
 
         {blocked && (
-          <div style={{ color: "#e0a15a", fontSize: 11.5, marginTop: 8, lineHeight: 1.45 }}>
+          <div style={{ color: "var(--accent)", fontSize: 11.5, marginTop: 8, lineHeight: 1.45 }}>
             {blocked}
           </div>
         )}

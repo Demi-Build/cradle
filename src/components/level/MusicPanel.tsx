@@ -234,7 +234,7 @@ export function MusicPanel({
           <span style={sm}>generate a section's track AFTER saving (it keys on the saved index)</span>
         </div>
 
-        {err && <div style={{ color: "#e0453a", fontSize: 12, marginTop: 10, whiteSpace: "pre-wrap" }}>{err}</div>}
+        {err && <div style={{ color: "var(--err)", fontSize: 12, marginTop: 10, whiteSpace: "pre-wrap" }}>{err}</div>}
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
           <button onClick={onClose} disabled={!!busy} style={{ cursor: "pointer" }}>Close</button>
         </div>

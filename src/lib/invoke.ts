@@ -254,6 +254,16 @@ export type WorldMapNode = {
   origin?: "manual";
   /** `planned` = a draft level: on the map, not yet in the progression. */
   status?: "planned";
+  /** Detail the map shows without opening the level. Absent when the level
+   *  file couldn't be read (a half-written pack still renders). */
+  size?: string;
+  entities?: number;
+  items?: number;
+  /** Secret rooms INSIDE this level. They are deliberately not map nodes. */
+  rooms?: string[];
+  /** Which area defaults this level actually departs from — reported from
+   *  what's on disk, never a setting cradle invented. */
+  overrides?: string[];
 };
 export type WorldMapEdge = {
   a: string;
@@ -269,6 +279,10 @@ export type WorldMapArea = {
   biome: string;
   level_ids: string[];
   music: string | null;
+  /** Defaults every level inside inherits: the area's tile set and roster. */
+  blocks?: string;
+  enemy_pool?: string[];
+  boss?: string;
 };
 export type WorldMap = {
   world: string;

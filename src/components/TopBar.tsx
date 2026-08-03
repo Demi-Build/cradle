@@ -1,8 +1,11 @@
 import { useStore } from "../store";
+import { kbd } from "../lib/keys";
 import { Icon, IconSymbols } from "./start/Icons";
 
 export function TopBar() {
   const world = useStore((s) => s.world);
+  const layout = useStore((s) => s.layout);
+  const setLayout = useStore((s) => s.setLayout);
   const worldStoryTitle = useStore((s) => s.worldStoryTitle);
   const theme = useStore((s) => s.theme);
   const setTheme = useStore((s) => s.setTheme);
@@ -19,6 +22,18 @@ export function TopBar() {
   return (
     <header className="titlebar">
       <IconSymbols />
+      {world && (
+        <button
+          className={`icon-btn ${layout.navCollapsed ? "on" : ""}`}
+          onClick={() => setLayout({ navCollapsed: !layout.navCollapsed })}
+          aria-label={layout.navCollapsed ? "Show the sidebar" : "Hide the sidebar"}
+          aria-pressed={layout.navCollapsed}
+          title={`${layout.navCollapsed ? "Show" : "Hide"} the sidebar · ${kbd("B")}`}
+          style={{ marginRight: 2 }}
+        >
+          <Icon id={layout.navCollapsed ? "g-chev-r" : "g-chev-l"} size={14} />
+        </button>
+      )}
       <div className="crumbs">
         <button className="crumb-link" onClick={closeWorld}>
           cradle

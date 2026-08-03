@@ -1,7 +1,6 @@
-import { useRef, useState } from "react";
 import { Icon } from "../start/Icons";
 import { Tooltip } from "../Tooltip";
-import { useStore } from "../../store";
+import { useDraggablePanel } from "../../lib/useDraggablePanel";
 
 /** The level editor's tool rail — a floating cluster over the canvas.
  *
@@ -17,6 +16,14 @@ import { useStore } from "../../store";
  */
 
 export type Tool = "select" | "paint" | "fill" | "erase";
+
+/** Single-key shortcuts, matching the hints the tooltips show. */
+export const TOOL_KEYS: Record<string, Tool> = {
+  v: "select",
+  b: "paint",
+  g: "fill",
+  e: "erase",
+};
 
 const TOOLS: {
   id: Tool;
@@ -75,66 +82,14 @@ export function ToolRail({
   audioOpen?: boolean;
 }) {
   // Drag-to-move. The grip is a dedicated handle rather than the whole rail,
-  // so a click on a tool can never be swallowed as the start of a drag.
-  const pos = useStore((st) => st.layout.toolRailPos);
-  const setLayout = useStore((st) => st.setLayout);
-  const railRef = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ dx: number; dy: number } | null>(null);
-  const [live, setLive] = useState<{ x: number; y: number } | null>(null);
-  // Mirror of `live` for the pointerup handler. State lags by a render, so a
-  // drag whose last move and release land in the SAME frame would read null
-  // and silently fail to persist.
-  const liveRef = useRef<{ x: number; y: number } | null>(null);
-
-  const onGripDown = (e: React.PointerEvent) => {
-    const rail = railRef.current;
-    const stage = rail?.offsetParent as HTMLElement | null;
-    if (!rail || !stage) return;
-    const r = rail.getBoundingClientRect();
-    const s = stage.getBoundingClientRect();
-    drag.current = { dx: e.clientX - r.left, dy: e.clientY - r.top };
-    liveRef.current = { x: r.left - s.left, y: r.top - s.top };
-    setLive(liveRef.current);
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-    e.preventDefault();
-  };
-  const onGripMove = (e: React.PointerEvent) => {
-    const d = drag.current;
-    const rail = railRef.current;
-    const stage = rail?.offsetParent as HTMLElement | null;
-    if (!d || !rail || !stage) return;
-    const s = stage.getBoundingClientRect();
-    const r = rail.getBoundingClientRect();
-    // Clamp inside the stage so the rail can never be dragged out of reach.
-    const x = Math.max(0, Math.min(s.width - r.width, e.clientX - s.left - d.dx));
-    const y = Math.max(0, Math.min(s.height - r.height, e.clientY - s.top - d.dy));
-    liveRef.current = { x, y };
-    setLive(liveRef.current);
-  };
-  const onGripUp = () => {
-    if (drag.current && liveRef.current) setLayout({ toolRailPos: liveRef.current });
-    drag.current = null;
-  };
-  const placed = live ?? pos;
-  const style: React.CSSProperties = placed
-    ? { left: placed.x, top: placed.y, right: "auto", bottom: "auto" }
-    : {};
+  // so a click on a tool can never be swallowed as the start of a drag. The
+  // behaviour lives in `useDraggablePanel`, shared with the minimap and the
+  // world map's rail.
+  const { ref, style, gripProps } = useDraggablePanel("toolRailPos");
 
   return (
-    <div ref={railRef} className="tool-rail" role="toolbar" aria-label="Level tools" style={style}>
-      <span
-        className="tool-grip"
-        title="Drag to move · double-click to reset"
-        onPointerDown={onGripDown}
-        onPointerMove={onGripMove}
-        onPointerUp={onGripUp}
-        onPointerCancel={onGripUp}
-        onDoubleClick={() => {
-          liveRef.current = null;
-          setLive(null);
-          setLayout({ toolRailPos: null });
-        }}
-      />
+    <div ref={ref} className="tool-rail" role="toolbar" aria-label="Level tools" style={style}>
+      <span className="tool-grip" {...gripProps} />
       {TOOLS.map((t) => (
         <Tooltip key={t.id} title={t.title} hint={t.hint} desc={t.desc}>
           <button

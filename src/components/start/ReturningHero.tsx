@@ -4,6 +4,7 @@ import { Branding } from "./BrandMark";
 import { Icon } from "./Icons";
 import { envImageFor } from "./envImages";
 import { useAssetUrl } from "./useAssetUrl";
+import { WorldGlance } from "./WorldGlance";
 
 export function ReturningHero({
   last,
@@ -80,6 +81,7 @@ export function ReturningHero({
             </button>
           </div>
         </div>
+        <WorldGlance recent={last} />
       </div>
     </>
   );

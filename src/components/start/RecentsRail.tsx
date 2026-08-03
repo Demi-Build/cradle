@@ -4,6 +4,7 @@ import type { RecentProject } from "../../lib/recents";
 import { useStore } from "../../store";
 import { Icon } from "./Icons";
 import { RecentTile } from "./RecentTile";
+import { DeleteProjectDialog } from "./DeleteProjectDialog";
 
 export function RecentsRail({
   recents,
@@ -15,9 +16,17 @@ export function RecentsRail({
   onAddNew: () => void;
 }) {
   const setRoute = useStore((s) => s.setRoute);
+  const toggleHidden = useStore((s) => s.toggleRecentHidden);
+  const setStartNote = useStore((s) => s.setStartNote);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
+  // Hidden cards stay in the list; the header offers them back rather than
+  // pretending they were deleted.
+  const [showHidden, setShowHidden] = useState(false);
+  const [deleting, setDeleting] = useState<RecentProject | null>(null);
+  const hiddenCount = recents.filter((r) => r.hidden).length;
+  const visible = showHidden ? recents : recents.filter((r) => !r.hidden);
 
   useEffect(() => {
     update();
@@ -41,7 +50,12 @@ export function RecentsRail({
     <>
       <section className="recents-rail">
         <div className="rail-head">
-          Recent <span className="count">· {recents.length}</span>
+          Recent <span className="count">· {visible.length}</span>
+          {hiddenCount > 0 && (
+            <button className="hidden-notice" onClick={() => setShowHidden((v) => !v)}>
+              {hiddenCount} hidden from view · {showHidden ? "hide" : "show"}
+            </button>
+          )}
         </div>
         <div className="rail-arrows">
           <button
@@ -65,7 +79,7 @@ export function RecentsRail({
       </section>
 
       <div className="recents-scroller" ref={scrollerRef}>
-        {recents.map((r) => (
+        {visible.map((r) => (
           <RecentTile
             key={r.path}
             recent={r}
@@ -77,6 +91,15 @@ export function RecentsRail({
                 });
               onOpenRecent(r.path);
             }}
+            onToggleHidden={() => {
+              toggleHidden(r.path);
+              setStartNote(
+                r.hidden
+                  ? `${r.storyTitle ?? r.name} is back in recents`
+                  : `removed ${r.storyTitle ?? r.name} from recents · still on disk`,
+              );
+            }}
+            onDelete={() => setDeleting(r)}
           />
         ))}
         <button className="recent-tile add" onClick={onAddNew}>
@@ -87,6 +110,20 @@ export function RecentsRail({
           </div>
         </button>
       </div>
+
+      {deleting && (
+        <DeleteProjectDialog
+          recent={deleting}
+          onCancel={() => setDeleting(null)}
+          onRemoveInstead={() => {
+            toggleHidden(deleting.path);
+            setStartNote(
+              `removed ${deleting.storyTitle ?? deleting.name} from recents · still on disk`,
+            );
+            setDeleting(null);
+          }}
+        />
+      )}
     </>
   );
 }

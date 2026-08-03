@@ -36,13 +36,13 @@ function shortTs(ts: string): string {
 }
 
 const OP_TONE: Record<string, string> = {
-  generate: "#7bc98a",
-  create: "#7bc98a",
-  baseline: "#8a8398",
-  edit: "#e2b714",
-  regenerate: "#7c9fff",
-  import: "#a78bfa",
-  restore: "#e0a15a",
+  generate: "var(--ok)",
+  create: "var(--ok)",
+  baseline: "var(--fg-dim)",
+  edit: "var(--warn)",
+  regenerate: "var(--info)",
+  import: "var(--special)",
+  restore: "var(--accent)",
 };
 
 /** Restore target for a node, derived from its facet + owning artifact. */
@@ -171,7 +171,7 @@ export function LineagePanel({
   const currentOfFacet = (facet: string): LineageNode | undefined =>
     tree?.nodes.find((n) => n.current_of.includes(`${artifactId}#${facet}`));
 
-  if (err) return <p style={{ color: "#e0453a", fontSize: 13, padding: 16 }}>{err}</p>;
+  if (err) return <p style={{ color: "var(--err)", fontSize: 13, padding: 16 }}>{err}</p>;
   if (!tree) return <p style={{ fontSize: 13, padding: 16 }}>Loading lineage…</p>;
   if (tree.nodes.length === 0)
     return (
@@ -194,7 +194,7 @@ export function LineagePanel({
           nodes are content, edges are the ops between them; restore branches, never deletes
         </span>
         {tree.metadata.pruned && (
-          <span style={{ fontSize: 11, color: "#e0a15a" }}>
+          <span style={{ fontSize: 11, color: "var(--accent)" }}>
             (large tree — showing a portion)
           </span>
         )}
@@ -223,7 +223,7 @@ export function LineagePanel({
                   <path
                     d={`M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`}
                     fill="none"
-                    stroke={OP_TONE[edge.op] ?? "#8a8398"}
+                    stroke={OP_TONE[edge.op] ?? "var(--fg-dim)"}
                     strokeWidth={secondary ? 1 : 2}
                     strokeDasharray={secondary ? "4 4" : undefined}
                     opacity={secondary ? 0.45 : 0.9}
@@ -232,7 +232,7 @@ export function LineagePanel({
                     x={mid}
                     y={(y1 + y2) / 2 - 6}
                     fontSize={10}
-                    fill={OP_TONE[edge.op] ?? "#8a8398"}
+                    fill={OP_TONE[edge.op] ?? "var(--fg-dim)"}
                     textAnchor="middle"
                   >
                     {secondary ? "replaced" : edge.op}
@@ -271,7 +271,7 @@ export function LineagePanel({
                     isRequested
                       ? "var(--accent)"
                       : isCurrent
-                        ? "#7bc98a"
+                        ? "var(--ok)"
                         : "var(--border)"
                   }`,
                   borderRadius: 10,
@@ -322,7 +322,7 @@ export function LineagePanel({
                   </div>
                 </div>
                 {isCurrent && (
-                  <div style={{ color: "#7bc98a", marginBottom: 4 }}>
+                  <div style={{ color: "var(--ok)", marginBottom: 4 }}>
                     current · {node.current_of.map((c) => c.split("#")[1]).join(", ")}
                   </div>
                 )}
@@ -515,8 +515,8 @@ function CompareStrip({
             {diff.map(([k, va, vb]) => (
               <tr key={k}>
                 <td style={{ padding: "2px 10px 2px 0", fontWeight: 600 }}>{k}</td>
-                <td style={{ padding: "2px 10px 2px 0", color: "#e0a15a" }}>{va}</td>
-                <td style={{ padding: "2px 10px 2px 0", color: "#7bc98a" }}>{vb}</td>
+                <td style={{ padding: "2px 10px 2px 0", color: "var(--accent)" }}>{va}</td>
+                <td style={{ padding: "2px 10px 2px 0", color: "var(--ok)" }}>{vb}</td>
               </tr>
             ))}
           </tbody>

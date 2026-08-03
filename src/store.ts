@@ -1,11 +1,13 @@
 import { create } from "zustand";
-import type { EntityRef, Job, ValidationReport, WorldSummary } from "./lib/invoke";
+import type { EntityRef, Job, ValidationReport, WorldMap, WorldSummary } from "./lib/invoke";
+import type { WorldSel } from "./components/world/drawWorld";
 import { api } from "./lib/invoke";
 import {
   loadRecents,
   upsertRecent,
   removeRecent as removeRecentFn,
   togglePin as togglePinFn,
+  toggleHidden as toggleHiddenFn,
   type RecentProject,
   type ValidationStatus,
 } from "./lib/recents";
@@ -85,6 +87,19 @@ type Store = {
   //: Editor layout, persisted app-wide.
   layout: LayoutPrefs;
   setLayout: (patch: Partial<LayoutPrefs>) => void;
+  //: The world map's payload and selection. Shared state because the canvas
+  //: and the map's SIDEBAR live in different subtrees (the sidebar replaces
+  //: the type list in LeftNav while the map is open) and must agree on what
+  //: is selected. The view owns loading it; everyone else reads.
+  worldMap: WorldMap | null;
+  worldMapSel: WorldSel | null;
+  setWorldMap: (m: WorldMap | null) => void;
+  setWorldMapSel: (s: WorldSel | null) => void;
+  //: One-shot request handed to the level editor as it opens, so a world-map
+  //: action can land the user IN the flow it names ("Generate from <area>")
+  //: rather than at the editor's front door. Consumed on mount, then cleared.
+  pendingLevelAction: "layout" | null;
+  setPendingLevelAction: (a: "layout" | null) => void;
   drawerOpen: boolean;
   audioTrack: AudioTrack | null;
   audioResolvedSrc: string | null;
@@ -141,6 +156,12 @@ type Store = {
   closeWorld: () => void;
   togglePin: (path: string) => void;
   removeRecent: (path: string) => void;
+  /** Hide a card. NOT a delete — the project stays on disk and stays
+   *  openable; "show" puts it straight back. */
+  toggleRecentHidden: (path: string) => void;
+  /** Last thing the start screen did, echoed in its statusbar. */
+  startNote: string | null;
+  setStartNote: (note: string | null) => void;
   enrichRecent: (path: string) => Promise<void>;
 };
 
@@ -154,11 +175,23 @@ export type LayoutPrefs = {
   /** Tool-rail position within the stage, in px from its top-left. `null` =
    *  the default bottom-left anchor (which also tracks the floating dock). */
   toolRailPos: { x: number; y: number } | null;
+  /** Same, for the minimap and the world map's own rail. */
+  minimapPos: { x: number; y: number } | null;
+  worldRailPos: { x: number; y: number } | null;
+  /** Side panels, collapsed by button or keyboard. The left one is the nav;
+   *  the right one is whichever surface the current screen puts there — the
+   *  level editor's dock tray, the world map's inspector. */
+  navCollapsed: boolean;
+  inspectorCollapsed: boolean;
 };
 const DEFAULT_LAYOUT: LayoutPrefs = {
   focusMode: false,
   minimapCollapsed: false,
   toolRailPos: null,
+  minimapPos: null,
+  worldRailPos: null,
+  navCollapsed: false,
+  inspectorCollapsed: false,
 };
 function initialLayout(): LayoutPrefs {
   try {
@@ -181,12 +214,22 @@ const INITIAL_AUDIO_STATE = {
   audioError: null as string | null,
 };
 
+/** Publish the theme to the DOM. Done here, not in a React effect, because
+ *  canvases resolve the tokens by READING this attribute — and a child's
+ *  effect runs before its parent's, so an effect-set attribute would leave
+ *  every canvas one render behind on a theme switch. */
+function applyTheme(t: Theme): void {
+  if (typeof document !== "undefined") document.body.setAttribute("data-theme", t);
+}
+
 function initialTheme(): Theme {
+  let theme: Theme = "dark";
   try {
     const v = localStorage.getItem(THEME_KEY);
-    if (v === "light" || v === "dark") return v;
+    if (v === "light" || v === "dark") theme = v;
   } catch {}
-  return "dark";
+  applyTheme(theme);
+  return theme;
 }
 
 export const useStore = create<Store>((set, get) => ({
@@ -203,6 +246,9 @@ export const useStore = create<Store>((set, get) => ({
   route: "start",
   theme: initialTheme(),
   layout: initialLayout(),
+  worldMap: null,
+  worldMapSel: null,
+  pendingLevelAction: null,
   drawerOpen: false,
   newProjectOpen: false,
   dashboardOpen: false,
@@ -220,6 +266,8 @@ export const useStore = create<Store>((set, get) => ({
       entities: {},
       selection: w ? { kind: "bible" } : { kind: "none" },
       levelValidation: {},
+      worldMap: null,
+      worldMapSel: null,
       jobs: [], // jobs are per-pack; a new world starts with an empty tray
       lastCompletedJob: null,
       ...(w ? {} : INITIAL_AUDIO_STATE),
@@ -260,6 +308,7 @@ export const useStore = create<Store>((set, get) => ({
     try {
       localStorage.setItem(THEME_KEY, t);
     } catch {}
+    applyTheme(t);
     set({ theme: t });
   },
   setLayout: (patch) =>
@@ -270,6 +319,9 @@ export const useStore = create<Store>((set, get) => ({
       } catch {}
       return { layout };
     }),
+  setWorldMap: (m) => set({ worldMap: m }),
+  setWorldMapSel: (s) => set({ worldMapSel: s }),
+  setPendingLevelAction: (a) => set({ pendingLevelAction: a }),
   setDrawerOpen: (open) => set({ drawerOpen: open }),
   playTrack: (track) =>
     set((s) => {
@@ -308,6 +360,9 @@ export const useStore = create<Store>((set, get) => ({
       entities: {},
       selection: { kind: "none" },
       levelValidation: {},
+      worldMap: null,
+      worldMapSel: null,
+      pendingLevelAction: null,
       jobs: [],
       lastCompletedJob: null,
       jobsOpen: false,
@@ -319,6 +374,10 @@ export const useStore = create<Store>((set, get) => ({
     }),
   togglePin: (path: string) => set((s) => ({ recents: togglePinFn(s.recents, path) })),
   removeRecent: (path) => set((s) => ({ recents: removeRecentFn(s.recents, path) })),
+  toggleRecentHidden: (path) =>
+    set((s) => ({ recents: toggleHiddenFn(s.recents, path) })),
+  startNote: null,
+  setStartNote: (note) => set({ startNote: note }),
   enrichRecent: async (inputPath: string) => {
     try {
       const summary = await api.loadWorld(inputPath);

@@ -17,6 +17,10 @@ export type RecentProject = {
   validation?: ValidationStatus;
   lastOpenedAt: number;
   pinned?: boolean;
+  /** Hidden from the recents view. NOT deleted: the project is still on disk
+   *  and still openable from "Open another…". This distinction is the point
+   *  of the card menu, so it's modelled rather than implied. */
+  hidden?: boolean;
 };
 
 const STORAGE_KEY = "cradle.recents.v1";
@@ -57,6 +61,14 @@ export function removeRecent(recents: RecentProject[], path: string): RecentProj
 
 export function togglePin(recents: RecentProject[], path: string): RecentProject[] {
   const next = recents.map((r) => (r.path === path ? { ...r, pinned: !r.pinned } : r));
+  saveRecents(next);
+  return next;
+}
+
+/** Hide/show a project in the recents view. The entry is KEPT — hiding a card
+ *  never touches the project on disk, and "show" brings it straight back. */
+export function toggleHidden(recents: RecentProject[], path: string): RecentProject[] {
+  const next = recents.map((r) => (r.path === path ? { ...r, hidden: !r.hidden } : r));
   saveRecents(next);
   return next;
 }

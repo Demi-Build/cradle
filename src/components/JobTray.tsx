@@ -186,6 +186,7 @@ function opLabel(op: string): string {
       animate: "Animate",
       music: "Generate music",
       audio: "Stage audio",
+      world: "New project",
     }[op] ?? op
   );
 }
@@ -202,6 +203,7 @@ function opIcon(op: string): string {
       animate: "🎬",
       music: "🎵",
       audio: "🎵",
+      world: "🌍",
     }[op] ?? "⚙"
   );
 }

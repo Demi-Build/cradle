@@ -181,6 +181,41 @@ export type Job = {
   result?: Record<string, unknown>; // raw canon op result (carries level_id/id/changed/…)
   ts: number; // enqueue time (ms)
   endedAt?: number;
+  progress?: JobProgress; // live pipeline position, for jobs that watch a step log
+};
+/** Where a watched job is inside canon's pipeline, folded from the raw
+ *  `job-progress` event stream (`<pack>/.canon/log.jsonl`). Absent until the
+ *  first event lands — a job that watches nothing never grows one. */
+export type JobProgress = {
+  phases: PhaseProgress[]; // in the order canon ran them
+  total?: number; // phase count promised by `run_start`
+  startedAt?: number; // ms, from the first event's timestamp
+  endedAt?: number; // ms, set by `run_end`
+  ok?: boolean; // `run_end`'s verdict
+};
+/** One pipeline phase's live state. `item` is the sub-phase unit currently in
+ *  flight (a sprite, a level, an animation state) — the thing a paid run sits
+ *  on for minutes at a time. */
+export type PhaseProgress = {
+  node: string; // canon's node id, e.g. "phase:plat:sprite_art"
+  status: "running" | "done" | "failed" | "skipped";
+  item?: string;
+  index?: number;
+  itemTotal?: number;
+};
+/** Payload of a Rust `job-progress` event: one raw canon step-log record
+ *  (`{ts, event, ...}`) plus the job id it belongs to. */
+export type JobProgressEvent = {
+  id: string;
+  ts?: string;
+  event: string; // run_start | node_start | node_item | node_done | node_failed | node_skipped | run_end
+  node?: string;
+  item?: string;
+  index?: number;
+  total?: number;
+  phases?: number;
+  ok?: boolean;
+  reason?: string;
 };
 /** Durable job-ledger entry (`.canon/jobs.jsonl`, written via `canon jobs record`). */
 export type JobEntry = {
@@ -411,6 +446,8 @@ export const api = {
     invoke<unknown>("save_level_grids", { path, levelId, collision }),
   createLevel: (path: string, stageId: string, width: number, height: number) =>
     invoke<{ level_id: string }>("create_level", { path, stageId, width, height }),
+  /** Enqueues — the ack lands immediately with the pack dir the run WILL
+   *  write to; the run itself reports via `job-updated` / `job-progress`. */
   newProject: (
     parentDir: string,
     name: string,
@@ -424,9 +461,11 @@ export const api = {
       musicBackend?: string;
       sfxBackend?: string;
       vlmBackend?: string;
+      jobId?: string;
     },
   ) =>
-    invoke<{ pack_dir: string; world: string; seed: string }>("new_project", {
+    invoke<QueuedAck & { pack_dir: string }>("new_project", {
+      jobId: opts?.jobId,
       parentDir,
       name,
       stages: opts?.stages ?? null,

@@ -14,7 +14,8 @@ import { JobTray } from "./components/JobTray";
 import { CommandPalette } from "./components/CommandPalette";
 import { useStore } from "./store";
 import { api } from "./lib/invoke";
-import { handleJobEvent, type JobEventPayload } from "./lib/jobs";
+import { handleJobEvent, handleJobProgress, type JobEventPayload } from "./lib/jobs";
+import type { JobProgressEvent } from "./lib/invoke";
 import { inTextField, isShortcut, kbd } from "./lib/keys";
 import { pickAndOpenWorld } from "./lib/openWorld";
 import "./App.css";
@@ -43,18 +44,35 @@ export default function App() {
   // once). The browser dev-mock has no native event bus, so it drives the store
   // directly (the try/catch below just no-ops there).
   useEffect(() => {
-    let unlisten: (() => void) | undefined;
+    let dead = false;
+    const off: Array<() => void> = [];
+    // `listen` resolves asynchronously, so a subscription can land AFTER
+    // unmount — keep it only while the effect is alive, else drop it at once.
+    const keep = (fn: () => void) => (dead ? fn() : off.push(fn));
     (async () => {
       try {
         const { listen } = await import("@tauri-apps/api/event");
-        unlisten = await listen<JobEventPayload>("job-updated", (e) => {
-          void handleJobEvent(e.payload);
-        });
+        keep(
+          await listen<JobEventPayload>("job-updated", (e) => {
+            void handleJobEvent(e.payload);
+          }),
+        );
+        // Where a long job is INSIDE its run (canon's step log, relayed by the
+        // worker). Separate from the lifecycle stream above so a job that
+        // reports no progress behaves exactly as it did before.
+        keep(
+          await listen<JobProgressEvent>("job-progress", (e) => {
+            handleJobProgress(e.payload);
+          }),
+        );
       } catch {
         /* browser mock — no native events */
       }
     })();
-    return () => unlisten?.();
+    return () => {
+      dead = true;
+      off.forEach((fn) => fn());
+    };
   }, []);
 
   // Global shortcuts. Separate from the arrow-key navigation below, which

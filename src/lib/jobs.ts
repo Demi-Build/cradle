@@ -1,5 +1,12 @@
 import { useStore } from "../store";
-import { api, type Job, type OpCost } from "./invoke";
+import {
+  api,
+  type Job,
+  type JobProgress,
+  type JobProgressEvent,
+  type OpCost,
+  type PhaseProgress,
+} from "./invoke";
 import { recordJob, recordSpend } from "./cost";
 
 /** Metadata for a new job — everything except the fields enqueueJob fills in. */
@@ -50,6 +57,12 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
 
   const j = useStore.getState().jobs.find((x) => x.id === id);
   if (!j) return;
+  // Everything below is about the OPEN world: its ledgers, its nav lists, its
+  // detail views. A job with no `targetType` isn't about an entity in it — the
+  // only one today is "create a new project", whose ledgers belong to the pack
+  // it just made and whose caller is the one holding that path. Writing them
+  // here would file the new project's spend under whatever was open.
+  if (!j.targetType) return;
   const worldPath = store.worldPath;
 
   // Durable ledgers (best-effort — a write failure never surfaces as a job fail).
@@ -106,6 +119,77 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
   if (j.status !== "failed" && j.op === "generate" && result?.level_id) {
     store.select({ kind: "entity", typeId: "levels", id: String(result.level_id) });
   }
+}
+
+/** Fold one raw canon step-log event into its job's live progress.
+ *
+ *  The counterpart to `handleJobEvent`: that one owns the job's LIFECYCLE
+ *  (queued → running → done), this one owns its POSITION inside the run. Same
+ *  wiring on both surfaces — a Rust listener in App, the dev-mock directly.
+ *
+ *  Deliberately additive and order-tolerant: canon may add events, and a
+ *  `node_item` can arrive for a phase whose `node_start` we somehow missed
+ *  (a truncated read, a resumed run), so an unknown node opens a row rather
+ *  than being dropped. */
+export function handleJobProgress(payload: JobProgressEvent): void {
+  const store = useStore.getState();
+  const job = store.jobs.find((j) => j.id === payload.id);
+  if (!job) return;
+
+  const prev: JobProgress = job.progress ?? { phases: [] };
+  const phases = [...prev.phases];
+  const ts = payload.ts ? Date.parse(payload.ts) || undefined : undefined;
+  const next: JobProgress = { ...prev, phases, startedAt: prev.startedAt ?? ts };
+
+  const at = (node: string): number => {
+    const i = phases.findIndex((p) => p.node === node);
+    if (i >= 0) return i;
+    phases.push({ node, status: "running" });
+    return phases.length - 1;
+  };
+  const patch = (node: string, p: Partial<PhaseProgress>) => {
+    const i = at(node);
+    phases[i] = { ...phases[i], ...p };
+  };
+
+  switch (payload.event) {
+    case "run_start":
+      next.total = payload.phases ?? next.total;
+      break;
+    case "node_start":
+      if (payload.node) patch(payload.node, { status: "running" });
+      break;
+    case "node_item":
+      // The sub-phase heartbeat. Clearing nothing else: a phase that reports
+      // items is still "running" — this only renames what it is waiting on.
+      if (payload.node) {
+        patch(payload.node, {
+          status: "running",
+          item: payload.item,
+          index: payload.index,
+          itemTotal: payload.total,
+        });
+      }
+      break;
+    case "node_done":
+      // Drop the item: a finished phase should read as the phase, not as
+      // whichever sprite happened to be last.
+      if (payload.node) patch(payload.node, { status: "done", item: undefined });
+      break;
+    case "node_failed":
+      if (payload.node) patch(payload.node, { status: "failed" });
+      break;
+    case "node_skipped":
+      if (payload.node) patch(payload.node, { status: "skipped", item: payload.reason });
+      break;
+    case "run_end":
+      next.endedAt = ts;
+      next.ok = payload.ok;
+      break;
+    default:
+      return; // an event this version doesn't model — no state change
+  }
+  store.updateJob(payload.id, { progress: next });
 }
 
 function newJobId(): string {

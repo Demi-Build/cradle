@@ -4,7 +4,7 @@
 // bundled in production — main.tsx only imports this behind the env flag.
 
 import { DB_NESTING } from "./dbNesting";
-import { handleJobEvent } from "./jobs";
+import { handleJobEvent, handleJobProgress } from "./jobs";
 import type { WorldMap } from "./invoke";
 
 type Ref = { type_id: string; id: string; name: string };
@@ -159,6 +159,15 @@ const MOCK_PLAYER_REF: Ref[] = [{ type_id: "player", id: "player", name: "Player
 
 function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unknown {
   switch (cmd) {
+    // The dialog plugin rides the same invoke bridge, so the mock has to
+    // answer it or every flow behind a file/folder picker (open a world, new
+    // project) dead-ends in the browser. Answers with a plausible path rather
+    // than a cancel, so the flow CONTINUES and stays testable.
+    case "plugin:dialog|open": {
+      const opts = (args.options ?? {}) as { directory?: boolean; multiple?: boolean };
+      const path = opts.directory ? "/mock/projects" : "mock://plat_pack";
+      return opts.multiple ? [path] : path;
+    }
     case "load_world":
       return {
         path: String(args.path ?? "mock://pack"),
@@ -335,11 +344,26 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
     case "new_project": {
       // Mock: the browser can't scaffold a real pack — hand back the demo
       // path so the open-flow works for UI testing. Real scaffold is native.
-      return {
-        pack_dir: "mock://plat_pack",
-        world: String(args.name ?? "My Platformer"),
-        seed: "mock",
-      };
+      // The step-log relay is mocked too (see simulateWorldProgress), so the
+      // create tracker is exercisable headless at a watchable speed.
+      const id = String(args.jobId ?? "");
+      const packDir = "mock://plat_pack";
+      simulateWorldRun(
+        id,
+        {
+          stages: Number(args.stages ?? 1),
+          levels: Number(args.levels ?? 2),
+          enemies: Number(args.enemies ?? 4),
+          items: Number(args.items ?? 4),
+        },
+        {
+          pack_dir: packDir,
+          world: String(args.name ?? "My Platformer"),
+          seed: "mock",
+          changed: true,
+        },
+      );
+      return { job_id: id, status: "queued", pack_dir: packDir };
     }
     case "generate_level": {
       // Mock: synthesize a draft like create_level, plus a few placements
@@ -1474,6 +1498,102 @@ function simulateJob(jobId: string | undefined, result: Record<string, unknown>)
   setTimeout(() => void handleJobEvent({ id, status: "running" }), 60);
   setTimeout(() => void handleJobEvent({ id, status: "done", result }), 320);
   return { job_id: id, status: "queued" };
+}
+
+/** The sequential platformer pipeline, in canon's run order — the mock's copy
+ *  of what `.canon/log.jsonl` reports. `per` names the sub-phase unit a phase
+ *  loops over, so the mock exercises the item line too. */
+const MOCK_PIPELINE: Array<{ node: string; per?: "levels" | "enemies" | "sprites" | "stages" }> = [
+  { node: "phase:plat:world" },
+  { node: "phase:plat:stage", per: "stages" },
+  { node: "phase:plat:style" },
+  { node: "phase:plat:enemies" },
+  { node: "phase:plat:items" },
+  { node: "phase:plat:tileset" },
+  { node: "phase:plat:layout", per: "levels" },
+  { node: "phase:plat:terrain" },
+  { node: "phase:plat:background" },
+  { node: "phase:plat:placement", per: "levels" },
+  { node: "phase:plat:item_placement", per: "levels" },
+  { node: "phase:plat:decorator" },
+  { node: "phase:plat:tileset_art", per: "stages" },
+  { node: "phase:plat:sprite_art", per: "sprites" },
+  { node: "phase:plat:sprite_animation", per: "enemies" },
+  { node: "phase:plat:backdrop_art", per: "stages" },
+  { node: "phase:plat:world_art" },
+  { node: "phase:plat:audio", per: "stages" },
+  { node: "phase:plat:render", per: "levels" },
+  { node: "phase:plat:vlm_qa", per: "levels" },
+  { node: "phase:plat:manifest" },
+];
+
+/** Simulate a whole `world new` run for the browser mock: the `job-progress`
+ *  step-log stream AND the lifecycle events, on one clock so they stay
+ *  coherent. Paced (a phase every ~260ms) so the tracker is actually
+ *  WATCHABLE headless — the native $0 run is over in three seconds, and the
+ *  case this display exists for is the paid one that takes minutes. */
+function simulateWorldRun(
+  jobId: string,
+  counts: { stages: number; levels: number; enemies: number; items: number },
+  result: Record<string, unknown>,
+): void {
+  if (!jobId) return;
+  const unit = {
+    stages: Math.max(1, counts.stages),
+    levels: Math.max(1, counts.stages * counts.levels),
+    enemies: Math.max(1, counts.enemies),
+    sprites: Math.max(1, counts.enemies + counts.items + 1),
+  };
+  const names = {
+    stages: (i: number) => `stage_${i}`,
+    levels: (i: number) => `l${i}`,
+    enemies: (i: number) => `enemy:e${i}`,
+    sprites: (i: number) => `sprite ${i}`,
+  };
+  const stamp = () => new Date().toISOString();
+  let at = 60;
+  const step = 260;
+  const fire = (fn: () => void, gap = step) => {
+    setTimeout(fn, at);
+    at += gap;
+  };
+
+  fire(() => void handleJobEvent({ id: jobId, status: "running" }), 40);
+  fire(() =>
+    handleJobProgress({
+      id: jobId,
+      ts: stamp(),
+      event: "run_start",
+      phases: MOCK_PIPELINE.length,
+    }),
+  );
+  for (const phase of MOCK_PIPELINE) {
+    fire(() =>
+      handleJobProgress({ id: jobId, ts: stamp(), event: "node_start", node: phase.node }),
+    );
+    if (phase.per) {
+      const total = unit[phase.per];
+      const label = names[phase.per];
+      for (let i = 1; i <= total; i++) {
+        fire(
+          () =>
+            handleJobProgress({
+              id: jobId,
+              ts: stamp(),
+              event: "node_item",
+              node: phase.node,
+              item: label(i),
+              index: i,
+              total,
+            }),
+          Math.max(60, step / total),
+        );
+      }
+    }
+    fire(() => handleJobProgress({ id: jobId, ts: stamp(), event: "node_done", node: phase.node }));
+  }
+  fire(() => handleJobProgress({ id: jobId, ts: stamp(), event: "run_end", ok: true }));
+  fire(() => void handleJobEvent({ id: jobId, status: "done", result }));
 }
 
 /** A plausible, backend-MASKED cost estimate for the mock — mirrors canon's

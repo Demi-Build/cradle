@@ -1964,6 +1964,176 @@
   white-space: pre-wrap;
 }
 
+/* Create-progress tracker. A generation run is minutes of nothing without it,
+   so the loud elements are the CURRENT phase, the item under it, and a clock
+   that visibly moves — the bar is the quiet one. */
+.cp {
+  margin-top: 14px;
+}
+.cp-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cp-now {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.cp-fail {
+  color: var(--err);
+}
+.cp-clock {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.cp-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 20px;
+  margin-top: 3px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--fg-muted);
+}
+.cp-item-idle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.cp-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cp-item-name.dim {
+  color: var(--fg-dim);
+}
+.cp-item-count {
+  flex: none;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+.cp-spin {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-hi);
+  border-top-color: var(--accent);
+  animation: cp-spin 0.7s linear infinite;
+}
+@keyframes cp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.cp-bar {
+  height: 6px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.cp-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.35s ease;
+}
+.cp-bar-fill.err {
+  background: var(--err);
+}
+/* No step count yet (canon hasn't reported `run_start`): sweep instead of
+   showing a 0% bar, which reads as stuck rather than as starting. */
+.cp-bar-fill.idle {
+  width: 34%;
+  animation: cp-sweep 1.5s ease-in-out infinite;
+}
+@keyframes cp-sweep {
+  0% {
+    margin-left: -34%;
+  }
+  100% {
+    margin-left: 100%;
+  }
+}
+.cp-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+.cp-paid {
+  color: var(--accent);
+}
+.cp-list {
+  max-height: 168px;
+  overflow-y: auto;
+  margin: 12px 0 0;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--border);
+  list-style: none;
+}
+.cp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+.cp-row.running {
+  color: var(--fg);
+}
+.cp-row.failed {
+  color: var(--err);
+}
+.cp-mark {
+  flex: none;
+  width: 12px;
+  text-align: center;
+  font-size: 11px;
+}
+.cp-row.done .cp-mark {
+  color: var(--ok);
+}
+.cp-row.running .cp-mark {
+  color: var(--accent);
+}
+.cp-row-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cp-row-note {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+}
+.cp-err {
+  margin-top: 10px;
+  padding: 8px 10px;
+  max-height: 132px;
+  overflow-y: auto;
+  border: 1px solid var(--err);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--err);
+  white-space: pre-wrap;
+}
+
 /* Degradation ladder. The rail is the first thing to go — the hero plus
    "All projects →" is a complete start page on its own, and a half-scrolled
    row of clipped cards is worse than none. */

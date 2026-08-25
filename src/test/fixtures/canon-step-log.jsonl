@@ -1,0 +1,64 @@
+{"ts": "2026-08-03T22:25:57.553+00:00", "event": "run_start", "scheduler": "sequential", "seed": "cradle-ef31765d", "phases": 21}
+{"ts": "2026-08-03T22:25:57.553+00:00", "event": "node_start", "node": "phase:plat:world"}
+{"ts": "2026-08-03T22:25:57.554+00:00", "event": "node_done", "node": "phase:plat:world"}
+{"ts": "2026-08-03T22:25:57.554+00:00", "event": "node_start", "node": "phase:plat:stage"}
+{"ts": "2026-08-03T22:25:57.555+00:00", "event": "node_done", "node": "phase:plat:stage"}
+{"ts": "2026-08-03T22:25:57.555+00:00", "event": "node_start", "node": "phase:plat:style"}
+{"ts": "2026-08-03T22:25:57.555+00:00", "event": "node_done", "node": "phase:plat:style"}
+{"ts": "2026-08-03T22:25:57.555+00:00", "event": "node_start", "node": "phase:plat:enemies"}
+{"ts": "2026-08-03T22:25:57.557+00:00", "event": "node_done", "node": "phase:plat:enemies"}
+{"ts": "2026-08-03T22:25:57.557+00:00", "event": "node_start", "node": "phase:plat:items"}
+{"ts": "2026-08-03T22:25:57.557+00:00", "event": "node_done", "node": "phase:plat:items"}
+{"ts": "2026-08-03T22:25:57.557+00:00", "event": "node_start", "node": "phase:plat:tileset"}
+{"ts": "2026-08-03T22:25:57.594+00:00", "event": "node_done", "node": "phase:plat:tileset"}
+{"ts": "2026-08-03T22:25:57.594+00:00", "event": "node_start", "node": "phase:plat:layout"}
+{"ts": "2026-08-03T22:25:57.594+00:00", "event": "node_item", "node": "phase:plat:layout", "item": "l1", "index": 1, "total": 2}
+{"ts": "2026-08-03T22:25:57.723+00:00", "event": "node_item", "node": "phase:plat:layout", "item": "l2", "index": 2, "total": 2}
+{"ts": "2026-08-03T22:25:58.340+00:00", "event": "node_done", "node": "phase:plat:layout"}
+{"ts": "2026-08-03T22:25:58.340+00:00", "event": "node_start", "node": "phase:plat:terrain"}
+{"ts": "2026-08-03T22:25:58.342+00:00", "event": "node_done", "node": "phase:plat:terrain"}
+{"ts": "2026-08-03T22:25:58.342+00:00", "event": "node_start", "node": "phase:plat:background"}
+{"ts": "2026-08-03T22:25:58.342+00:00", "event": "node_done", "node": "phase:plat:background"}
+{"ts": "2026-08-03T22:25:58.342+00:00", "event": "node_start", "node": "phase:plat:placement"}
+{"ts": "2026-08-03T22:25:58.347+00:00", "event": "node_done", "node": "phase:plat:placement"}
+{"ts": "2026-08-03T22:25:58.347+00:00", "event": "node_start", "node": "phase:plat:item_placement"}
+{"ts": "2026-08-03T22:25:59.199+00:00", "event": "node_done", "node": "phase:plat:item_placement"}
+{"ts": "2026-08-03T22:25:59.199+00:00", "event": "node_start", "node": "phase:plat:decorator"}
+{"ts": "2026-08-03T22:25:59.200+00:00", "event": "node_done", "node": "phase:plat:decorator"}
+{"ts": "2026-08-03T22:25:59.200+00:00", "event": "node_start", "node": "phase:plat:tileset_art"}
+{"ts": "2026-08-03T22:25:59.200+00:00", "event": "node_item", "node": "phase:plat:tileset_art", "item": "ashen_depths", "index": 1, "total": 1}
+{"ts": "2026-08-03T22:25:59.206+00:00", "event": "node_done", "node": "phase:plat:tileset_art"}
+{"ts": "2026-08-03T22:25:59.206+00:00", "event": "node_start", "node": "phase:plat:sprite_art"}
+{"ts": "2026-08-03T22:25:59.206+00:00", "event": "node_item", "node": "phase:plat:sprite_art", "item": "Cinder Beetle", "index": 1, "total": 10}
+{"ts": "2026-08-03T22:25:59.206+00:00", "event": "node_item", "node": "phase:plat:sprite_art", "item": "Ash Wraith", "index": 2, "total": 10}
+{"ts": "2026-08-03T22:25:59.207+00:00", "event": "node_item", "node": "phase:plat:sprite_art", "item": "Slag Sentry", "index": 3, "total": 10}
+{"ts": "2026-08-03T22:25:59.207+00:00", "event": "node_item", "node": "phase:plat:sprite_art", "item": "Ember Token", "index": 4, "total": 10}
+{"ts": "2026-08-03T22:25:59.207+00:00", "event": "node_item", "node": "phase:plat:sprite_art", "item": "Kindling Heart", "index": 5, "total": 10}
+{"ts": "2026-08-03T22:25:59.207+00:00", "event": "node_item", "node": "phase:plat:sprite_art", "item": "the player", "index": 6, "total": 10}
+{"ts": "2026-08-03T22:25:59.207+00:00", "event": "node_item", "node": "phase:plat:sprite_art", "item": "checkpoint prop", "index": 7, "total": 10}
+{"ts": "2026-08-03T22:25:59.207+00:00", "event": "node_item", "node": "phase:plat:sprite_art", "item": "dust prop", "index": 8, "total": 10}
+{"ts": "2026-08-03T22:25:59.207+00:00", "event": "node_item", "node": "phase:plat:sprite_art", "item": "splash prop", "index": 9, "total": 10}
+{"ts": "2026-08-03T22:25:59.208+00:00", "event": "node_item", "node": "phase:plat:sprite_art", "item": "sparkle prop", "index": 10, "total": 10}
+{"ts": "2026-08-03T22:25:59.208+00:00", "event": "node_done", "node": "phase:plat:sprite_art"}
+{"ts": "2026-08-03T22:25:59.208+00:00", "event": "node_start", "node": "phase:plat:sprite_animation"}
+{"ts": "2026-08-03T22:25:59.208+00:00", "event": "node_done", "node": "phase:plat:sprite_animation"}
+{"ts": "2026-08-03T22:25:59.208+00:00", "event": "node_start", "node": "phase:plat:backdrop_art"}
+{"ts": "2026-08-03T22:25:59.208+00:00", "event": "node_item", "node": "phase:plat:backdrop_art", "item": "ashen_depths", "index": 1, "total": 1}
+{"ts": "2026-08-03T22:25:59.209+00:00", "event": "node_done", "node": "phase:plat:backdrop_art"}
+{"ts": "2026-08-03T22:25:59.209+00:00", "event": "node_start", "node": "phase:plat:world_art"}
+{"ts": "2026-08-03T22:25:59.209+00:00", "event": "node_item", "node": "phase:plat:world_art", "item": "Emberfall Hollows", "index": 1, "total": 1}
+{"ts": "2026-08-03T22:25:59.209+00:00", "event": "node_done", "node": "phase:plat:world_art"}
+{"ts": "2026-08-03T22:25:59.209+00:00", "event": "node_start", "node": "phase:plat:audio"}
+{"ts": "2026-08-03T22:25:59.209+00:00", "event": "node_item", "node": "phase:plat:audio", "item": "ashen_depths · music"}
+{"ts": "2026-08-03T22:25:59.209+00:00", "event": "node_item", "node": "phase:plat:audio", "item": "ashen_depths · sfx jump"}
+{"ts": "2026-08-03T22:25:59.210+00:00", "event": "node_item", "node": "phase:plat:audio", "item": "ashen_depths · sfx checkpoint"}
+{"ts": "2026-08-03T22:25:59.210+00:00", "event": "node_item", "node": "phase:plat:audio", "item": "ashen_depths · sfx death"}
+{"ts": "2026-08-03T22:25:59.210+00:00", "event": "node_item", "node": "phase:plat:audio", "item": "ashen_depths · sfx win"}
+{"ts": "2026-08-03T22:25:59.210+00:00", "event": "node_done", "node": "phase:plat:audio"}
+{"ts": "2026-08-03T22:25:59.210+00:00", "event": "node_start", "node": "phase:plat:render"}
+{"ts": "2026-08-03T22:25:59.244+00:00", "event": "node_done", "node": "phase:plat:render"}
+{"ts": "2026-08-03T22:25:59.244+00:00", "event": "node_start", "node": "phase:plat:vlm_qa"}
+{"ts": "2026-08-03T22:25:59.244+00:00", "event": "node_done", "node": "phase:plat:vlm_qa"}
+{"ts": "2026-08-03T22:25:59.244+00:00", "event": "node_start", "node": "phase:plat:manifest"}
+{"ts": "2026-08-03T22:25:59.245+00:00", "event": "node_done", "node": "phase:plat:manifest"}
+{"ts": "2026-08-03T22:25:59.245+00:00", "event": "run_end", "scheduler": "sequential", "ok": true}

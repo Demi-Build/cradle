@@ -14,9 +14,15 @@ struct AppState {
 /// fully-built canon CLI vector (env-file already appended for paid ops); `id`
 /// is a frontend-generated uuid so `job-updated` events correlate to the
 /// in-memory job holding the tray metadata.
+///
+/// `progress_root` is the pack the job writes into, when the job is long
+/// enough to deserve a live display: canon's pipeline appends structured
+/// events to `<root>/.canon/log.jsonl` as it runs, and the worker relays new
+/// lines as `job-progress` while the job is in flight.
 struct QueuedJob {
     id: String,
     args: Vec<String>,
+    progress_root: Option<PathBuf>,
 }
 
 /// Serial job queue: gen commands push here and return immediately so the UI
@@ -210,12 +216,22 @@ fn sandbox_level(path: String) -> Result<Value, String> {
     run_canon(&["level", "sandbox", &root, "--actor", "cradle:user"])
 }
 
-/// Scaffold a fresh platformer project via `canon world new` (the fake
-/// pipeline — $0, no API keys), returning the created pack path for the
-/// frontend to open. The pack dir is `<parent>/<slug(name)>`.
+/// Scaffold a fresh platformer project via `canon world new`, returning the
+/// pack path (`<parent>/<slug(name)>`) and a job id IMMEDIATELY — the run
+/// itself happens on the job worker.
+///
+/// This used to run inline. A `#[tauri::command]` on a plain `fn` is a
+/// BLOCKING command: Tauri runs it on the main thread, so a fully-paid world
+/// (minutes of art, animation and audio) froze the whole app — no repaint, no
+/// progress, indistinguishable from a crash. Every other paid verb here was
+/// already on the queue; this was the one that wasn't. It watches the new
+/// pack's step log, so the caller gets `job-progress` for the whole run.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 fn new_project(
+    app: AppHandle,
+    queue: State<'_, JobQueue>,
+    job_id: String,
     parent_dir: String,
     name: String,
     stages: Option<u32>,
@@ -285,7 +301,16 @@ fn new_project(
         args.push(b);
     }
     // Paid backends read their keys from CANON_ENV_FILE (harmless when fake).
-    run_canon_owned(with_env_file(args))
+    let mut ack = enqueue_watching(&app, &queue, job_id, with_env_file(args), Some(out.clone()))?;
+    // The pack dir rides along on the ack: the frontend needs it to open the
+    // world when the job lands, and only this function knows the slug rule.
+    if let Value::Object(map) = &mut ack {
+        map.insert(
+            "pack_dir".into(),
+            Value::String(out.to_string_lossy().into_owned()),
+        );
+    }
+    Ok(ack)
 }
 
 /// Regenerate an existing level's layout in place via `canon level regenerate`
@@ -721,6 +746,18 @@ fn enqueue(
     id: String,
     args: Vec<String>,
 ) -> Result<Value, String> {
+    enqueue_watching(app, queue, id, args, None)
+}
+
+/// `enqueue`, plus the pack whose `.canon/log.jsonl` the worker should relay
+/// as `job-progress` while this job runs.
+fn enqueue_watching(
+    app: &AppHandle,
+    queue: &JobQueue,
+    id: String,
+    args: Vec<String>,
+    progress_root: Option<PathBuf>,
+) -> Result<Value, String> {
     queue
         .tx
         .lock()
@@ -728,6 +765,7 @@ fn enqueue(
         .send(QueuedJob {
             id: id.clone(),
             args,
+            progress_root,
         })
         .map_err(|e| format!("job worker is gone: {e}"))?;
     let _ = app.emit(
@@ -747,7 +785,23 @@ fn run_job_worker(app: AppHandle, rx: std::sync::mpsc::Receiver<QueuedJob>) {
             "job-updated",
             serde_json::json!({ "id": job.id, "status": "running" }),
         );
-        let payload = match run_canon_owned(job.args) {
+        let result = match job.progress_root {
+            // Short job: run it inline, exactly as before.
+            None => run_canon_owned(job.args),
+            // Long job: run canon on a nested thread so THIS thread stays free
+            // to relay the step log. The queue is still serial — the worker
+            // blocks on the join below, it just does something useful while
+            // it waits.
+            Some(root) => {
+                let id = job.id.clone();
+                let child = std::thread::spawn(move || run_canon_owned(job.args));
+                relay_step_log(&app, &id, &root, &child);
+                child
+                    .join()
+                    .unwrap_or_else(|_| Err("generation thread panicked".to_string()))
+            }
+        };
+        let payload = match result {
             Ok(result) => {
                 serde_json::json!({ "id": job.id, "status": "done", "result": result })
             }
@@ -756,6 +810,107 @@ fn run_job_worker(app: AppHandle, rx: std::sync::mpsc::Receiver<QueuedJob>) {
             }
         };
         let _ = app.emit("job-updated", payload);
+    }
+}
+
+/// How often the worker re-reads the step log while a job runs. Fast enough
+/// that a phase boundary shows up as immediate, slow enough to be free.
+const PROGRESS_POLL: std::time::Duration = std::time::Duration::from_millis(400);
+
+/// Relay `<root>/.canon/log.jsonl` as `job-progress` events until `child`
+/// finishes, then relay whatever it wrote last.
+///
+/// Polling a file rather than watching it: the log is append-only JSONL
+/// written by a subprocess we already own the lifetime of, so there is no
+/// missed-event window a watcher would close — and it keeps the dependency
+/// list where it is. Every emitted payload is one raw canon event plus the
+/// job id; naming phases is the frontend's job, not this one's.
+fn relay_step_log(
+    app: &AppHandle,
+    job_id: &str,
+    root: &std::path::Path,
+    child: &std::thread::JoinHandle<Result<Value, String>>,
+) {
+    let log = root.join(".canon").join("log.jsonl");
+    let mut sent = 0usize; // whole lines already relayed
+    loop {
+        let finished = child.is_finished();
+        if let Ok(text) = std::fs::read_to_string(&log) {
+            let (fresh, seen) = unsent_lines(&text, sent);
+            for line in fresh {
+                if let Ok(Value::Object(mut event)) = serde_json::from_str::<Value>(line) {
+                    event.insert("id".into(), Value::String(job_id.to_string()));
+                    let _ = app.emit("job-progress", Value::Object(event));
+                }
+            }
+            sent = seen;
+        }
+        if finished {
+            return; // one final read happened above, AFTER is_finished
+        }
+        std::thread::sleep(PROGRESS_POLL);
+    }
+}
+
+/// The COMPLETE lines of `text` past the first `sent`, plus the new total.
+///
+/// Split out because it is the only fiddly part of the relay: we read a file
+/// mid-write, so the last line may be a half-flushed record. Emitting it would
+/// hand the UI a truncated JSON object and then never re-send the real one, so
+/// a trailing partial is deliberately left for the next tick.
+fn unsent_lines(text: &str, sent: usize) -> (Vec<&str>, usize) {
+    let lines: Vec<&str> = text.lines().collect();
+    let complete = if text.ends_with('\n') {
+        lines.len()
+    } else {
+        lines.len().saturating_sub(1)
+    };
+    let fresh = lines
+        .into_iter()
+        .take(complete)
+        .skip(sent.min(complete))
+        .collect();
+    (fresh, complete.max(sent))
+}
+
+#[cfg(test)]
+mod step_log_tests {
+    use super::unsent_lines;
+
+    #[test]
+    fn emits_each_whole_line_exactly_once_across_polls() {
+        let mut sent = 0;
+        let (fresh, seen) = unsent_lines("a\nb\n", sent);
+        assert_eq!(fresh, vec!["a", "b"]);
+        sent = seen;
+        // Same content next tick (canon wrote nothing) — nothing re-sent.
+        let (fresh, seen) = unsent_lines("a\nb\n", sent);
+        assert!(fresh.is_empty());
+        sent = seen;
+        let (fresh, _) = unsent_lines("a\nb\nc\n", sent);
+        assert_eq!(fresh, vec!["c"]);
+    }
+
+    #[test]
+    fn holds_a_half_written_line_until_its_newline_lands() {
+        // The file is read WHILE canon appends: emitting "cc" here would ship
+        // truncated JSON and then never ship the real record.
+        let (fresh, seen) = unsent_lines("a\nb\ncc", 0);
+        assert_eq!(fresh, vec!["a", "b"]);
+        assert_eq!(seen, 2);
+        let (fresh, _) = unsent_lines("a\nb\nccc\n", seen);
+        assert_eq!(fresh, vec!["ccc"]);
+    }
+
+    #[test]
+    fn survives_an_empty_or_truncated_file() {
+        assert_eq!(unsent_lines("", 0), (vec![], 0));
+        assert_eq!(unsent_lines("partial", 0), (vec![], 0));
+        // A file that somehow SHRANK never rewinds the counter, so a stale
+        // read can't replay events the UI already folded in.
+        let (fresh, seen) = unsent_lines("a\n", 5);
+        assert!(fresh.is_empty());
+        assert_eq!(seen, 5);
     }
 }
 

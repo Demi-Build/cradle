@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b; --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55;
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;color:var(--fg)}
+*{box-sizing:border-box}
+a{color:var(--fg);text-decoration:none}
+a:hover{color:var(--accent)}
+</style>
+</helmet>
+
+<div data-screen-label="Index" style="max-width:1120px;margin:0 auto;padding:40px 32px 56px">
+
+  <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">cradle · phase 2 handoff</div>
+  <h1 style="margin:6px 0 8px;font-size:28px;font-weight:600;letter-spacing:-.015em">Sandbox Stages</h1>
+  <p style="margin:0;max-width:640px;font-size:13px;color:var(--fg-muted);line-height:1.6;text-wrap:pretty">Twelve surfaces and seven processes, split into the two halves of the product: the <strong style="color:var(--fg);font-weight:600">editors</strong>, where content is designed and generated, and the <strong style="color:var(--fg);font-weight:600">sandbox</strong>, where it is tuned and played. Every board is drawn at 1440 with the agent panel where it actually sits, in both themes across the set. Building from this? Start at <a href="./HANDOFF.md" style="color:var(--accent)">HANDOFF.md</a>. The interaction spec is in <a href="./README.md" style="color:var(--accent)">README.md</a>; the implementation map in <a href="./PLAN.md" style="color:var(--accent)">PLAN.md</a>.</p>
+
+  <div style="display:flex;gap:7px;margin:18px 0 26px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:99px;border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));background:oklch(72% .14 45/.1);color:var(--warn)">1 verdict to settle · traversal contexts</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">5 open questions in the README</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">no new tokens</span>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:10px">authoring · where things are made</div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:30px">
+
+    <a href="./09 Character editor.dc.html" style="border:1.5px solid var(--accent);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">G</span><span style="font-size:13px;font-weight:600">Character editor</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · panel 412</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Where a character is designed and generated: on-page composer for gaps and redos with one estimate, live job panel, the locked anchor, states, expressions, skins. Start here.</p>
+    </a>
+
+    <a href="./10 Animation tab.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">H</span><span style="font-size:13px;font-weight:600">Animation tab</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · rail 40</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">The Phase 1 tab with Phase 2 additions marked: in-level playback against the tuned arc, offset nudge pad, timing, and the physics link that explains why the loop holds.</p>
+    </a>
+
+    <a href="./11 AnimateModal.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">I</span><span style="font-size:13px;font-weight:600">AnimateModal</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · 3 states</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">One state, with guidance: compose → running → compare and keep, side by side. Includes "Keep none" and the run-in-background escape.</p>
+    </a>
+
+    <a href="./12 3D anchor.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">J</span><span style="font-size:13px;font-weight:600">3D anchor &amp; blockout</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">light · panel 372</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Editable box blockout in sprite pixels, pose library, four-angle render, generate-from-pose. Rigging, texturing and 3D timelines are disabled with reasons.</p>
+    </a>
+
+    <a href="./13 History.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">K</span><span style="font-size:13px;font-weight:600">History &amp; lineage</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · panel 372</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Every write as a version: hand edits marked, band widens their own row, paused cascade resumable, provenance chain and downstream impact.</p>
+    </a>
+
+    <a href="./14 Command palette.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">L</span><span style="font-size:13px;font-weight:600">Command palette</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · 2 states</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Every Phase 2 entry, with estimates in the row and unavailable entries listed with their reason. One query returning keys, states, actions and history.</p>
+    </a>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:10px">sandbox · where things are tuned and played</div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:30px">
+
+    <a href="./16 Sandbox place and adjust.dc.html" style="border:1.5px solid var(--accent);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">N</span><span style="font-size:13px;font-weight:600">Sandbox · place &amp; adjust</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · panel 372</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">The shape of every testing screen: Add (what a level can contain) → Place (armed thing + variants) → Adjust (three knobs, everything behind Advanced). Nothing here generates or costs money.</p>
+    </a>
+
+    <a href="./20 Moodboards.dc.html" style="border:1.5px solid var(--accent);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">R</span><span style="font-size:13px;font-weight:600">Moodboards · references</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · panel 372</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">One home for uploads, kept generations, pack assets and tone notes. On a board is curation; steering generation is a separate switch, scoped per kind — art, levels, music, SFX, story. Each surface names its active board.</p>
+    </a>
+
+    <a href="./19 SFX editor.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">Q</span><span style="font-size:13px;font-weight:600">SFX editor</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · panel 372</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">A sound as an asset: trim and envelope, a variant set the engine rotates, record / import / vary as starting points, and the list of frames, events and places that fire it. Carries the in-place popover spec.</p>
+    </a>
+
+    <a href="./18 Music editor.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">P</span><span style="font-size:13px;font-weight:600">Music editor</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · panel 372</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">A track as a first-class asset, same shape as a character: sections the engine can cut between, variants that stay in key, generation with in-place audition, and the levels it is used in.</p>
+    </a>
+
+    <a href="./17 Audio.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">O</span><span style="font-size:13px;font-weight:600">Audio · music &amp; SFX</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · dock panes</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Two timelines: music along the level's cells (regions are the level's music zones, playhead follows the player), SFX pinned to a state's frames so a footstep moves with the animation instead of desyncing.</p>
+    </a>
+
+    <a href="./15 Generation routing.dc.html" style="border:1.5px solid var(--accent);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">M</span><span style="font-size:13px;font-weight:600">Generation routing</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">the rule, not a screen</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Many doors, four destinations: Composer, Animate, Audio, Layout. Which door routes where, for image / animation / audio / level — including the agent and ⌘K. Read this before the screens.</p>
+    </a>
+
+    <a href="./01 Character mode - flat.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">A</span><span style="font-size:13px;font-weight:600">Character mode · flat</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · panel 412</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Feel tuning against a live session: bands, level overrides, derived jump arc, advisory code-owned keys, the Apply boundary. Titlebar cycles the five session states.</p>
+    </a>
+
+    <a href="./02 Character mode - traversal.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">A2</span><span style="font-size:13px;font-weight:600">Character mode · traversal</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">light · rail 40</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">The concept board: knobs grouped by locomotion context, water's volume trio, Climb and Glide disabled with reasons. Carries the recommendation.</p>
+    </a>
+
+    <a href="./03 Zone painting.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">B</span><span style="font-size:13px;font-weight:600">Zone painting</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · panel 412</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Typed rectangles on the grid, payload editor in the Dock tray, z-order conflicts as warnings, and the music-region migration.</p>
+    </a>
+
+    <a href="./04 Pixel editor - sprite.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">C1</span><span style="font-size:13px;font-weight:600">Pixel editor · sprite</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · rail 40</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Frame-aware editing on the Animation tab's own selector and filmstrip, palette roles with off-palette metering, onion skin, and the handoff banner from Animate.</p>
+    </a>
+
+    <a href="./05 Pixel editor - tileset and joins.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">C2</span><span style="font-size:13px;font-weight:600">Pixel editor · tileset &amp; joins</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">light · panel 412</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Frozen slot bounds, the autotile variant grid with shared-base editing, and the four-step join workflow with its estimate gate.</p>
+    </a>
+
+    <a href="./06 Dialogue live scene.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">D</span><span style="font-size:13px;font-weight:600">Dialogue live scene</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · rail 40</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">The tester driving a running session: live viewport as a window, sync state and re-inject, mood portraits per line.</p>
+    </a>
+
+    <a href="./07 Session controls.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">E</span><span style="font-size:13px;font-weight:600">Play-session controls</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">light</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">The TopBar chip and registry popover, all five chip states side by side, primary-engine demotion, and the latency contract written down.</p>
+    </a>
+
+    <a href="./08 Asset library.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--accent)">F</span><span style="font-size:13px;font-weight:600">Asset library</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">dark · panel 412</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Bundles as the unit, and the import that adapts a character into this pack's palette before you confirm, with provenance stamped.</p>
+    </a>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:10px">process boards · three lanes, one clock</div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+
+    <a href="./P8-flow-boss-from-parts.dc.html" style="border:1.5px solid var(--accent);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--special)">P8</span><span style="font-size:13px;font-weight:600">A boss from parts</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">References → three enemies → a spliced boss → its attack sounds → its area theme. One lineage carried through four destinations, nothing retyped. The flow that proves the moodboard earns its place.</p>
+    </a>
+
+    <a href="./P1-flow-swimlanes.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--special)">P1</span><span style="font-size:13px;font-weight:600">Character creation &amp; consistency</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Describe → anchor tier → lock → batch states and moods → QA → hand-tune → skins and re-anchor. Seven steps, $0.60–$2.40.</p>
+    </a>
+
+    <a href="./P2-flow-guided-animation.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--special)">P2</span><span style="font-size:13px;font-weight:600">Guided animation generation</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Motion spec, your own frames, or another asset as guidance; three candidates compared at real fps; per-frame nudge into PixEd.</p>
+    </a>
+
+    <a href="./P3-flow-recolour-reskin.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--special)">P3</span><span style="font-size:13px;font-weight:600">Region recolour &amp; reskin</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Select by palette role, remap with ramps intact, preview across every frame, save as a skin or a new character. Free.</p>
+    </a>
+
+    <a href="./P4-flow-tileset-joins.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--special)">P4</span><span style="font-size:13px;font-weight:600">Tileset joins</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Repetition overlay → pick cases → generate → hand-edit with seam guides → approve, and the level canvas closes the loop.</p>
+    </a>
+
+    <a href="./P5-flow-cascade.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--special)">P5</span><span style="font-size:13px;font-weight:600">The cascade moment</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Needs-review as a state, the plan card with a blast-radius rollup, per-step confirm, and a plan you can pause halfway.</p>
+    </a>
+
+    <a href="./P6-flow-expression-sheets.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--special)">P6</span><span style="font-size:13px;font-weight:600">Expression sheets for dialogue</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Mood enum → batch portraits → QA the six as one face → assign per line → watch it in the live scene.</p>
+    </a>
+
+    <a href="./P7-flow-library-reuse.dc.html" style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--special)">P7</span><span style="font-size:13px;font-weight:600">Library reuse</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Publish a bundle, browse it from another pack, import with palette adaptation, and keep the provenance trail.</p>
+    </a>
+
+    <a href="./P1-flow-storyboard.dc.html" style="border:1px dashed var(--border-hi);border-radius:var(--radius);background:transparent;padding:12px 13px;display:block">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">alt</span><span style="font-size:13px;font-weight:600;color:var(--fg-muted)">P1 as a step storyboard</span></div>
+      <p style="margin:0;font-size:11.5px;color:var(--fg-dim);line-height:1.55">The board style not adopted, kept for the record. Same content as P1, read as seven panels of real UI instead of three lanes.</p>
+    </a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1120,&quot;height&quot;:900}}"></script>
+</body>
+</html>

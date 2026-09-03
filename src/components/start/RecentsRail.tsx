@@ -5,6 +5,7 @@ import { useStore } from "../../store";
 import { Icon } from "./Icons";
 import { RecentTile } from "./RecentTile";
 import { DeleteProjectDialog } from "./DeleteProjectDialog";
+import { LiveProjectCard } from "./LiveProjectCard";
 
 /** How many projects the start-page rail shows before deferring to the
  *  projects page. Ten is two comfortable flicks; beyond that the rail stops
@@ -16,12 +17,20 @@ export function RecentsRail({
   excludePath,
   onOpenRecent,
   onAddNew,
+  onOpenFromDisk,
 }: {
   recents: RecentProject[];
   /** Path of the project shown in the hero — excluded so it isn't listed twice. */
   excludePath?: string;
   onOpenRecent: (path: string) => void;
+  /** The dashed first card of the design's grid: **New project** — it opens
+   *  the create modal (design README, "Recents": "First cell is the dashed
+   *  New project card"). Row P0-10 fixed the papercut W2 named: it used to be
+   *  wired to the folder picker, so the one tile a new user reaches for
+   *  demanded a project they did not have yet. */
   onAddNew: () => void;
+  /** "Open another…" — the folder picker, still reachable from the header. */
+  onOpenFromDisk?: () => void;
 }) {
   const setRoute = useStore((s) => s.setRoute);
   const toggleHidden = useStore((s) => s.toggleRecentHidden);
@@ -101,6 +110,10 @@ export function RecentsRail({
       </section>
 
       <div className="recents-scroller" ref={scrollerRef}>
+        {/* Row A9: while the start-page conversation is creating a project,
+            its live card leads the rail with the same step counter the panel
+            shows. It renders nothing when nothing is being created. */}
+        <LiveProjectCard />
         {visible.map((r) => (
           <RecentTile
             key={r.path}
@@ -124,13 +137,26 @@ export function RecentsRail({
             onDelete={() => setDeleting(r)}
           />
         ))}
-        <button className="recent-tile add" onClick={onAddNew}>
+        <button className="recent-tile add" onClick={onAddNew} data-testid="recents-add">
           <div className="add-stack">
             <Icon id="g-plus" size={18} />
-            <span>Open world from disk</span>
-            <span className="kbd">{kbd("O")}</span>
+            <span>New project</span>
+            <span className="kbd">{kbd("N")}</span>
           </div>
         </button>
+        {onOpenFromDisk && (
+          <button
+            className="recent-tile add"
+            onClick={onOpenFromDisk}
+            data-testid="recents-open-disk"
+          >
+            <div className="add-stack">
+              <Icon id="g-plus" size={18} />
+              <span>Open world from disk</span>
+              <span className="kbd">{kbd("O")}</span>
+            </div>
+          </button>
+        )}
       </div>
 
       {deleting && (

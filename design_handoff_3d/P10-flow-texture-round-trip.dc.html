@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55;--cta-bg:#f3efe3;--cta-fg:#15171c}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a;--cta-bg:#1a1916;--cta-fg:#f7f6f2}
+html,body{margin:0;padding:0}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button{font-family:inherit}
+</style>
+</helmet>
+
+<div data-theme="{{ theme }}" data-screen-label="P10 · texture round-trip" style="min-width:1440px;padding:26px 30px 34px;background:var(--bg);color:var(--fg)">
+  <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:14px">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">flow board · P10</div>
+      <h1 style="margin:4px 0 0;font-size:21px;font-weight:600;letter-spacing:-.01em">Texture round-trip</h1>
+    </div>
+    <div style="flex:1"></div>
+    <p style="margin:0;max-width:580px;font-size:11.5px;color:var(--fg-muted);line-height:1.55;text-wrap:pretty">Painting a texture is a PNG job, so PixEd does it — with the palette roles and QA chips it already enforces on sprites. Unwrapping is not a PixEd feature; it is one tier-2 operation that happens first. The payoff is at the end: renders pick the texture up, so conditioning images finally carry the character's colours.</p>
+    <button onClick="{{ toggleTheme }}" style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);background:transparent;color:var(--fg-dim);cursor:pointer">theme</button>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">trigger: the flat-grey mesh reads as nobody</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));background:oklch(68% .13 150/.1);color:var(--ok)">free end to end</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">the texture is never shipped art — the sprite sheet is</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:100px repeat(5,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+    <div style="background:var(--bg-sunken);padding:8px 10px"></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1</div><div style="font-size:11.5px;font-weight:600">Unwrap · tier 2 op</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">2</div><div style="font-size:11.5px;font-weight:600">Open the PNG in PixEd</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3</div><div style="font-size:11.5px;font-weight:600">Paint with palette roles</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4</div><div style="font-size:11.5px;font-weight:600">QA chips clear</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">5</div><div style="font-size:11.5px;font-weight:600">Renders pick it up</div></div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)">user</span><span style="font-size:10.5px;color:var(--fg-dim)">paints, judges</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Runs <span style="font-family:var(--mono);font-size:10.5px">Smart UV unwrap</span> from the op list and accepts the result — 9 islands, named after the vertex groups.</p>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:6px 7px;font-family:var(--mono);font-size:10px;color:var(--fg-muted);line-height:1.6"><div>islands · 9</div><div>margin · 4 px</div><div>overlap · none</div></div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Opens <span style="font-family:var(--mono);font-size:10.5px">basecolour.png</span> in PixEd. Same tools, same palette, same shortcuts as a sprite — the mesh sits beside the canvas.</p>
+      <div style="display:flex;gap:4px"><div style="flex:1;height:44px;border:1px solid var(--border-hi);border-radius:3px;background:var(--bg-sunken)"></div><div style="flex:1;height:44px;border:1px solid var(--border-hi);border-radius:3px;background:var(--bg-sunken)"></div></div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Clicks the coat on the mesh; PixEd jumps to that island. Paints base, shade, light, accent by role key.</p>
+      <div style="display:flex;gap:3px">
+        <span style="width:16px;height:16px;border-radius:2px;background:#6d5f4b;border:1px solid var(--border-hi)"></span>
+        <span style="width:16px;height:16px;border-radius:2px;background:#4a4034;border:1px solid var(--border-hi)"></span>
+        <span style="width:16px;height:16px;border-radius:2px;background:#a08b6a;border:1px solid var(--border-hi)"></span>
+        <span style="width:16px;height:16px;border-radius:2px;background:#c9743a;border:1px solid var(--border-hi)"></span>
+        <span style="width:16px;height:16px;border-radius:2px;background:#2b2b30;border:1px solid var(--border-hi)"></span>
+      </div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Fixes the one seam bleed the chip caught, then saves. The uneven-outline warning they choose to live with.</p>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-muted)"><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--ok);color:var(--ok)">ok</span><span>palette 6/6 on-pack</span></div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-muted)"><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--ok);color:var(--ok)">ok</span><span>seam bleed 1 → 0</span></div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-dim)"><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--warn);color:var(--warn)">kept</span><span>outline weight uneven</span></div>
+      </div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Re-renders the four angles and the idle clip. The conditioning images now look like the heron instead of like a mannequin.</p>
+      <div style="display:flex;gap:4px"><div style="flex:1;height:40px;border:1px solid var(--border-hi);border-radius:3px;background:#6d5f4b"></div><div style="flex:1;height:40px;border:1px solid var(--border-hi);border-radius:3px;background:#635745"></div><div style="flex:1;height:40px;border:1px solid var(--border-hi);border-radius:3px;background:#a08b6a"></div><div style="flex:1;height:40px;border:1px solid var(--border-hi);border-radius:3px;background:#4a4034"></div></div>
+    </div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info)">cradle<br />+ agent</span><span style="font-size:10.5px;color:var(--fg-dim)">does the work</span></div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">mesh_smith unwraps headlessly and returns the usual before/after card: island count, packing efficiency, overlap check, and the PNG it produced. Island names come from the rig's vertex groups, so the texture is navigable rather than abstract.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Registers the PNG as an asset of the character and opens it in PixEd with the pack palette bound and island outlines drawn as a non-painting overlay. A live on-mesh preview sits in the right rail.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Maps clicks both ways: mesh surface → island focus, and alt-click on the canvas → the mesh spins to show that patch. The preview material updates on every stroke; no bake step, no apply button.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Runs the same QA family as sprite work: off-palette pixels, uncovered islands, pixels bleeding across seams, outline weight consistency. Chips report; they never block a save.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Marks existing renders <span style="font-family:var(--mono);font-size:10px;color:var(--warn)">NR</span> because their conditioning image changed, and leaves them usable. Re-rendering is free, so the nudge is cheap to act on. Geometry did not change, so clips and poses are untouched.</div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn)">spend</span><span style="font-size:10.5px;color:var(--fg-dim)">&amp; QA gates</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">conversation tokens</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Gate: no overlapping islands, margin ≥ 2 px, every face assigned.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">PixEd is local. Nothing about painting is metered.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">⌘Z pre-save, as in every PixEd surface. Save is the commit verb here.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">A warning you decide to keep stays visible rather than being dismissed away.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free · then optional</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Renders are ours. Regenerating sprites from the better renders is the only paid step, and only if you want it.</span></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px">
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px">
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:5px">why PixEd and not a 3D paint tool</div>
+      <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.5">Projection painting on a mesh is Blender's territory and a poor use of our build. A texture atlas is a PNG with regions, and PixEd's palette discipline and QA are exactly what keeps a hand-painted atlas consistent with the sprite sheets it will condition.</p>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px">
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:5px">if the mesh is re-unwrapped later</div>
+      <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.5">A new unwrap invalidates the atlas layout, so the op card says so before it runs and offers to keep the old PNG as a version. That is the one case where a tier-2 op can cost you painting work, and it is stated on the button. <a href="#">P12 →</a></p>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1500,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme: "light" };
+  renderVals() {
+    return {
+      theme: this.state.theme,
+      toggleTheme: () => this.setState((p) => ({ theme: p.theme === "dark" ? "light" : "dark" })),
+    };
+  }
+}
+</script>
+</body>
+</html>

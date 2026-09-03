@@ -1,0 +1,10 @@
+The vendored Python runtime lands here (row P0-11).
+
+`scripts/fetch-runtime.sh` writes one directory per target triple —
+`<triple>/python/…` — and `bundle.resources` in tauri.conf.json ships the
+whole tree as the app's `runtime` resource. The payload is hundreds of MB and
+is NOT committed; this file only keeps the directory alive, because
+tauri-build validates every `bundle.resources` path on EVERY cargo
+invocation (the same reason ci.yml stubs `bibles/mazeworld_5_room_demo`).
+
+Run `npm run fetch-runtime` to populate it.

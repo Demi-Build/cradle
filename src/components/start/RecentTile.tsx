@@ -24,18 +24,25 @@ export function RecentTile({
   // tile so an `overflow: hidden` scroller can't clip it.
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
   // The meta line has to say something true about EITHER kind of project:
-  // MazeWorld counts rooms and NPCs, a platformer counts levels and enemies.
-  // Previously this only knew the MazeWorld fields, so every platformer card
-  // rendered an empty strip under its name.
+  // a dungeon counts rooms and NPCs, a platformer counts levels and enemies.
+  // Which pair applies is the recent's `world_kind` (canon's pack_type, saved
+  // with the entry since P0-3); an entry saved before that has no kind and
+  // falls back to sniffing which count fields it carries — the pre-P0-3
+  // behaviour, kept only for those legacy entries.
   const count = (n: number | undefined, one: string, many: string) =>
     n === undefined ? null : `${n} ${n === 1 ? one : many}`;
-  const sub = [
+  const levelCounts = [
     count(recent.levels, "level", "levels"),
     count(recent.enemies, "enemy", "enemies"),
-    count(recent.rooms, "room", "rooms"),
-    count(recent.npcs, "NPC", "NPCs"),
-    typeof recent.seed === "number" ? `seed ${recent.seed}` : null,
-  ]
+  ];
+  const roomCounts = [count(recent.rooms, "room", "rooms"), count(recent.npcs, "NPC", "NPCs")];
+  const counts =
+    recent.world_kind === undefined
+      ? [...levelCounts, ...roomCounts]
+      : recent.world_kind === "platformer"
+        ? levelCounts
+        : roomCounts;
+  const sub = [...counts, typeof recent.seed === "number" ? `seed ${recent.seed}` : null]
     .filter(Boolean)
     .slice(0, 2)
     .join(" · ");

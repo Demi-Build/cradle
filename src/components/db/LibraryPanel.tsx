@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, type LibraryEntry } from "../../lib/invoke";
 import { useStore } from "../../store";
+import { confirmAction } from "../agent/confirmGateState";
 
 const KINDS = ["", "enemy_def", "item_def", "player_skin", "tile", "backdrop", "audio"];
 const DIRECT_IMPORT = new Set(["enemy_def", "item_def", "player_skin"]);
@@ -87,7 +88,15 @@ export function LibraryPanel() {
         : `Import "${entry.name}" (${entry.kind}) into this pack?\n\n` +
           "Bytes are copied in with a fresh id — nothing existing is " +
           "overwritten, and the import carries full source provenance.";
-    if (!window.confirm(confirmText)) return;
+    // Free (a local copy) — the confirm card, never the paid card.
+    if (
+      !(await confirmAction({
+        title: `Import "${entry.name}"`,
+        body: confirmText,
+        confirmLabel: "Import",
+      }))
+    )
+      return;
     setBusy(entry.library_id);
     setNote(null);
     try {

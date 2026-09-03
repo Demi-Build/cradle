@@ -5,7 +5,7 @@
 // drive every mode. `images` is a preloaded url->HTMLImageElement cache; any
 // missing image degrades gracefully to the block representation for that element.
 
-import { readCanvasTheme } from "../../lib/canvasTheme";
+import { readCanvasTheme, resolveToken } from "../../lib/canvasTheme";
 
 export interface TileSlot {
   index: number;
@@ -103,6 +103,22 @@ export interface LevelBundle {
     name?: string;
   }[];
   stage_music?: string;
+  // A dungeon ROOM in the same shape (`canon grid export`, P0 paper P.6.3a):
+  // every grid ↔ placement disagreement the reader found, named (never a
+  // block), and the room-only facts that have no platformer counterpart.
+  warnings?: string[];
+  room?: RoomPassthrough;
+}
+
+/** The additive `room` block of a room bundle (P.6.3 step 4). */
+export interface RoomPassthrough {
+  environment: string;
+  environment_name: string;
+  door_revealed: boolean;
+  gate_encounter_id: number | string | null;
+  quest_ids: (number | string)[];
+  /** EntityLore stubs from the room's index row — the lore bucket, not placements. */
+  monsters: { entity_type?: string; entity_id?: string | number; name?: string }[];
 }
 
 export type RenderMode = "blocks" | "art" | "overlay";
@@ -112,6 +128,16 @@ export interface Selection {
   kind: SelKind;
   index: number;
 }
+
+/** The bundle's placement lists by their literal key (`pack info`'s
+ *  placement `wire`, P.9 G9) → the selection kind their handles carry. The
+ *  same mapping `levelHandles` applies, named so a Dock tab built from pack
+ *  data can select what the canvas draws. */
+export const SEL_KIND_BY_WIRE: Record<string, SelKind> = {
+  entities: "enemy",
+  items: "item",
+  triggers: "trigger",
+};
 export interface Handle extends Selection {
   cx: number; // cell-center coords
   cy: number;
@@ -170,7 +196,16 @@ const FALLBACK_COLORS: Record<string, string> = {
   wall: "#5b4d5e",
   danger: "#e0453a",
   water: "#3a6ea5",
+  // Event-trigger markers (a room's encounters / puzzles); a bundle palette
+  // may override under the same key.
+  event: "#c084fc",
 };
+
+/** The canvas ground. A palette may name a theme token instead of a colour
+ *  (the dungeon room's open cell is the app surface, P.9 G2). */
+function backgroundColor(bundle: LevelBundle): string {
+  return resolveToken(bundle.tileset.palette.background, FALLBACK_COLORS.background);
+}
 
 /** Block-mode color for a tile type (also used by the editor palette). */
 export function tileColor(bundle: LevelBundle, tileType: number): string | null {
@@ -186,6 +221,12 @@ export type Brush =
   | { kind: "enemy"; enemyId: string; variant: string | null }
   | { kind: "item"; itemId: string; source: string }
   | { kind: "checkpoint" }
+  // Row P0-8, the room editor: an EVENT placed on a cell (the `triggers`
+  // wire's dungeon half — P0 paper P.9 G3) and a MONSTER, which is not a
+  // placement of its own: dropping one builds or targets the combat
+  // encounter at that cell (P.9 G4).
+  | { kind: "event"; eventId: string; eventType: string }
+  | { kind: "monster"; monsterId: string }
   | { kind: "eraser" };
 
 /** All image URLs a bundle needs, for the caller to preload before drawing. */
@@ -239,7 +280,7 @@ export function drawLevel(
   }
   ctx.imageSmoothingEnabled = false;
 
-  ctx.fillStyle = bundle.tileset.palette.background ?? FALLBACK_COLORS.background;
+  ctx.fillStyle = backgroundColor(bundle);
   ctx.fillRect(0, 0, W * scale, H * scale);
 
   const art = mode === "art" || mode === "overlay";
@@ -257,7 +298,7 @@ export function drawLevel(
         ctx.fillStyle = color;
         ctx.fillRect(x * scale, y * scale, scale, scale);
       } else {
-        ctx.fillStyle = bundle.tileset.palette.background ?? FALLBACK_COLORS.background;
+        ctx.fillStyle = backgroundColor(bundle);
         ctx.fillRect(x * scale, y * scale, scale, scale);
       }
     }
@@ -266,6 +307,7 @@ export function drawLevel(
   // Actors + gameplay markers (art mode uses sprites, else placeholder shapes).
   drawItems(ctx, bundle, scale, images, art);
   drawCheckpoints(ctx, bundle, scale, images, art);
+  drawEventTriggers(ctx, bundle, scale);
   drawEnemies(ctx, bundle, scale, images, art, opts.showLabels ?? false);
   drawMarkers(ctx, bundle, scale);
 
@@ -643,6 +685,32 @@ function drawCheckpoints(
     ctx.lineTo(footX, footY - scale * 1.1);
     ctx.closePath();
     ctx.fill();
+  }
+}
+
+/** The draw branch beyond `checkpoint` (P0 paper P.6.2 row 3/6): a trigger
+ *  whose params name an `event_id` is a room's encounter / puzzle / event
+ *  tile, drawn as a diamond in the event colour — the gate encounter (the
+ *  door's guard) gets a heavier ring. Triggers without an event id (the
+ *  platformer's `room_entrance` etc.) stay undrawn, exactly as before. */
+function drawEventTriggers(ctx: CanvasRenderingContext2D, bundle: LevelBundle, scale: number) {
+  const color = bundle.tileset.palette.event ?? FALLBACK_COLORS.event;
+  for (const t of bundle.triggers) {
+    if (t.type === "checkpoint" || t.params?.event_id === undefined) continue;
+    const cx = (t.x + 0.5) * scale;
+    const cy = (t.y + 0.5) * scale;
+    const r = scale * 0.32;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r);
+    ctx.lineTo(cx + r, cy);
+    ctx.lineTo(cx, cy + r);
+    ctx.lineTo(cx - r, cy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = t.params?.is_gate ? "#e2b714" : "rgba(255,255,255,0.75)";
+    ctx.lineWidth = Math.max(1, scale * (t.params?.is_gate ? 0.1 : 0.05));
+    ctx.stroke();
   }
 }
 

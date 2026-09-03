@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{--ui:"Inter",-apple-system,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;--radius:6px;--radius-sm:4px;--accent:oklch(72% 0.13 78);--accent-ink:oklch(28% 0.05 78);--ok:oklch(68% 0.13 150);--warn:oklch(72% 0.14 45);--err:oklch(62% 0.18 25)}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55;--stage:#08090b;--shadow-2:0 12px 32px rgba(0,0,0,.55)}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a;--stage:#e9e6dc;--shadow-2:0 12px 32px rgba(20,16,8,.14)}
+html,body{margin:0;padding:0}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button{font-family:inherit}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" style="min-height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui);padding-bottom:44px">
+
+  <header style="display:flex;align-items:center;gap:10px;height:36px;padding:0 14px;background:var(--bg-raised);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">cradle <span style="color:var(--fg-dim)">/</span> agent panel <span style="color:var(--fg-dim)">/</span> <span style="color:var(--fg)">conversation and coexistence</span></span>
+    <div style="flex:1"></div>
+    <button onClick="{{ toggleTheme }}" style="width:26px;height:22px;display:grid;place-items:center;color:var(--fg-muted);background:none;border:0;cursor:pointer">
+      <svg width="14" height="14" viewBox="0 0 16 16" style="stroke:currentColor;fill:none;stroke-width:1.4"><path d="M13 9.5A5.5 5.5 0 1 1 6.5 3a4.5 4.5 0 0 0 6.5 6.5z"></path></svg>
+    </button>
+  </header>
+
+  <div style="display:flex;gap:22px;padding:20px 24px;align-items:flex-start;overflow-x:auto">
+
+    <section style="width:412px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">It is a conversation first</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:38ch">Most turns touch nothing. Wick answers questions about the project, argues with you, and only reaches for a tool when the answer needs one. Reads stay one dim line so prose keeps the floor.</p>
+
+      <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);display:flex;flex-direction:column;height:660px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-bottom:1px solid var(--border);flex-shrink:0">
+          <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px">
+            <button style="background:var(--accent);border:0;color:var(--accent-ink);font-size:11px;font-weight:600;padding:2px 8px;border-radius:3px;cursor:pointer">Ask</button>
+            <button style="background:none;border:0;color:var(--fg-muted);font-size:11px;padding:2px 8px;cursor:pointer">Plan</button>
+            <button style="background:none;border:0;color:var(--fg-muted);font-size:11px;padding:2px 8px;cursor:pointer">Allow</button>
+          </div>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">claude-sonnet-4.6</span>
+          <div style="flex:1"></div>
+          <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">$0.03</span>
+        </div>
+
+        <div style="flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px;align-items:stretch">
+
+          <div style="flex:0 0 auto;align-self:flex-end;max-width:90%;position:relative;background:var(--bg-hover);border:1px solid var(--border-hi);border-radius:var(--radius) var(--radius) 2px var(--radius);padding:8px 10px;font-size:12.5px">
+            Why does 2-3 feel empty compared to 2-2?
+          </div>
+
+          <div style="flex:0 0 auto;display:flex;align-items:baseline;gap:7px;font-size:12.5px">
+            <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim);flex-shrink:0;padding-top:2px">Wick</span>
+            <div style="min-width:0">
+              <div style="font-family:var(--mono);font-size:10.5px;color:var(--fg-dim);margin-bottom:6px">▸ read level 2-2, level 2-3</div>
+              <p style="margin:0">It isn't the enemy count — both levels have eleven. It's the spacing. 2-2 puts something in your way every 4 to 6 tiles; 2-3 front-loads eight of its eleven into the first third, then runs 19 tiles of empty platform to the exit.</p>
+              <p style="margin:8px 0 0">The back half also has no vertical work. Every platform east of x=30 sits at y=6, so there's nothing to climb and nothing to fall off.</p>
+            </div>
+          </div>
+
+          <div style="flex:0 0 auto;align-self:flex-end;max-width:90%;position:relative;background:var(--bg-hover);border:1px solid var(--border-hi);border-radius:var(--radius) var(--radius) 2px var(--radius);padding:8px 10px;font-size:12.5px">
+            Is that a problem, or is it a rest beat before the boss?
+            <div style="position:absolute;top:-11px;right:6px;display:flex;gap:2px;background:var(--bg-raised);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:1px">
+              <button title="Edit and resend" style="background:none;border:0;color:var(--fg-muted);font-size:10.5px;padding:1px 5px;cursor:pointer">✎</button>
+              <button title="Retry from here" style="background:none;border:0;color:var(--fg-muted);font-size:10.5px;padding:1px 5px;cursor:pointer">↻</button>
+              <button title="Copy" style="background:none;border:0;color:var(--fg-muted);font-size:10.5px;padding:1px 5px;cursor:pointer">⧉</button>
+            </div>
+          </div>
+
+          <div style="flex:0 0 auto;display:flex;align-items:baseline;gap:7px;font-size:12.5px">
+            <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim);flex-shrink:0;padding-top:2px">Wick</span>
+            <div style="min-width:0">
+              <p style="margin:0">A rest beat, if the run before it earned one. It doesn't here — 2-2 ends on a checkpoint and a wide platform, so the player is already rested when they arrive.</p>
+              <p style="margin:8px 0 0">Your own pacing note says the same thing:</p>
+              <pre style="margin:7px 0 0;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 8px;font-family:var(--mono);font-size:10.5px;color:var(--fg-muted);white-space:pre-wrap">bible/pacing.md · line 34
+  "no two consecutive rests. the grove
+   should tighten as the lantern dims."</pre>
+              <p style="margin:8px 0 0">If you want the rest, move it to 2-4 where the lantern is at its lowest and the quiet reads as dread rather than absence.</p>
+            </div>
+          </div>
+
+          <div style="flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px;padding-left:34px">
+            <button style="background:var(--bg-sunken);border:1px solid var(--border);border-radius:99px;padding:3px 10px;font-size:11px;color:var(--fg-muted);cursor:pointer">Show me the spacing in both</button>
+            <button style="background:var(--bg-sunken);border:1px solid var(--border);border-radius:99px;padding:3px 10px;font-size:11px;color:var(--fg-muted);cursor:pointer">Fix the back half</button>
+            <button style="background:var(--bg-sunken);border:1px solid var(--border);border-radius:99px;padding:3px 10px;font-size:11px;color:var(--fg-muted);cursor:pointer">Leave it</button>
+          </div>
+
+          <div style="flex:0 0 auto;align-self:flex-end;max-width:90%;background:var(--bg-hover);border:1px solid var(--border-hi);border-radius:var(--radius) var(--radius) 2px var(--radius);padding:8px 10px;font-size:12.5px">
+            Fine. Fix the back half, but keep it under ten new placements.
+          </div>
+
+          <div style="flex:0 0 auto;display:flex;align-items:baseline;gap:7px;font-size:12.5px">
+            <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim);flex-shrink:0;padding-top:2px">Wick</span>
+            <span>Six then, and two platform lifts. You're in Ask mode, so I'll show you each one before it lands<span style="display:inline-block;width:7px;height:13px;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(1) infinite"></span></span>
+          </div>
+
+        </div>
+
+        <div style="border-top:1px solid var(--border);padding:8px;flex-shrink:0">
+          <div style="border:1px solid var(--accent);border-radius:var(--radius);background:var(--bg-sunken);padding:7px 9px">
+            <div style="font-size:12.5px">Compare the lantern radius in <span style="background:oklch(72% .13 78/.16);color:var(--accent);border-radius:3px;padding:0 3px;font-family:var(--mono);font-size:11.5px">@2-3</span> and @</div>
+            <div style="margin-top:7px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-raised);box-shadow:var(--shadow-2);overflow:hidden">
+              <div style="padding:4px 8px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)">attach context</div>
+              <div style="display:flex;gap:8px;padding:5px 8px;background:var(--bg-hover);font-size:11.5px"><span style="font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--fg-dim);width:46px">level</span><span>2-4 Emberfall</span></div>
+              <div style="display:flex;gap:8px;padding:5px 8px;font-size:11.5px;color:var(--fg-muted)"><span style="font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--fg-dim);width:46px">actor</span><span>Ember Hopper</span></div>
+              <div style="display:flex;gap:8px;padding:5px 8px;font-size:11.5px;color:var(--fg-muted)"><span style="font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--fg-dim);width:46px">doc</span><span>bible/pacing.md</span></div>
+              <div style="display:flex;gap:8px;padding:5px 8px;font-size:11.5px;color:var(--fg-muted)"><span style="font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--fg-dim);width:46px">view</span><span>what's on screen now</span></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+              <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">Ask mode · nothing changes without you</span>
+              <div style="flex:1"></div>
+              <button style="background:var(--accent);color:var(--accent-ink);border:0;border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer">↵ Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="width:560px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">Coexistence · notes drawer</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:52ch">Two right-edge surfaces are never both interactive. Notes stays a 440px overlay and floats above the column; the panel dims to 60% and stops taking input until notes closes. It does not resize or push the panel.</p>
+
+      <div style="border:1px solid var(--border-hi);border-radius:var(--radius);overflow:hidden;background:var(--bg)">
+        <div style="display:grid;grid-template-rows:22px 1fr 16px;height:300px">
+          <div style="background:var(--bg-raised);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 8px;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">top bar 36</div>
+          <div style="display:grid;grid-template-columns:120px 1fr 4px 236px;position:relative;min-height:0">
+            <div style="background:var(--bg-raised);border-right:1px solid var(--border);display:flex;align-items:flex-start;padding:6px;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">left nav 208</div>
+            <div style="background:var(--stage);display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--fg-dim)">canvas</div>
+            <div style="background:var(--border)"></div>
+            <div style="background:var(--bg-raised);border-left:1px solid var(--border);opacity:.6;padding:7px;display:flex;flex-direction:column;gap:5px">
+              <div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);white-space:nowrap">agent 412</div>
+              <div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);white-space:nowrap">dimmed 60%</div>
+              <div style="height:7px;background:var(--bg-hover);border-radius:2px;width:38%"></div>
+              <div style="height:7px;background:var(--bg-hover);border-radius:2px;width:30%"></div>
+              <div style="height:7px;background:var(--bg-hover);border-radius:2px;width:34%"></div>
+            </div>
+            <div style="position:absolute;right:0;top:0;bottom:0;width:110px;background:var(--bg-raised);border-left:1px solid var(--accent);box-shadow:var(--shadow-2);padding:8px;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:6px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg)">Notes</span><div style="flex:1"></div><span style="color:var(--fg-dim);font-size:11px">✕</span></div>
+              <div style="height:8px;background:var(--bg-hover);border-radius:2px"></div>
+              <div style="height:8px;background:var(--bg-hover);border-radius:2px;width:82%"></div>
+              <div style="height:8px;background:var(--bg-hover);border-radius:2px;width:64%"></div>
+            </div>
+          </div>
+          <div style="background:var(--bg-raised);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 8px;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">status bar 24</div>
+        </div>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim);margin-top:7px">Schematic only — the drawer is drawn narrow so the dimmed column stays readable beside it. At real scale 440 &gt; 412 and it covers the column completely.<br />Esc closes notes first, then stops the agent. Focus mode hides both; the rail returns on exit.</div>
+
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin:22px 0 4px">Coexistence · narrow window</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:52ch">Below 900px of remaining canvas the editor's floating panels reflow inward. Below 720px the column auto-collapses to the rail rather than squeezing the canvas to nothing, and says so once.</p>
+
+      <div style="border:1px solid var(--border-hi);border-radius:var(--radius);overflow:hidden;background:var(--bg)">
+        <div style="display:grid;grid-template-rows:22px 1fr 16px;height:300px">
+          <div style="background:var(--bg-raised);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 8px;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">top bar 36</div>
+          <div style="display:grid;grid-template-columns:120px 1fr 4px 28px;position:relative;min-height:0">
+            <div style="background:var(--bg-raised);border-right:1px solid var(--border);padding:6px;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">left nav 208</div>
+            <div style="background:var(--stage);position:relative;display:grid;place-items:center">
+              <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">canvas · 690</span>
+              <div style="position:absolute;right:6px;top:6px;width:70px;height:34px;border:1px solid var(--border-hi);background:var(--bg-raised);border-radius:3px;display:grid;place-items:center;font-family:var(--mono);font-size:8px;color:var(--fg-dim)">minimap</div>
+              <div style="position:absolute;left:50%;bottom:10px;transform:translateX(-50%);white-space:nowrap;display:flex;align-items:center;gap:7px;background:var(--bg-raised);border:1px solid var(--border-hi);border-radius:var(--radius);padding:5px 10px;box-shadow:var(--shadow-2);font-size:11px">
+                Agent collapsed to make room.<span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted);border:1px solid var(--border);border-radius:3px;padding:0 4px">⌘⇧A</span><span style="color:var(--fg-dim)">brings it back</span>
+              </div>
+            </div>
+            <div style="background:var(--border)"></div>
+            <div style="background:var(--bg-raised);border-left:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:6px 0;gap:6px">
+              <span style="width:16px;height:16px;display:grid;place-items:center;background:var(--bg-hover);border:1px solid var(--border-hi);border-radius:3px;font-size:9px;color:var(--fg)">◧</span>
+              <span style="position:relative;width:16px;height:16px;display:grid;place-items:center;border:1px solid var(--border);border-radius:3px;font-family:var(--mono);font-size:8px;color:var(--fg-muted)">E<span style="position:absolute;right:-2px;top:-2px;width:5px;height:5px;border-radius:99px;background:var(--accent);border:1px solid var(--bg-raised)"></span></span>
+              <span style="position:relative;width:16px;height:16px;display:grid;place-items:center;border:1px solid var(--border);border-radius:3px;font-family:var(--mono);font-size:8px;color:var(--fg-muted)">B<span style="position:absolute;right:-2px;top:-2px;width:5px;height:5px;border-radius:99px;background:var(--warn);border:1px solid var(--bg-raised)"></span></span>
+            </div>
+          </div>
+          <div style="background:var(--bg-raised);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 8px;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">status bar 24 · <span style="color:var(--accent);padding-left:4px">● wick running +1</span></div>
+        </div>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim);margin-top:7px">The toast shows once per window session. Re-expanding at a narrow width is allowed and remembered — the rule only fires on resize, never fighting an explicit choice.</div>
+    </section>
+
+    <section style="width:412px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">Where grants are revoked</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:38ch">Every “always allow in this project” footnote points here. The Settings screen is another package's job; this is the one pane it must contain.</p>
+
+      <div style="border:1px solid var(--border-hi);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--border)">
+          <span style="font-size:12.5px;font-weight:600">Permissions</span>
+          <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">The Wandering Wick</span>
+        </div>
+        <div style="padding:8px 11px;font-size:11.5px;color:var(--fg-muted);border-bottom:1px solid var(--border)">Standing grants apply to this project only. Paid work is never on this list.</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 11px;border-bottom:1px solid var(--border)">
+          <div style="flex:1;min-width:0"><div style="font-family:var(--mono);font-size:11.5px">import_grid</div><div style="font-size:11px;color:var(--fg-dim)">Level designer · granted 14:06 today</div></div>
+          <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Revoke</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 11px;border-bottom:1px solid var(--border)">
+          <div style="flex:1;min-width:0"><div style="font-family:var(--mono);font-size:11.5px">place_enemies</div><div style="font-size:11px;color:var(--fg-dim)">Level designer · granted Tue</div></div>
+          <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Revoke</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 11px;border-bottom:1px solid var(--border)">
+          <div style="flex:1;min-width:0"><div style="font-family:var(--mono);font-size:11.5px">update_dialogue</div><div style="font-size:11px;color:var(--fg-dim)">Writer · granted Mon</div></div>
+          <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Revoke</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:9px 11px;background:var(--bg-sunken)">
+          <span style="font-size:11px;color:var(--fg-dim);flex:1">Revoking does not undo anything already done.</span>
+          <button style="background:transparent;color:var(--err);border:1px solid color-mix(in oklch,var(--err) 45%,var(--border));border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Revoke all</button>
+        </div>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim);margin-top:7px">Stored at .cradle/permissions.toml, keyed by tool name.</div>
+    </section>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { theme: "dark" };
+  renderVals() {
+    return { theme: this.state.theme, toggleTheme: () => this.setState(s => ({ theme: s.theme === "dark" ? "light" : "dark" })) };
+  }
+}
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import { api, type CostEstimate, type ValidationReport } from "../../lib/invoke"
 import { fmtRange } from "../../lib/cost";
 import { enqueueJob } from "../../lib/jobs";
 import { PromptOverride } from "../PromptOverride";
+import { confirmSpend } from "../agent/confirmGateState";
 import type { LevelBundle } from "./drawLevel";
 
 /** Context-aware IMPROVE — the v2 of 🪄 Regenerate. Unlike regenerate (which is
@@ -65,17 +66,19 @@ export function ImproveLayoutModal({
       setErr("Enter an instruction (what to change).");
       return;
     }
-    const paid = backend === "anthropic";
+    // The paid card gates a paid backend (row P1-A5); fake runs at once.
     if (
-      !window.confirm(
-        `${paid ? `PAID (anthropic — est. ${fmtRange(est?.total_usd)})` : "FAKE — $0, no API calls"}: ` +
-          `improve ${levelId} — the LLM sees the current level and applies your change.\n\n` +
+      !(await confirmSpend({
+        title: `improve ${levelId}`,
+        body:
+          `est. ${fmtRange(est?.total_usd)} — the LLM sees the current level and applies your change.\n` +
           (reroll
             ? "Placements will be RE-ROLLED onto the improved terrain."
             : "Placements are KEPT (Validate flags any that no longer fit).") +
-          (fixProblems ? `\nAlso fixing ${problemCount} validation problem(s).` : "") +
-          "\n\nProceed?",
-      )
+          (fixProblems ? `\nAlso fixing ${problemCount} validation problem(s).` : ""),
+        estimate: est,
+        backends: { llm: backend },
+      }))
     )
       return;
     setBusy(true);

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b; --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55;
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;color:var(--fg)}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+</style>
+</helmet>
+
+<div data-screen-label="P7 · library reuse" style="min-width:1440px;padding:26px 30px 34px;background:var(--bg)">
+  <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:14px">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">flow board · P7</div>
+      <h1 style="margin:4px 0 0;font-size:21px;font-weight:600;letter-spacing:-.01em">Library reuse</h1>
+    </div>
+    <div style="flex:1"></div>
+    <p style="margin:0;max-width:540px;font-size:11.5px;color:var(--fg-muted);line-height:1.55;text-wrap:pretty">Reuse has to feel like the asset was always yours. That means the unit is a bundle, the import adapts to the receiving pack's palette before you confirm, and the provenance is stamped rather than lost — a borrowed character with someone else's colours is not reuse, it is a paste.</p>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">entry: entity ▸ Publish, or 🗂 Library ▸ Import</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">exit: a new entity with library_ref lineage</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));background:oklch(68% .13 150/.1);color:var(--ok)">free end to end · local machine only</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:96px repeat(5,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+    <div style="background:var(--bg-sunken);padding:8px 10px"></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1</div><div style="font-size:11.5px;font-weight:600">Publish the bundle</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">2</div><div style="font-size:11.5px;font-weight:600">Browse from another pack</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3</div><div style="font-size:11.5px;font-weight:600">Preview the adaptation</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4</div><div style="font-size:11.5px;font-weight:600">Import · provenance stamped</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">5</div><div style="font-size:11.5px;font-weight:600">Upstream changes later</div></div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)">user</span><span style="font-size:10.5px;color:var(--fg-dim)">decides, approves</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Publishes the heron. The dialog shows the bundle's parts and lets them drop what they do not want to carry.</p>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:10.5px"><span style="width:11px;height:11px;border:1px solid var(--accent);border-radius:2px;background:var(--accent)"></span><span style="flex:1">anchor · turnaround</span></label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:10.5px"><span style="width:11px;height:11px;border:1px solid var(--accent);border-radius:2px;background:var(--accent)"></span><span style="flex:1">5 states · 28 frames</span></label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:10.5px"><span style="width:11px;height:11px;border:1px solid var(--accent);border-radius:2px;background:var(--accent)"></span><span style="flex:1">6 moods</span></label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-muted)"><span style="width:11px;height:11px;border:1px solid var(--border-hi);border-radius:2px"></span><span style="flex:1">3 skins</span></label>
+      </div>
+      <div style="display:flex;gap:3px"><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">character</span><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">humanoid</span><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">32px</span></div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Weeks later, in a different project, searches for a scavenger and browses by bundle — states and moods visible on the card.</p>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:6px 7px;display:flex;gap:6px">
+        <span style="width:32px;height:32px;flex:none;border:1px solid var(--border-hi);border-radius:2px;background:repeating-linear-gradient(135deg,var(--bg) 0 4px,var(--bg-hover) 4px 8px)"></span>
+        <div><div style="font-size:11px">Heron salvager</div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">v3 · 5 states · 6 moods</div></div>
+      </div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Sees it in this pack's colours before deciding — the whole reason to import rather than copy files.</p>
+      <div style="display:grid;grid-template-columns:1fr 12px 1fr;gap:5px;align-items:center">
+        <div style="height:42px;border:1px solid var(--border);border-radius:2px;background:repeating-linear-gradient(135deg,oklch(52% .07 300/.4) 0 4px,oklch(62% .08 300/.4) 4px 8px)"></div>
+        <div style="text-align:center;color:var(--fg-dim);font-size:11px">→</div>
+        <div style="height:42px;border:1px solid var(--ok);border-radius:2px;background:repeating-linear-gradient(135deg,oklch(60% .11 250/.4) 0 4px,oklch(72% .1 90/.4) 4px 8px)"></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">5 of 5 roles matched</span>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Imports. It lands as a normal entity — editable, tunable, animatable, with no special rules.</p>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:6px 7px;font-family:var(--mono);font-size:10px;color:var(--fg-muted);line-height:1.6"><div>ent_8f21c4</div><div style="color:var(--info)">library_ref heron-salvager@v3</div></div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">The source project improves the heron and republishes. This pack is told, and chooses.</p>
+      <div style="border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));border-radius:var(--radius-sm);background:oklch(70% .12 260/.08);padding:6px 7px">
+        <div style="font-size:10.5px;color:var(--fg-muted);line-height:1.45"><span style="font-family:var(--mono);font-size:10px;color:var(--info)">v4 available</span> — 2 states redrawn.</div>
+        <div style="display:flex;gap:4px;margin-top:5px"><button style="flex:1;padding:3px 5px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10px;cursor:pointer">Compare</button><button style="flex:1;padding:3px 5px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10px;cursor:pointer">Update</button></div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info)">cradle</span><span style="font-size:10.5px;color:var(--fg-dim)">does the work</span></div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Walks the entity's provenance to assemble the bundle — anchor, states, moods, skins, and the row metadata that makes it a character rather than a folder of PNGs. Publishing is a copy into the content-addressed store; the project is untouched.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Search covers name, tags, type, resolution and source project. The card previews the bundle's parts, not a single thumbnail, because the parts are what make it reusable.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Runs the recolour machinery from P3 against the receiving pack's style palette: role-name match first, luminance match second, and an explicit list of frames it could not resolve. Every frame is previewed adapted, not just the anchor.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Mints a fresh id, writes the adapted frames as this pack's own artifacts, and stamps <span style="font-family:var(--mono);font-size:10px">library_ref</span> plus the original project. The History tab shows the import as the first row of lineage.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Compares versions and offers an update that re-runs the adaptation, presented as a plan card (P5) because it flags local edits for review. Declining is permanent and silent — no nagging badge.</div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn)">spend</span><span style="font-size:10.5px;color:var(--fg-dim)">&amp; QA gates</span></div>
+    <div style="background:var(--bg-raised);padding:10px;font-family:var(--mono);font-size:10px;color:var(--ok);display:flex;align-items:center">free</div>
+    <div style="background:var(--bg-raised);padding:10px;font-family:var(--mono);font-size:10px;color:var(--ok);display:flex;align-items:center">free</div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Adaptation is pure code. Unresolved frames are named before confirm, and importing them unadapted is allowed with an off-palette chip.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Palette conformance and alpha gate run on the imported set, as chips on the new entity.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">An update may flag generated art downstream; that rollup is the plan card's job, not the library's.</span></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px">
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--err);margin-bottom:5px">failure · palette cannot resolve</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">A source with nine roles into a pack with five: “4 roles have no match here. Import maps them to the nearest luminance and flags 12 frames off-palette.” The preview shows those frames first, and importing anyway is a legitimate choice.</p></div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);margin-bottom:5px">empty state</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">An empty library is the common first state: “Nothing published yet. Publish a character or tileset from any project and it appears here.” One button, pointing back at the current pack — never a marketplace teaser.</p></div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info);margin-bottom:5px">scope</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Local machine only; no sharing, no accounts. Engine copies and project templates are explicitly not library items — the library holds content, not machinery.</p></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}"></script>
+</body>
+</html>

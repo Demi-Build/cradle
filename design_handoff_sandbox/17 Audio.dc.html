@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b; --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55;
+  --stage:#08090b; --cta-bg:#f3efe3; --cta-fg:#15171c;
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;color:var(--fg)}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select{font-family:inherit}
+@keyframes pulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+</style>
+</helmet>
+
+<div data-screen-label="O · audio" style="min-width:1440px;padding:24px 26px 34px;background:var(--bg)">
+
+  <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:16px">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">screen O · the fourth destination</div>
+      <h1 style="margin:4px 0 0;font-size:21px;font-weight:600;letter-spacing:-.01em">Audio · music against the level, SFX against the frames</h1>
+    </div>
+    <div style="flex:1"></div>
+    <p style="margin:0;max-width:540px;font-size:11.5px;color:var(--fg-muted);line-height:1.55;text-wrap:pretty">Two timelines, because audio has two clocks. Music runs along the <strong style="color:var(--fg);font-weight:600">level</strong> — a spatial timeline you scrub by walking. SFX run along a <strong style="color:var(--fg);font-weight:600">state's frames</strong> — a footstep belongs to frame 2, not to a second. Both live in the dock, never in a modal: you cannot judge either one without the thing playing.</p>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:8px">1 · music — dock pane beside the level</div>
+  <div style="border:1px solid var(--border-hi);border-radius:var(--radius);overflow:hidden;margin-bottom:22px;background:var(--bg)">
+
+    <div style="height:150px;position:relative;background:var(--stage);border-bottom:1px solid var(--border);overflow:hidden">
+      <div style="position:absolute;inset:0;background-image:linear-gradient(to right,color-mix(in oklch,var(--border) 70%,transparent) 1px,transparent 1px),linear-gradient(to bottom,color-mix(in oklch,var(--border) 70%,transparent) 1px,transparent 1px);background-size:20px 20px;opacity:.45"></div>
+      <div style="position:absolute;left:0;right:0;bottom:24px;height:16px;background:color-mix(in oklch,var(--accent) 20%,var(--stage));border-top:2px solid color-mix(in oklch,var(--accent) 50%,var(--stage))"></div>
+      <div style="position:absolute;left:8%;bottom:40px;width:18%;height:16px;background:color-mix(in oklch,var(--accent) 14%,var(--stage));border-top:2px solid color-mix(in oklch,var(--accent) 36%,var(--stage))"></div>
+      <div style="position:absolute;left:44%;right:26%;bottom:56px;height:16px;background:color-mix(in oklch,var(--accent) 14%,var(--stage));border-top:2px solid color-mix(in oklch,var(--accent) 36%,var(--stage))"></div>
+      <div style="position:absolute;left:0;width:38%;top:0;bottom:0;background:oklch(74% .12 300/.07);border-right:1px dashed color-mix(in oklch,var(--special) 55%,transparent)"></div>
+      <div style="position:absolute;left:38%;width:32%;top:0;bottom:0;background:oklch(70% .12 260/.07);border-right:1px dashed color-mix(in oklch,var(--info) 55%,transparent)"></div>
+      <div style="position:absolute;left:70%;right:0;top:0;bottom:0;background:oklch(62% .18 25/.06)"></div>
+      <div style="position:absolute;left:26%;bottom:56px;width:12px;height:18px;background:var(--fg);border-radius:2px"></div>
+      <div style="position:absolute;left:26%;top:0;bottom:0;width:1px;background:var(--fg);opacity:.5"></div>
+      <div style="position:absolute;left:calc(26% + 6px);top:8px;font-family:var(--mono);font-size:9px;color:var(--fg-muted);white-space:nowrap">playhead follows the player</div>
+      <div style="position:absolute;left:10px;top:8px;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">l1r2 · 96 cells</div>
+    </div>
+
+    <div style="background:var(--bg-raised);display:grid;grid-template-columns:minmax(0,1fr) 320px;align-items:start">
+      <div style="min-width:0;border-right:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:9px;padding:7px 12px;border-bottom:1px solid var(--border)">
+          <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px;flex:none">
+            <button style="background:var(--bg-hover);color:var(--fg);border:0;padding:2px 10px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500">Music</button>
+            <button style="background:none;color:var(--fg-muted);border:0;padding:2px 10px;font-size:11px;border-radius:3px;cursor:pointer">SFX</button>
+            <button style="background:none;color:var(--fg-muted);border:0;padding:2px 10px;font-size:11px;border-radius:3px;cursor:pointer">Ambience</button>
+          </div>
+          <button style="flex:none;width:26px;height:24px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg);font-size:11px;cursor:pointer">▶</button>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted);white-space:nowrap">cell 25 · cistern_theme at 0:41</span>
+          <div style="flex:1"></div>
+          <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--fg-muted);white-space:nowrap"><span style="width:11px;height:11px;border:1px solid var(--accent);border-radius:2px;background:var(--accent)"></span>follow the live session</label>
+        </div>
+
+        <div style="padding:10px 12px 12px">
+          <div style="display:flex;gap:8px;margin-bottom:5px">
+            <span style="width:64px;flex:none;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-dim);padding-top:4px">cells</span>
+            <div style="flex:1;position:relative;height:14px;border-bottom:1px solid var(--border)">
+              <span style="position:absolute;left:0;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">0</span>
+              <span style="position:absolute;left:25%;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">24</span>
+              <span style="position:absolute;left:50%;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">48</span>
+              <span style="position:absolute;left:75%;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">72</span>
+              <span style="position:absolute;right:0;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">96</span>
+              <span style="position:absolute;left:26%;top:-2px;width:1px;height:18px;background:var(--fg)"></span>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-bottom:6px">
+            <span style="width:64px;flex:none;font-family:var(--mono);font-size:10px;color:var(--fg-muted);padding-top:9px">music</span>
+            <div style="flex:1;position:relative;height:38px">
+              <div style="position:absolute;left:0;width:38%;top:0;bottom:0;border:1px solid var(--special);border-radius:var(--radius-sm);background:oklch(74% .12 300/.14);display:flex;align-items:center;padding:0 7px;gap:6px">
+                <span style="font-family:var(--mono);font-size:10px;color:var(--special);white-space:nowrap">cistern_theme</span>
+                <div style="flex:1;height:14px;background:repeating-linear-gradient(90deg,color-mix(in oklch,var(--special) 55%,transparent) 0 2px,transparent 2px 5px);opacity:.7"></div>
+                <span style="width:6px;height:22px;background:var(--bg-raised);border:1px solid var(--special);border-radius:2px;cursor:ew-resize"></span>
+              </div>
+              <div style="position:absolute;left:38%;width:32%;top:0;bottom:0;border:1px solid var(--info);border-radius:var(--radius-sm);background:oklch(70% .12 260/.14);display:flex;align-items:center;padding:0 7px;gap:6px">
+                <span style="font-family:var(--mono);font-size:10px;color:var(--info);white-space:nowrap">deep_water</span>
+                <div style="flex:1;height:14px;background:repeating-linear-gradient(90deg,color-mix(in oklch,var(--info) 55%,transparent) 0 2px,transparent 2px 5px);opacity:.7"></div>
+                <span style="width:6px;height:22px;background:var(--bg-raised);border:1px solid var(--info);border-radius:2px;cursor:ew-resize"></span>
+              </div>
+              <div style="position:absolute;left:70%;right:0;top:0;bottom:0;border:1px dashed var(--border-hi);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center">
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">no track · silence</span>
+              </div>
+              <div style="position:absolute;left:34%;width:8%;top:-3px;bottom:-3px;background:linear-gradient(90deg,oklch(74% .12 300/.2),oklch(70% .12 260/.2));border-left:1px solid var(--special);border-right:1px solid var(--info)"></div>
+              <span style="position:absolute;left:35%;top:-16px;font-family:var(--mono);font-size:8.5px;color:var(--fg-muted);white-space:nowrap">crossfade 1.4 s</span>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-bottom:6px">
+            <span style="width:64px;flex:none;font-family:var(--mono);font-size:10px;color:var(--fg-muted);padding-top:5px">ambience</span>
+            <div style="flex:1;position:relative;height:24px">
+              <div style="position:absolute;left:0;right:0;top:0;bottom:0;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));border-radius:var(--radius-sm);background:oklch(68% .13 150/.08);display:flex;align-items:center;padding:0 7px"><span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">dripping_stone · whole level · −18 dB</span></div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px">
+            <span style="width:64px;flex:none;font-family:var(--mono);font-size:10px;color:var(--fg-muted);padding-top:5px">stingers</span>
+            <div style="flex:1;position:relative;height:24px;border-bottom:1px dashed var(--border)">
+              <div style="position:absolute;left:30%;top:2px;width:10px;height:18px;background:oklch(72% .14 45/.35);border:1px solid var(--warn);border-radius:2px" title="secret_found · triggered by zone"></div>
+              <span style="position:absolute;left:calc(30% + 14px);top:5px;font-family:var(--mono);font-size:9px;color:var(--warn);white-space:nowrap">secret_found · zone trigger</span>
+              <div style="position:absolute;left:74%;top:2px;width:10px;height:18px;background:oklch(62% .18 25/.3);border:1px solid var(--err);border-radius:2px"></div>
+              <span style="position:absolute;left:calc(74% + 14px);top:5px;font-family:var(--mono);font-size:9px;color:var(--err);white-space:nowrap">death · kill plane</span>
+            </div>
+          </div>
+
+          <p style="margin:9px 0 0;font-size:10.5px;color:var(--fg-dim);line-height:1.5">The x-axis is the level, not seconds. Music regions are the same objects as the level's music zones — this pane is a second view of them, and dragging an edge here moves the zone on the canvas.</p>
+        </div>
+      </div>
+
+      <div style="padding:10px 12px;display:flex;flex-direction:column;gap:9px;background:var(--bg-sunken)">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:12px;font-weight:600">deep_water</span>
+          <span style="font-family:var(--mono);font-size:9.5px;color:var(--info)">region · selected</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:11px;flex:1">volume</span><input value="-6" style="width:44px;text-align:right;background:var(--bg);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11px;padding:2px 5px" /><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);width:24px">dB</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:11px;flex:1">crossfade in</span><input value="1.4" style="width:44px;text-align:right;background:var(--bg);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11px;padding:2px 5px" /><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);width:24px">s</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:11px;flex:1">loop</span><button style="padding:2px 8px;border:1px solid var(--accent);border-radius:99px;background:oklch(72% .13 78/.12);color:var(--accent);font-size:10.5px;cursor:pointer">on</button></div>
+          <button style="align-self:flex-start;padding:2px 7px;border:1px dashed var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-family:var(--mono);font-size:9.5px;cursor:pointer">Advanced · 6 keys</button>
+        </div>
+        <div style="height:1px;background:var(--border)"></div>
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">generate a track for this region</div>
+        <div style="border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg);padding:6px 7px;font-size:11px;line-height:1.5">slow, submerged, single held cello<span style="color:var(--accent)">|</span></div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">loopable</span>
+          <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">1:30</span>
+          <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">match cistern_theme key</span>
+        </div>
+        <button style="padding:5px 10px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.14);color:var(--accent);font-size:11.5px;font-weight:600;cursor:pointer">Generate 2 · $0.20–$0.70</button>
+        <p style="margin:0;font-size:10.5px;color:var(--fg-dim);line-height:1.5">Candidates audition in place: each plays on this region while the player walks it, so you judge the transition and not the track.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:8px">2 · sfx — pinned to the animation's frames</div>
+  <div style="border:1px solid var(--border-hi);border-radius:var(--radius);overflow:hidden;background:var(--bg-raised)">
+
+    <div style="display:flex;align-items:center;gap:9px;padding:7px 12px;border-bottom:1px solid var(--border)">
+      <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted);flex:none">heron-salvager</span>
+      <div style="display:flex;gap:3px;flex:none">
+        <button style="padding:3px 9px;border:1px solid var(--border);border-radius:99px;background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">idle</button>
+        <button style="padding:3px 9px;border:1px solid var(--accent);border-radius:99px;background:oklch(72% .13 78/.12);color:var(--accent);font-size:11px;font-weight:600;cursor:pointer">run</button>
+        <button style="padding:3px 9px;border:1px solid var(--border);border-radius:99px;background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">jump</button>
+        <button style="padding:3px 9px;border:1px solid var(--border);border-radius:99px;background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">hurt</button>
+        <button style="padding:3px 9px;border:1px solid var(--border);border-radius:99px;background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">death</button>
+      </div>
+      <span style="width:1px;height:16px;background:var(--border)"></span>
+      <button style="flex:none;width:26px;height:24px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg);font-size:11px;cursor:pointer">▶</button>
+      <span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted);white-space:nowrap">6 frames · 12 fps · 0.50 s</span>
+      <div style="flex:1"></div>
+      <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--fg-muted);white-space:nowrap"><span style="width:11px;height:11px;border:1px solid var(--accent);border-radius:2px;background:var(--accent)"></span>audio with playback</label>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--info);white-space:nowrap">same filmstrip as the Animation tab</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;align-items:start">
+      <div style="min-width:0;border-right:1px solid var(--border);padding:11px 12px">
+
+        <div style="display:flex;gap:8px;margin-bottom:7px">
+          <span style="width:64px;flex:none;font-family:var(--mono);font-size:10px;color:var(--fg-muted);padding-top:22px">frames</span>
+          <div style="flex:1;display:flex;gap:4px">
+            <div style="flex:1"><div style="height:52px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px;text-align:center">1</div></div>
+            <div style="flex:1"><div style="height:52px;border:1.5px solid var(--accent);border-radius:var(--radius-sm);background:var(--bg-hover)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:3px;text-align:center">2</div></div>
+            <div style="flex:1"><div style="height:52px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px;text-align:center">3</div></div>
+            <div style="flex:1"><div style="height:52px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px;text-align:center">4</div></div>
+            <div style="flex:1"><div style="height:52px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px;text-align:center">5</div></div>
+            <div style="flex:1"><div style="height:52px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px;text-align:center">6</div></div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <span style="width:64px;flex:none;font-family:var(--mono);font-size:10px;color:var(--fg-muted);padding-top:6px">footstep</span>
+          <div style="flex:1;position:relative;height:28px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:linear-gradient(90deg,transparent 0,transparent 16.6%,color-mix(in oklch,var(--border) 60%,transparent) 16.6%,color-mix(in oklch,var(--border) 60%,transparent) calc(16.6% + 1px),transparent calc(16.6% + 1px)) repeat-x">
+            <div style="position:absolute;left:16.6%;top:4px;width:14px;height:20px;margin-left:-7px;background:oklch(74% .12 300/.3);border:1px solid var(--special);border-radius:2px;cursor:grab" title="drag to another frame"></div>
+            <span style="position:absolute;left:calc(16.6% + 12px);top:7px;font-family:var(--mono);font-size:9px;color:var(--special);white-space:nowrap">step_stone_a · frame 2</span>
+            <div style="position:absolute;left:66.6%;top:4px;width:14px;height:20px;margin-left:-7px;background:oklch(74% .12 300/.3);border:1px solid var(--special);border-radius:2px;cursor:grab"></div>
+            <span style="position:absolute;left:calc(66.6% + 12px);top:7px;font-family:var(--mono);font-size:9px;color:var(--special);white-space:nowrap">step_stone_b · frame 5</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <span style="width:64px;flex:none;font-family:var(--mono);font-size:10px;color:var(--fg-muted);padding-top:6px">cloth</span>
+          <div style="flex:1;position:relative;height:28px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+            <div style="position:absolute;left:0;right:0;top:4px;bottom:4px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));border-radius:var(--radius-sm);background:oklch(68% .13 150/.08);display:flex;align-items:center;padding:0 7px"><span style="font-family:var(--mono);font-size:9px;color:var(--ok)">coat_rustle · loops with the state · −22 dB</span></div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px">
+          <span style="width:64px;flex:none;font-family:var(--mono);font-size:10px;color:var(--special);padding-top:6px">takeoff</span>
+          <div style="flex:1;position:relative;height:26px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+            <div style="position:absolute;left:8.3%;top:3px;width:14px;height:20px;margin-left:-7px;background:oklch(72% .13 78/.2);border:1.5px dashed var(--accent);border-radius:2px"></div>
+            <span style="position:absolute;left:calc(8.3% + 12px);top:6px;font-family:var(--mono);font-size:9px;color:var(--accent);white-space:nowrap">frame 1 · empty — make one here</span>
+
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:7px">
+          <span style="width:64px;flex:none"></span>
+          <div style="flex:1;min-width:0">
+            <div style="width:320px;max-width:100%;background:var(--bg-raised);border:1px solid color-mix(in oklch,var(--accent) 50%,var(--border));border-radius:var(--radius);box-shadow:0 12px 28px rgba(0,0,0,.45);padding:9px 10px">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">
+                <span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)">new sound here</span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">jump · frame 1</span>
+                <div style="flex:1"></div>
+                <span style="font-family:var(--mono);font-size:9px;color:var(--ok)">▶ loop running</span>
+              </div>
+              <div style="border:1px solid var(--border-hi);border-radius:3px;background:var(--bg-sunken);padding:6px 7px;font-size:11px;line-height:1.5;margin-bottom:6px">short cloth-and-grit push off stone<span style="color:var(--accent)">|</span></div>
+              <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">
+                <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">0.15 s</span>
+                <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">stone</span>
+                <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">3 candidates</span>
+              </div>
+              <div style="display:flex;gap:5px;margin-bottom:6px">
+                <button style="flex:1;padding:4px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Pick from library</button>
+                <button style="flex:1;padding:4px 6px;border:1px solid var(--accent);border-radius:3px;background:oklch(72% .13 78/.14);color:var(--accent);font-size:10.5px;font-weight:600;cursor:pointer">Generate · $0.04–$0.12</button>
+              </div>
+              <p style="margin:0;font-size:10px;color:var(--fg-dim);line-height:1.45">Each candidate drops onto frame 1 and plays in the loop as it lands — you hear the takeoff in the jump, not in isolation. Keep one and it becomes an SFX asset; keep none and nothing is written.</p>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:7px">
+          <span style="width:64px;flex:none;font-family:var(--mono);font-size:10px;color:var(--fg-dim);padding-top:6px">+ layer</span>
+          <div style="flex:1;position:relative;height:26px;border:1px dashed var(--border-hi);border-radius:var(--radius-sm);display:flex;align-items:center;padding:0 8px">
+            <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">click any frame to make or pick a sound there · drag an event to move it · ⌫ removes</span>
+          </div>
+        </div>
+
+        <div style="margin-top:11px;padding:9px 10px;border:1px solid color-mix(in oklch,var(--info) 40%,var(--border));border-radius:var(--radius);background:oklch(70% .12 260/.06)">
+          <div style="display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">
+            <div style="display:flex;gap:8px"><span style="flex:1">state duration at 12 fps</span><span style="color:var(--fg)">0.50 s</span></div>
+            <div style="display:flex;gap:8px"><span style="flex:1">step interval · frames 2 → 5</span><span style="color:var(--fg)">0.25 s</span></div>
+            <div style="display:flex;gap:8px"><span style="flex:1">stride at run_speed 9.0</span><span style="color:var(--warn)">0.31 s — steps land early</span></div>
+          </div>
+          <p style="margin:6px 0 0;font-size:10.5px;color:var(--fg-muted);line-height:1.5">Because events are pinned to frames, changing fps or <span style="font-family:var(--mono);font-size:10px">run_speed</span> moves the sound with the animation instead of desyncing it. When the stride and the interval disagree, the panel says so rather than letting it sound wrong in game.</p>
+        </div>
+      </div>
+
+      <div style="padding:10px 12px;display:flex;flex-direction:column;gap:9px;background:var(--bg-sunken)">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-size:12px;font-weight:600">step_stone_a</span>
+          <span style="font-family:var(--mono);font-size:9.5px;color:var(--special)">event · frame 2</span>
+        </div>
+        <div style="height:28px;background:repeating-linear-gradient(90deg,color-mix(in oklch,var(--special) 45%,transparent) 0 2px,transparent 2px 4px);opacity:.65;border-radius:2px"></div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:11px;flex:1">volume</span><input value="-12" style="width:44px;text-align:right;background:var(--bg);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11px;padding:2px 5px" /><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);width:24px">dB</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:11px;flex:1">pitch variance</span><input value="±0.08" style="width:52px;text-align:right;background:var(--bg);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11px;padding:2px 5px" /></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:11px;flex:1">surface</span><select style="background:var(--bg);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-size:11px;padding:2px 5px"><option>stone</option><option>water</option><option>metal</option><option>any</option></select></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:11px;flex:1">offset</span><input value="0" style="width:44px;text-align:right;background:var(--bg);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11px;padding:2px 5px" /><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);width:24px">ms</span></div>
+          <button style="align-self:flex-start;padding:2px 7px;border:1px dashed var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-family:var(--mono);font-size:9.5px;cursor:pointer">Advanced · 5 keys</button>
+        </div>
+        <div style="height:1px;background:var(--border)"></div>
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">generate this sound</div>
+        <div style="border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg);padding:6px 7px;font-size:11px;line-height:1.5">wet stone footstep, small creature, soft grit</div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);flex:1">4 variants for pitch rotation</span>
+          <button style="padding:4px 9px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.14);color:var(--accent);font-size:11.5px;font-weight:600;cursor:pointer">Generate · $0.04–$0.16</button>
+        </div>
+        <p style="margin:0;font-size:10.5px;color:var(--fg-dim);line-height:1.5">Candidates play pinned to frame 2 with the loop running, at the level's own volume — auditioning a footstep in isolation tells you nothing.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin:22px 0 8px">3 · how a sound gets bound — three ways, one pane</div>
+  <div style="border:1px solid var(--border-hi);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:9px;padding:7px 12px;border-bottom:1px solid var(--border)">
+      <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px;flex:none">
+        <button style="background:var(--bg-hover);color:var(--fg);border:0;padding:2px 10px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500">Frame</button>
+        <button style="background:none;color:var(--fg-muted);border:0;padding:2px 10px;font-size:11px;border-radius:3px;cursor:pointer">Event</button>
+        <button style="background:none;color:var(--fg-muted);border:0;padding:2px 10px;font-size:11px;border-radius:3px;cursor:pointer">Place</button>
+      </div>
+      <span style="font-size:11.5px;color:var(--fg-muted)">The SFX pane keeps its shape and swaps its axis. A sound is bound to a frame, to a thing happening, or to a spot in the level.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--border)">
+
+      <div style="background:var(--bg-raised);padding:11px 12px">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px"><span style="font-size:12.5px;font-weight:600">Frame</span><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--accent);color:var(--accent)">shown above</span></div>
+        <div style="height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);position:relative;margin-bottom:7px">
+          <div style="position:absolute;left:0;right:0;top:0;bottom:0;display:flex;gap:2px;padding:3px">
+            <div style="flex:1;border:1px solid var(--border-hi);border-radius:1px"></div>
+            <div style="flex:1;border:1.5px solid var(--special);border-radius:1px;background:oklch(74% .12 300/.18)"></div>
+            <div style="flex:1;border:1px solid var(--border-hi);border-radius:1px"></div>
+            <div style="flex:1;border:1px solid var(--border-hi);border-radius:1px"></div>
+            <div style="flex:1;border:1.5px solid var(--special);border-radius:1px;background:oklch(74% .12 300/.18)"></div>
+            <div style="flex:1;border:1px solid var(--border-hi);border-radius:1px"></div>
+          </div>
+        </div>
+        <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">For anything that reads as part of a motion: footsteps, wing beats, a sword swing, the thud at the end of a fall animation. Axis is the filmstrip; fps changes carry the sound with them.</p>
+      </div>
+
+      <div style="background:var(--bg-raised);padding:11px 12px">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px"><span style="font-size:12.5px;font-weight:600">Event</span><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--border);color:var(--fg-dim)">no timeline</span></div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:6px 7px;margin-bottom:7px;display:flex;flex-direction:column;gap:3px">
+          <div style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--fg-muted)"><span style="width:7px;height:7px;border-radius:2px;background:var(--ok);flex:none"></span><span style="flex:1">chest · opened</span><span style="color:var(--fg)">latch_wood</span></div>
+          <div style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--fg-muted)"><span style="width:7px;height:7px;border-radius:2px;background:var(--ok);flex:none"></span><span style="flex:1">plate · stepped on</span><span style="color:var(--fg)">click_stone</span></div>
+          <div style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--fg-muted)"><span style="width:7px;height:7px;border-radius:2px;background:var(--warn);flex:none"></span><span style="flex:1">breakable · destroyed</span><span style="color:var(--fg)">shatter_a</span></div>
+          <div style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--fg-dim)"><span style="width:7px;height:7px;border-radius:2px;background:var(--border-hi);flex:none"></span><span style="flex:1">player · landed hard</span><span style="color:var(--fg-dim)">— none</span></div>
+        </div>
+        <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">A table, not a timeline: the entity's own event list — opened, activated, stepped on, destroyed, landed, hurt — each with a sound or none. Edited on the thing itself, and reachable here for the whole level at once.</p>
+      </div>
+
+      <div style="background:var(--bg-raised);padding:11px 12px">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px"><span style="font-size:12.5px;font-weight:600">Place</span><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--border);color:var(--fg-dim)">cells, like music</span></div>
+        <div style="height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);position:relative;margin-bottom:7px;overflow:hidden">
+          <div style="position:absolute;left:14%;top:8px;bottom:8px;width:26%;border:1px solid color-mix(in oklch,var(--ok) 55%,transparent);border-radius:2px;background:oklch(68% .13 150/.12)"></div>
+          <span style="position:absolute;left:16%;top:13px;font-family:var(--mono);font-size:8.5px;color:var(--ok);white-space:nowrap">drips · radius 6</span>
+          <div style="position:absolute;left:66%;top:12px;width:10px;height:20px;background:oklch(70% .12 260/.3);border:1px solid var(--info);border-radius:2px"></div>
+          <span style="position:absolute;left:calc(66% + 13px);top:16px;font-family:var(--mono);font-size:8.5px;color:var(--info);white-space:nowrap">waterfall · point</span>
+        </div>
+        <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Emitters placed on the level like anything else: a point with a radius and falloff, or a region that fades in as you enter. Placed with the sandbox's Add ▸ Sound, tuned here or in Adjust.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-top:16px">
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:11px 12px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info);margin-bottom:5px">why two timelines, not one</div>
+      <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Music is spatial: it changes because the player moved, so its axis is cells and its objects are the level's music zones. SFX is per-state: a footstep belongs to a frame, so its axis is the filmstrip. Forcing both onto seconds would desync every sound the moment fps or run speed changed.</p>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:11px 12px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);margin-bottom:5px">where it opens from</div>
+      <div style="font-size:11px;color:var(--fg-muted);line-height:1.6">
+        <div>music zone in the level editor → Music pane, that region selected</div>
+        <div>a state in the Animation tab or character editor → SFX pane, that state</div>
+        <div>a dialogue line → SFX pane, scoped to the line</div>
+        <div>⌘K or the agent → the same pane, staged</div>
+      </div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:11px 12px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--err);margin-bottom:5px">empty and failure states</div>
+      <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">No track on a region: the lane reads <span style="font-family:var(--mono);font-size:10.5px">no track · silence</span> and silence is a valid answer, not an error. No audio device: the timelines still edit, the play button is disabled with the reason. A generation leg down keeps what landed and re-prices the rest, as everywhere else.</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}"></script>
+</body>
+</html>

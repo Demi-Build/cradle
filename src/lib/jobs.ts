@@ -9,6 +9,21 @@ import {
 } from "./invoke";
 import { recordJob, recordSpend } from "./cost";
 
+/** `identity` from an actor string — canon's `provenance.identity_for` on the
+ *  cradle side (row P1-A6): an `agent:…` actor passes through, everything else
+ *  (absent, `cradle:user`, `user`) is a person. */
+function identityOf(actor: string | undefined): string {
+  return actor?.startsWith("agent:") ? actor : "user";
+}
+
+/** The conversation id inside an agent actor, or `undefined` for the editor
+ *  door — an editor-button run has no conversation, and inventing one would
+ *  put button spend in an agent lane. */
+function conversationOf(actor: string | undefined): string | undefined {
+  if (!actor?.startsWith("agent:")) return undefined;
+  return actor.slice("agent:".length).split("/")[0] || undefined;
+}
+
 /** Metadata for a new job — everything except the fields enqueueJob fills in. */
 export type JobMeta = Omit<Job, "id" | "status" | "ts">;
 
@@ -37,11 +52,22 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
     store.updateJob(id, { status: "running" });
     return;
   }
-  if (status !== "done" && status !== "failed") return; // queued echo, etc.
+  if (status !== "done" && status !== "failed" && status !== "cancelled") return; // queued echo, etc.
 
   const now = Date.now();
   if (status === "failed") {
     store.updateJob(id, { status: "failed", error: error ?? "failed", endedAt: now });
+  } else if (status === "cancelled") {
+    // ⏹ (row A4.5's contract, rendered by A5): nothing new started, what
+    // landed is kept (`result.kept`), and what it billed is reported by the
+    // worker — never inferred here.
+    store.updateJob(id, {
+      status: "cancelled",
+      changed: Array.isArray(result?.kept) ? (result!.kept as unknown[]).length > 0 : false,
+      cost: result?.cost as OpCost | undefined,
+      result,
+      endedAt: now,
+    });
   } else {
     const changed = !!result?.changed;
     const resolvedTarget = (result?.level_id as string) || (result?.id as string) || job.target;
@@ -66,6 +92,14 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
   const worldPath = store.worldPath;
 
   // Durable ledgers (best-effort — a write failure never surfaces as a job fail).
+  //
+  // Row P1-A6: the spend ledger is now a DERIVED compat index — the canon verb
+  // journals the money, and the cost dashboard sums the journal. These rows
+  // carry the lane fields and NO `journal_ref`, which is exactly right for the
+  // one op that still journals no cost (project creation): a row without a
+  // `journal_ref` is the only kind a reconciler adds to the journal total, so
+  // nothing is double-counted and nothing is lost. A cancelled job writes one
+  // too (it billed something); a failed one does not.
   if (j.status !== "failed") {
     const levelId = j.targetType === "levels" ? j.target : undefined;
     await recordSpend(worldPath, {
@@ -74,10 +108,20 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
       level_id: levelId,
       backends: j.backends,
       estimate: j.estimate,
-      actual_usd: j.cost?.usd ?? 0,
+      actual_usd: j.cost?.usd ?? (typeof result?.billed_usd === "number" ? result.billed_usd : 0),
       tokens: j.cost
         ? { input: j.cost.input_tokens, output: j.cost.output_tokens, calls: j.cost.calls }
         : undefined,
+      actor: j.actor,
+      identity: identityOf(j.actor),
+      session: conversationOf(j.actor),
+      category: "generation",
+      // P.8.7's do-not-double-count mark. The canon verb now journals the
+      // money itself and hands back the ts of that event; a row carrying it
+      // is ALREADY in the journal total, and only rows WITHOUT one (the
+      // create run, pre-A6 history) are added to it. Never inferred here —
+      // absent means canon journalled no cost for this op.
+      journal_ref: typeof result?.journal_ref === "string" ? result.journal_ref : undefined,
     });
   }
   await recordJob(worldPath, {
@@ -94,6 +138,12 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
     changed: j.changed,
     changed_artifacts: (result?.changed_artifacts as string[]) ?? undefined,
     error: j.error,
+    // Row P1-A6 (ASSUMPTION-8): the lane fields, so a run from a past session
+    // keeps its attribution in the tray. `identity` is the read-time form of
+    // the launching actor — `agent:<conversation>/<specialist>` for an agent
+    // run, `user` for an editor button (canon's `provenance.identity_for`).
+    identity: identityOf(j.actor),
+    session: conversationOf(j.actor),
   });
 
   // Broadcast completion so an open LevelDetail / EntityOverview can refresh.
@@ -102,7 +152,7 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
     op: j.op,
     target: j.target,
     targetType: j.targetType,
-    status: j.status as "ok" | "no_change" | "failed",
+    status: j.status as "ok" | "no_change" | "failed" | "cancelled",
     changed: !!j.changed,
     ts: now,
   });
@@ -153,9 +203,24 @@ export function handleJobProgress(payload: JobProgressEvent): void {
   };
 
   switch (payload.event) {
-    case "run_start":
-      next.total = payload.phases ?? next.total;
+    case "run_start": {
+      // Two schedulers, two names for the same number (`phases` sequential,
+      // `nodes` orchestrated) — reading only one left every orchestrated
+      // create with no denominator, so the bar sat idle at "counting steps…"
+      // for the whole run.
+      const reported = payload.phases ?? payload.nodes;
+      // A fresh platformer create is TWO passes (bootstrap, then the full
+      // graph): the bigger segment is the run's real size, and the smaller
+      // one must not shrink a total already reported.
+      if (reported != null) next.total = Math.max(reported, next.total ?? 0);
+      // …and the earlier segment's `run_end` was NOT the end of the run.
+      // `endedAt` drives "Finishing up…", the frozen clock and the removal of
+      // ⏹ Stop, so a new segment un-ends the run; the job's own terminal
+      // `job-updated` is the only real end.
+      next.endedAt = undefined;
+      next.ok = undefined;
       break;
+    }
     case "node_start":
       if (payload.node) patch(payload.node, { status: "running" });
       break;
@@ -180,7 +245,12 @@ export function handleJobProgress(payload: JobProgressEvent): void {
       if (payload.node) patch(payload.node, { status: "failed" });
       break;
     case "node_skipped":
-      if (payload.node) patch(payload.node, { status: "skipped", item: payload.reason });
+      // A node THIS run already finished is not "unchanged": the orchestrator
+      // re-reports pass 1's macro nodes as skipped when pass 2 starts, and
+      // downgrading them made a fresh create claim six phases were reused.
+      if (payload.node && phases[at(payload.node)].status !== "done") {
+        patch(payload.node, { status: "skipped", item: payload.reason });
+      }
       break;
     case "run_end":
       next.endedAt = ts;

@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-table";
 import { useStore } from "../store";
 import { api, type EntityRow } from "../lib/invoke";
+import { creatableKinds, kindForTypeId } from "../lib/placements";
 import { Portrait } from "./Portrait";
 import { RowEditor } from "./db/RowEditor";
 import { SchemaEditor } from "./db/SchemaEditor";
@@ -56,7 +57,8 @@ const COLUMN_CONFIG: Record<string, string[]> = {
   audio: ["stage_id", "music_path", "__sfx"],
 };
 
-// Platformer items share the "items" type id with MazeWorld's — pick by shape.
+// Platformer items share the "items" type id with MazeWorld's — pick by the
+// world's registry kind (canon's pack_type), never by sniffing a row.
 const PLATFORMER_ITEM_COLUMNS = [
   "name",
   "kind",
@@ -72,8 +74,8 @@ const PLATFORMER_ITEM_SORTS: SortOption[] = [
   { id: "kind-name", label: "Kind → Name", keys: ["kind", "name"], groupKey: "kind" },
   { id: "rarity-name", label: "Rarity → Name", keys: ["rarity", "name"], groupKey: "rarity" },
 ];
-function isPlatformerItems(typeId: string, rows: Row[]): boolean {
-  return typeId === "items" && !!rows[0]?.data && "item_id" in rows[0].data;
+function isPlatformerItems(typeId: string, worldKind: string | undefined): boolean {
+  return typeId === "items" && worldKind === "platformer";
 }
 
 // Computed table fields (spreadsheet-style rollups of nested data).
@@ -304,16 +306,26 @@ export function EntityTable({
   initialPartition?: string | null;
 }) {
   const select = useStore((s) => s.select);
+  const worldKind = useStore((s) => s.world?.world_kind);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [filter, setFilter] = useState("");
   const [newRowOpen, setNewRowOpen] = useState(false);
   const [schemaOpen, setSchemaOpen] = useState(false);
-  const canCreateRow = typeId === "enemies" || isPlatformerItems(typeId, rows);
+  // Row P0-8: creation is REGISTRY-driven, not platformer-gated. A kind is
+  // creatable when `pack info` declares it and no grid owns it (a room is
+  // made by its own grid verb, never by `db new`) — so all nine dungeon
+  // types, the platformer's two, and any kind a later `db define` adds.
+  const packInfo = useStore((s) => s.world?.pack_info ?? null);
+  const canCreateRow = useMemo(() => {
+    const creatable = creatableKinds(packInfo);
+    if (creatable.size === 0) return typeId === "enemies" || isPlatformerItems(typeId, worldKind);
+    return creatable.has(kindForTypeId(packInfo, typeId));
+  }, [packInfo, typeId, worldKind]);
   const [partition, setPartition] = useState<string | null>(initialPartition ?? null);
   const [view, setView] = useState<"list" | "cards">(
     typeId === "music" || typeId === "sfx" ? "list" : "cards",
   );
-  const sortOptions = isPlatformerItems(typeId, rows)
+  const sortOptions = isPlatformerItems(typeId, worldKind)
     ? PLATFORMER_ITEM_SORTS
     : (SORT_CONFIG[typeId] ?? [{ id: "id", label: "Id", keys: ["id"] }]);
   const [sortId, setSortId] = useState<string>(sortOptions[0]?.id ?? "id");
@@ -360,7 +372,7 @@ export function EntityTable({
   );
 
   const columns = useMemo<ColumnDef<Row>[]>(() => {
-    const configured = isPlatformerItems(typeId, rows)
+    const configured = isPlatformerItems(typeId, worldKind)
       ? PLATFORMER_ITEM_COLUMNS
       : (COLUMN_CONFIG[typeId] ?? []);
     const fallback = configured.length ? configured : deriveColumns(rows);
@@ -391,7 +403,7 @@ export function EntityTable({
       });
     }
     return cols;
-  }, [typeId, rows]);
+  }, [typeId, rows, worldKind]);
 
   const table = useReactTable({
     data: sortedRows,

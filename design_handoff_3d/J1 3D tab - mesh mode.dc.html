@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55;--stage:#08090b;--cta-bg:#f3efe3;--cta-fg:#15171c}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a;--stage:#e6e3d9;--cta-bg:#1a1916;--cta-fg:#f7f6f2}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+
+<div style="min-width:1440px;height:100vh;overflow:hidden">
+<div data-theme="{{ theme }}" data-screen-label="J′ · 3D tab · Mesh mode" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center;white-space:nowrap">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>mazeworld-5-room-demo</span><span style="color:var(--fg-dim)">/</span><span>heron-salvager</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">3d · mesh</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px solid color-mix(in oklch,var(--special) 45%,var(--border));background:oklch(74% .12 300/.1);color:var(--special)">the 3D model serves the 2D sprite · it is not the shipped art</span>
+    <button onClick="{{ toggleTheme }}" style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);background:transparent;color:var(--fg-dim);cursor:pointer">theme</button>
+  </header>
+
+  <div style="display:grid;grid-template-columns:208px minmax(0,1fr) 372px;overflow:hidden;min-height:0">
+
+    <aside style="border-right:1px solid var(--border);background:var(--bg-raised);padding:10px 0;overflow:hidden">
+      <button style="display:block;width:100%;text-align:left;background:none;color:var(--fg);border:0;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">Mazeworld · 5-room demo</button>
+      <div style="padding:11px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Actors</div>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)"><span style="width:12px;height:12px;background:var(--accent);opacity:.5;border-radius:2px"></span>Heron salvager</button>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer">Sump eel</button>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer">Enemies (7)</button>
+
+      <div style="padding:13px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Mesh versions</div>
+      <div style="display:flex;flex-direction:column">
+        <button style="display:flex;align-items:center;gap:7px;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:4px 14px 4px 22px;font-size:11.5px;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--special)"><span style="width:9px;height:9px;border-radius:2px;background:var(--special)"></span><span style="flex:1">v4 · current</span><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">rigged</span></button>
+        <button style="display:flex;align-items:center;gap:7px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 22px;font-size:11.5px;text-align:left;cursor:pointer"><span style="width:9px;height:9px;border-radius:2px;background:var(--border-hi)"></span><span style="flex:1">v3 · blender import</span></button>
+        <button style="display:flex;align-items:center;gap:7px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 22px;font-size:11.5px;text-align:left;cursor:pointer"><span style="width:9px;height:9px;border-radius:2px;background:var(--border-hi)"></span><span style="flex:1">v2 · decimated</span></button>
+        <button style="display:flex;align-items:center;gap:7px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 22px;font-size:11.5px;text-align:left;cursor:pointer"><span style="width:9px;height:9px;border-radius:2px;background:var(--border-hi)"></span><span style="flex:1">v1 · meshy</span></button>
+      </div>
+      <p style="margin:8px 14px 0;font-size:10.5px;color:var(--fg-dim);line-height:1.45">Every agent op and every Blender re-import is a version. Restore, never overwrite.</p>
+    </aside>
+
+    <main style="display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0">
+      <div style="display:flex;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">Character</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">Animation</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">PixEd</button>
+        <button style="background:none;color:var(--fg);border:0;border-bottom:2px solid var(--accent);padding:8px 13px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">3D</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">History</button>
+        <div style="flex:1"></div>
+        <div style="display:inline-flex;align-self:center;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px">
+          <button style="background:var(--bg-hover);color:var(--fg);border:0;padding:2px 10px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500">Mesh</button>
+          <button style="background:none;color:var(--fg-muted);border:0;padding:2px 10px;font-size:11px;border-radius:3px;cursor:pointer">Pose</button>
+          <button style="background:none;color:var(--fg-muted);border:0;padding:2px 10px;font-size:11px;border-radius:3px;cursor:pointer">Render</button>
+        </div>
+      </div>
+
+      <div style="flex:1;min-height:0;position:relative;background:var(--stage);overflow:hidden">
+        <div style="position:absolute;inset:0;background-image:linear-gradient(to right,color-mix(in oklch,var(--border) 65%,transparent) 1px,transparent 1px),linear-gradient(to bottom,color-mix(in oklch,var(--border) 65%,transparent) 1px,transparent 1px);background-size:32px 32px;opacity:.45"></div>
+        <div style="position:absolute;left:50%;top:50%;width:520px;height:300px;margin:-150px 0 0 -260px;border:1px solid color-mix(in oklch,var(--border-hi) 70%,transparent);border-radius:50%;transform:rotateX(72deg);opacity:.5"></div>
+
+        <div style="position:absolute;left:50%;top:53%;transform:translate(-50%,-50%);width:160px;height:262px">
+          <div style="position:absolute;left:48px;top:2px;width:62px;height:48px;border:1px solid color-mix(in oklch,var(--special) 60%,transparent);background:oklch(74% .12 300/.16);border-radius:26px 26px 8px 8px"></div>
+          <div style="position:absolute;left:36px;top:52px;width:86px;height:100px;border:1.5px solid var(--special);background:oklch(74% .12 300/.2);border-radius:14px 14px 8px 8px"></div>
+          <div style="position:absolute;left:22px;top:60px;width:16px;height:108px;border:1px solid color-mix(in oklch,var(--special) 45%,transparent);background:oklch(74% .12 300/.12);border-radius:8px"></div>
+          <div style="position:absolute;left:120px;top:60px;width:16px;height:108px;border:1px solid color-mix(in oklch,var(--special) 45%,transparent);background:oklch(74% .12 300/.12);border-radius:8px"></div>
+          <div style="position:absolute;left:54px;top:154px;width:15px;height:94px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:7px"></div>
+          <div style="position:absolute;left:90px;top:154px;width:15px;height:94px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:7px"></div>
+          <div style="position:absolute;left:79px;top:26px;width:1px;height:222px;background:color-mix(in oklch,var(--info) 70%,transparent)"></div>
+          <div style="position:absolute;left:75px;top:44px;width:9px;height:9px;border-radius:50%;border:1px solid var(--info);background:var(--bg-raised)"></div>
+          <div style="position:absolute;left:75px;top:100px;width:9px;height:9px;border-radius:50%;border:1px solid var(--info);background:var(--bg-raised)"></div>
+          <div style="position:absolute;left:75px;top:150px;width:9px;height:9px;border-radius:50%;border:1px solid var(--info);background:var(--bg-raised)"></div>
+          <div style="position:absolute;left:75px;top:200px;width:9px;height:9px;border-radius:50%;border:1px solid var(--info);background:var(--bg-raised)"></div>
+        </div>
+
+        <div style="position:absolute;left:12px;top:12px;max-width:264px;background:var(--bg-raised);border:1px solid color-mix(in oklch,var(--ok) 40%,var(--border));border-radius:var(--radius);padding:8px 10px">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+            <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:99px;border:1px solid var(--ok);color:var(--ok)">tier 3 · mesh + rig</span>
+            <span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">full pose editor</span>
+          </div>
+          <p style="margin:0;font-size:10.5px;color:var(--fg-muted);line-height:1.5">Top of the anchor ladder. Nothing left to promote — poses, clips and renders are all available on this character.</p>
+        </div>
+
+        <div style="position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+          <div style="display:flex;gap:3px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:3px">
+            <button style="padding:3px 8px;border:0;border-radius:3px;background:var(--bg-hover);color:var(--fg);font-family:var(--mono);font-size:10px;cursor:pointer">front</button>
+            <button style="padding:3px 8px;border:0;border-radius:3px;background:none;color:var(--fg-muted);font-family:var(--mono);font-size:10px;cursor:pointer">side</button>
+            <button style="padding:3px 8px;border:0;border-radius:3px;background:none;color:var(--fg-muted);font-family:var(--mono);font-size:10px;cursor:pointer">3/4</button>
+            <button style="padding:3px 8px;border:0;border-radius:3px;background:none;color:var(--fg-muted);font-family:var(--mono);font-size:10px;cursor:pointer">back</button>
+            <button style="padding:3px 8px;border:0;border-radius:3px;background:none;color:var(--fg-muted);font-family:var(--mono);font-size:10px;cursor:pointer">free</button>
+          </div>
+          <div style="background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+            <label style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-muted)"><span style="width:11px;height:11px;border:1px solid var(--accent);border-radius:2px;background:var(--accent)"></span>2D anchor overlay</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-muted)"><span style="width:11px;height:11px;border:1px solid var(--accent);border-radius:2px;background:var(--accent)"></span>skeleton</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-muted)"><span style="width:11px;height:11px;border:1px solid var(--border-hi);border-radius:2px"></span>wireframe</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-muted)"><span style="width:11px;height:11px;border:1px solid var(--border-hi);border-radius:2px"></span>32px pixel grid</label>
+          </div>
+        </div>
+
+        <div style="position:absolute;left:12px;bottom:12px;font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">orbit · middle drag &nbsp;|&nbsp; pan · shift+drag &nbsp;|&nbsp; frame · F</div>
+        <div style="position:absolute;right:12px;bottom:12px;font-family:var(--mono);font-size:9.5px;color:var(--special)">28 px tall · 4.8k tris · 14 bones · 30×30 sprite footprint</div>
+      </div>
+
+      <div style="flex:none;border-top:1px solid var(--border);background:var(--bg-raised);padding:9px 14px;display:flex;align-items:stretch;gap:12px">
+        <div style="min-width:0;flex:1">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+            <span style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">agent ops · mesh_smith</span>
+            <span style="font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:99px;border:1px solid var(--ok);color:var(--ok)">free · conversation tokens only</span>
+            <span style="font-size:10.5px;color:var(--fg-dim)">the agent does operations, not art</span>
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <button style="padding:4px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);color:var(--fg);font-size:11px;cursor:pointer">Rig from intent →</button>
+            <button style="padding:4px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);color:var(--fg);font-size:11px;cursor:pointer">Fix a deformation →</button>
+            <button style="padding:4px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);color:var(--fg);font-size:11px;cursor:pointer">Decimate / clean up</button>
+            <button style="padding:4px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);color:var(--fg);font-size:11px;cursor:pointer">Smart UV unwrap</button>
+            <button style="padding:4px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);color:var(--fg);font-size:11px;cursor:pointer">Proportional adjust</button>
+            <button style="padding:4px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);color:var(--fg);font-size:11px;cursor:pointer">Mirror across spine</button>
+            <button style="padding:4px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);color:var(--fg);font-size:11px;cursor:pointer">Shape-key scaffold</button>
+          </div>
+        </div>
+        <span style="width:1px;background:var(--border)"></span>
+        <div style="flex:none;display:flex;flex-direction:column;gap:5px;align-items:flex-end;justify-content:center">
+          <button style="padding:5px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Open in Blender · tier 3</button>
+          <button style="padding:5px 10px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.12);color:var(--accent);font-size:11.5px;font-weight:600;cursor:pointer">Generate sprites from pose · $0.16–$0.60</button>
+        </div>
+      </div>
+    </main>
+
+    <aside style="border-left:1px solid var(--border);background:var(--bg-raised);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+      <div style="padding:9px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+        <span style="font-size:12.5px;font-weight:600">Mesh v4</span>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">rigged · from blender import</span>
+        <div style="flex:1"></div>
+        <button style="padding:2px 7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Export GLB</button>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:11px">
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">the three tiers, on this screen</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="border:1px solid color-mix(in oklch,var(--accent) 45%,var(--border));border-radius:var(--radius-sm);background:oklch(72% .13 78/.07);padding:7px 8px"><div style="font-size:11px;color:var(--fg)"><span style="font-family:var(--mono);font-size:9.5px;color:var(--accent)">tier 1</span> · cradle establishes and judges</div><div style="font-size:10.5px;color:var(--fg-muted);line-height:1.45">This tab: review, the ladder, poses, clips, renders, proportion and drift checks.</div></div>
+            <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:7px 8px"><div style="font-size:11px;color:var(--fg)"><span style="font-family:var(--mono);font-size:9.5px;color:var(--info)">tier 2</span> · mesh_smith executes</div><div style="font-size:10.5px;color:var(--fg-muted);line-height:1.45">Headless Blender, one bpy script per task, results as before/after cards. Deterministic operations only.</div></div>
+            <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:7px 8px"><div style="font-size:11px;color:var(--fg)"><span style="font-family:var(--mono);font-size:9.5px;color:var(--special)">tier 3</span> · you, in real Blender</div><div style="font-size:10.5px;color:var(--fg-muted);line-height:1.45">Artistry. A better nose is not an operation — that is a round-trip, journaled as a version.</div></div>
+          </div>
+        </div>
+
+        <div style="height:1px;background:var(--border)"></div>
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">judgment · free, always on</div>
+          <div style="display:flex;flex-direction:column;gap:4px;font-family:var(--mono);font-size:10.5px">
+            <div style="display:flex;gap:8px;color:var(--fg-muted)"><span style="flex:1">total height</span><span style="color:var(--fg)">28 px</span></div>
+            <div style="display:flex;gap:8px;color:var(--fg-muted)"><span style="flex:1">fits 32×32 sheet</span><span style="color:var(--ok)">yes · 2 px margin</span></div>
+            <div style="display:flex;gap:8px;color:var(--fg-muted)"><span style="flex:1">head : body</span><span style="color:var(--fg)">1 : 3.4</span></div>
+            <div style="display:flex;gap:8px;color:var(--fg-muted)"><span style="flex:1">silhouette drift vs anchor v3</span><span style="color:var(--warn)">0.19</span></div>
+            <div style="display:flex;gap:8px;color:var(--fg-muted)"><span style="flex:1">weight coverage</span><span style="color:var(--ok)">100%</span></div>
+          </div>
+          <p style="margin:6px 0 0;font-size:10.5px;color:var(--fg-muted);line-height:1.45">The mesh is measured against the locked 2D anchor, never the other way round. Drift is information, not an error.</p>
+        </div>
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">test-pose deformation strip</div>
+          <div style="display:flex;gap:5px">
+            <div style="flex:1"><div style="height:52px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px;text-align:center">bend</div></div>
+            <div style="flex:1"><div style="height:52px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px;text-align:center">crouch</div></div>
+            <div style="flex:1"><div style="height:52px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px;text-align:center">stretch</div></div>
+            <div style="flex:1"><div style="height:52px;border:1px solid color-mix(in oklch,var(--warn) 50%,var(--border));border-radius:var(--radius-sm);background:oklch(72% .14 45/.08)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--warn);margin-top:3px;text-align:center">apex</div></div>
+          </div>
+          <a href="#" style="display:inline-block;margin-top:6px;font-size:11px">Review deformation · S2 →</a>
+        </div>
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">start-anywhere · optional backfill</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:5px 7px"><span style="font-family:var(--mono);font-size:9px;color:var(--ok)">done</span><span style="font-size:11px;flex:1">Mesh · uploaded GLB</span></div>
+            <div style="display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:5px 7px"><span style="font-family:var(--mono);font-size:9px;color:var(--ok)">done</span><span style="font-size:11px;flex:1">Rig · mesh_smith from intent</span></div>
+            <div style="display:flex;align-items:center;gap:7px;border:1px dashed var(--border-hi);border-radius:var(--radius-sm);padding:5px 7px"><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">skipped</span><span style="font-size:11px;color:var(--fg-dim);flex:1">Generate mesh · $0.20–$0.90</span></div>
+            <div style="display:flex;align-items:center;gap:7px;border:1px dashed var(--border-hi);border-radius:var(--radius-sm);padding:5px 7px"><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">optional</span><span style="font-size:11px;color:var(--fg-dim);flex:1">UV unwrap → texture in PixEd</span></div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);margin-bottom:6px">never in this tab</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <button disabled="" style="text-align:left;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:11px;cursor:not-allowed" title="Weight painting is Blender's job, and mesh_smith drives it headlessly. Describe the problem on S2 instead — the fix comes back as a before/after strip.">Weight painting</button>
+            <button disabled="" style="text-align:left;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:11px;cursor:not-allowed" title="Sculpting is artistry, not an operation. Open in Blender (tier 3) and re-import as a version.">Sculpt / vertex edit</button>
+            <button disabled="" style="text-align:left;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:11px;cursor:not-allowed" title="Seam editing by hand has no ceiling worth building. Smart UV unwrap is a tier-2 op; the resulting PNG opens in PixEd.">Manual UV seams</button>
+            <button disabled="" style="text-align:left;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:11px;cursor:not-allowed" title="Restyle-before-meshing is the open D4 spike. Disabled until the experiment says whether it helps.">Restyle for meshing</button>
+          </div>
+          <p style="margin:6px 0 0;font-size:10.5px;color:var(--fg-dim);line-height:1.45">Disabled with the reason, as everywhere else. The ceiling of a homegrown weight painter is a bad Blender — so we do not build one.</p>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);background:var(--bg-sunken);padding:8px 12px;display:flex;align-items:center;gap:7px">
+        <span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));background:oklch(68% .13 150/.12);color:var(--ok)">Blender 4.2 LTS detected</span>
+        <div style="flex:1"></div>
+        <button style="padding:5px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:12px;cursor:pointer">Revert</button>
+        <button style="padding:5px 12px;border:0;border-radius:var(--radius-sm);background:var(--cta-bg);color:var(--cta-fg);font-size:12px;font-weight:600;cursor:pointer">Save</button>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">
+    <span>heron-salvager · 3d · mesh</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span>tier 3 · 14 bones · 4.8k tris</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span style="color:var(--warn)">silhouette drift 0.19 vs anchor v3</span>
+    <div style="flex:1"></div>
+    <span style="color:var(--fg-dim)">tier 2 costs conversation tokens, nothing else</span>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme: "light" };
+  renderVals() {
+    return {
+      theme: this.state.theme,
+      toggleTheme: () => this.setState((p) => ({ theme: p.theme === "dark" ? "light" : "dark" })),
+    };
+  }
+}
+</script>
+</body>
+</html>

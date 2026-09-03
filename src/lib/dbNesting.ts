@@ -1,4 +1,4 @@
-// Mirrors canon's _UPDATE_NESTING (examples/platformer_pack/ops.py): which
+// Mirrors canon's _UPDATE_NESTING (src/canon/packs/platformer/ops.py): which
 // nested dict each KNOWN flat field lives in, per db type. Canon routes these
 // bare names on `db update`; any other nested key (hand-added custom knobs)
 // must travel as a dotted "<container>.<key>" path or canon refuses it as an

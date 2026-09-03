@@ -1,0 +1,695 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`toAuthorDoc → toBeats renders View mode byte-identically > matches the committed snapshot of Whisper-Tam's View output 1`] = `
+{
+  "beats": [
+    {
+      "id": "greeting",
+      "isEntry": true,
+      "kind": "greeting",
+      "label": "Opening greeting",
+      "prompt": "The voices from above sing in frequencies beyond flesh... but their song speaks of unity, not this... this brutality.",
+    },
+    {
+      "choices": [
+        {
+          "text": "What do the voices tell you?",
+          "toBeatId": "tree:voices",
+        },
+        {
+          "text": "The Chain says you speak heresy.",
+          "toBeatId": "tree:heresy",
+        },
+      ],
+      "id": "tree:start",
+      "isEntry": true,
+      "isTerminal": false,
+      "kind": "tree",
+      "label": "start",
+      "prompt": "The voices from above sing in frequencies beyond flesh... but their song speaks of unity, not this... this brutality.",
+    },
+    {
+      "choices": [
+        {
+          "text": "What is the true message?",
+          "toBeatId": "tree:end",
+        },
+        {
+          "text": "How do you know this?",
+          "toBeatId": "tree:end",
+        },
+      ],
+      "id": "tree:voices",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree",
+      "label": "voices",
+      "prompt": "Signal-pattern-seven-seven... harmony not hierarchy... The metal whispers truth - they seek convergence, not conquest. But the Prophet twists the frequency...",
+    },
+    {
+      "choices": [
+        {
+          "text": "Tell me more about the signal.",
+          "toBeatId": "tree:end",
+        },
+      ],
+      "id": "tree:heresy",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree",
+      "label": "heresy",
+      "prompt": "Heresy? The resonance speaks clearly through copper-song and steel-dreams. The Chain hears static where divine frequency flows...",
+    },
+    {
+      "choices": [
+        {
+          "text": "→ exhausted",
+          "toBeatId": "exhausted",
+        },
+      ],
+      "id": "tree:end",
+      "isEntry": false,
+      "isTerminal": true,
+      "kind": "tree",
+      "label": "end",
+      "prompt": "When the great transmission comes, you will understand... the metal fragments sing the same tune as distant stars...",
+    },
+    {
+      "id": "exhausted",
+      "isTerminal": true,
+      "kind": "exhausted",
+      "label": "Exhausted · after 5 exchanges",
+      "prompt": "The signal grows discordant... perhaps the Prophet's message has been... misinterpreted...",
+    },
+  ],
+  "edges": [
+    {
+      "from": "tree:start",
+      "kind": "tree",
+      "to": "tree:voices",
+    },
+    {
+      "from": "tree:start",
+      "kind": "tree",
+      "to": "tree:heresy",
+    },
+    {
+      "from": "tree:voices",
+      "kind": "tree",
+      "to": "tree:end",
+    },
+    {
+      "from": "tree:voices",
+      "kind": "tree",
+      "to": "tree:end",
+    },
+    {
+      "from": "tree:heresy",
+      "kind": "tree",
+      "to": "tree:end",
+    },
+    {
+      "from": "greeting",
+      "kind": "tree",
+      "to": "tree:start",
+    },
+    {
+      "from": "tree:end",
+      "kind": "exhausted",
+      "label": "exhausted",
+      "to": "exhausted",
+    },
+  ],
+}
+`;
+
+exports[`toAuthorDoc → toBeats renders View mode byte-identically > matches the committed snapshot of a four-variant quest NPC's View output 1`] = `
+{
+  "beats": [
+    {
+      "id": "greeting",
+      "isEntry": true,
+      "kind": "greeting",
+      "label": "Opening greeting",
+      "prompt": "You look like someone who can handle themselves in a fight. Good, because I need help getting my sister out of this nightmare before they hollow her out like they did Thane.",
+    },
+    {
+      "choices": [
+        {
+          "text": "What happened to your sister?",
+          "toBeatId": "tree:sister_story",
+        },
+        {
+          "text": "Who are 'they'?",
+          "toBeatId": "tree:chain_info",
+        },
+        {
+          "text": "I'm listening.",
+          "toBeatId": "tree:urgency",
+        },
+        {
+          "text": "This sounds dangerous.",
+          "toBeatId": "tree:danger",
+        },
+      ],
+      "id": "tree:start",
+      "isEntry": true,
+      "isTerminal": false,
+      "kind": "tree",
+      "label": "start",
+      "prompt": "You look like someone who can handle themselves in a fight. Good, because I need help getting my sister out of this nightmare before they hollow her out like they did Thane.",
+    },
+    {
+      "choices": [
+        {
+          "text": "How long do we have?",
+          "toBeatId": "tree:time_limit",
+        },
+        {
+          "text": "Where is she being held?",
+          "toBeatId": "tree:location",
+        },
+      ],
+      "id": "tree:sister_story",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree",
+      "label": "sister_story",
+      "prompt": "Vera came here hunting signal-touched relics. Found her in one of the Chain's holding pens instead, eyes already starting to glow that cursed blue. They're using her as a test subject for their conversion process.",
+    },
+    {
+      "choices": [
+        {
+          "text": "Tell me about your sister.",
+          "toBeatId": "tree:sister_story",
+        },
+        {
+          "text": "What's your plan?",
+          "toBeatId": "tree:urgency",
+        },
+      ],
+      "id": "tree:chain_info",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree",
+      "label": "chain_info",
+      "prompt": "The Severed Chain. Religious fanatics who think consciousness is some kind of disease. They've been turning people into mindless puppets, and my sister's next on their list.",
+    },
+    {
+      "choices": [
+        {
+          "text": "I'll help you.",
+          "toBeatId": "tree:end",
+        },
+        {
+          "text": "What's the plan exactly?",
+          "toBeatId": "tree:time_limit",
+        },
+      ],
+      "id": "tree:urgency",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree",
+      "label": "urgency",
+      "prompt": "I've mapped their guard rotations, but I can't do this alone. Need someone to watch my back while I get Vera out of their holding chambers.",
+    },
+    {
+      "choices": [
+        {
+          "text": "I understand. Count me in.",
+          "toBeatId": "tree:end",
+        },
+        {
+          "text": "How do we get to her?",
+          "toBeatId": "tree:location",
+        },
+      ],
+      "id": "tree:danger",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree",
+      "label": "danger",
+      "prompt": "Course it's dangerous. But I've seen what their conversion does to people. I'd rather die fighting than watch my sister become one of their hollow-eyed servants.",
+    },
+    {
+      "choices": [
+        {
+          "text": "Let's go get her.",
+          "toBeatId": "tree:end",
+        },
+      ],
+      "id": "tree:time_limit",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree",
+      "label": "time_limit",
+      "prompt": "Days, maybe less. Brother Thane's preparing the next shipment of converts, and once they start the final process... there's no bringing them back.",
+    },
+    {
+      "choices": [
+        {
+          "text": "Lead the way.",
+          "toBeatId": "tree:end",
+        },
+      ],
+      "id": "tree:location",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree",
+      "label": "location",
+      "prompt": "Holding chambers are in the old cistern complex. Two sentinel-constructs patrol the outer perimeter, but I know a way through the drainage tunnels.",
+    },
+    {
+      "choices": [
+        {
+          "text": "→ quest gate",
+          "toBeatId": "quest-gate",
+        },
+        {
+          "text": "→ exhausted",
+          "toBeatId": "exhausted",
+        },
+      ],
+      "id": "tree:end",
+      "isEntry": false,
+      "isTerminal": true,
+      "kind": "tree",
+      "label": "end",
+      "prompt": "Good. My sister's counting on us. We move fast, we move quiet, and we get out before the Chain knows what hit them.",
+    },
+    {
+      "choices": [
+        {
+          "text": "Will she recover?",
+          "toBeatId": "complete:end",
+        },
+      ],
+      "id": "complete:start",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree-complete",
+      "label": "start",
+      "prompt": "We made it. Vera's safe, and that's what matters. You fought like a true pit champion back there.",
+    },
+    {
+      "choices": [],
+      "id": "complete:end",
+      "isEntry": false,
+      "isTerminal": true,
+      "kind": "tree-complete",
+      "label": "end",
+      "prompt": "The blue's already fading from her eyes. Take this - dragon-bone knuckles from my fighting days. You earned them.",
+    },
+    {
+      "choices": [
+        {
+          "text": "I'm not leaving you.",
+          "toBeatId": "failed:end",
+        },
+      ],
+      "id": "failed:start",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree-failed",
+      "label": "start",
+      "prompt": "I... I can't go on. My leg's busted and the constructs are closing in. Leave me here - save yourself.",
+    },
+    {
+      "choices": [],
+      "id": "failed:end",
+      "isEntry": false,
+      "isTerminal": true,
+      "kind": "tree-failed",
+      "label": "end",
+      "prompt": "Then we both die here. At least... at least Vera won't be alone when the conversion takes her.",
+    },
+    {
+      "choices": [
+        {
+          "text": "What happened to your sister?",
+          "toBeatId": "incomplete:sister_story",
+        },
+        {
+          "text": "Who are 'they'?",
+          "toBeatId": "incomplete:chain_info",
+        },
+        {
+          "text": "I'm listening.",
+          "toBeatId": "incomplete:urgency",
+        },
+        {
+          "text": "This sounds dangerous.",
+          "toBeatId": "incomplete:danger",
+        },
+      ],
+      "id": "incomplete:start",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree-incomplete",
+      "label": "start",
+      "prompt": "You look like someone who can handle themselves in a fight. Good, because I need help getting my sister out of this nightmare before they hollow her out like they did Thane.",
+    },
+    {
+      "choices": [
+        {
+          "text": "How long do we have?",
+          "toBeatId": "incomplete:time_limit",
+        },
+        {
+          "text": "Where is she being held?",
+          "toBeatId": "incomplete:location",
+        },
+      ],
+      "id": "incomplete:sister_story",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree-incomplete",
+      "label": "sister_story",
+      "prompt": "Vera came here hunting signal-touched relics. Found her in one of the Chain's holding pens instead, eyes already starting to glow that cursed blue. They're using her as a test subject for their conversion process.",
+    },
+    {
+      "choices": [
+        {
+          "text": "Tell me about your sister.",
+          "toBeatId": "incomplete:sister_story",
+        },
+        {
+          "text": "What's your plan?",
+          "toBeatId": "incomplete:urgency",
+        },
+      ],
+      "id": "incomplete:chain_info",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree-incomplete",
+      "label": "chain_info",
+      "prompt": "The Severed Chain. Religious fanatics who think consciousness is some kind of disease. They've been turning people into mindless puppets, and my sister's next on their list.",
+    },
+    {
+      "choices": [
+        {
+          "text": "I'll help you.",
+          "toBeatId": "incomplete:end",
+        },
+        {
+          "text": "What's the plan exactly?",
+          "toBeatId": "incomplete:time_limit",
+        },
+      ],
+      "id": "incomplete:urgency",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree-incomplete",
+      "label": "urgency",
+      "prompt": "I've mapped their guard rotations, but I can't do this alone. Need someone to watch my back while I get Vera out of their holding chambers.",
+    },
+    {
+      "choices": [
+        {
+          "text": "I understand. Count me in.",
+          "toBeatId": "incomplete:end",
+        },
+        {
+          "text": "How do we get to her?",
+          "toBeatId": "incomplete:location",
+        },
+      ],
+      "id": "incomplete:danger",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree-incomplete",
+      "label": "danger",
+      "prompt": "Course it's dangerous. But I've seen what their conversion does to people. I'd rather die fighting than watch my sister become one of their hollow-eyed servants.",
+    },
+    {
+      "choices": [
+        {
+          "text": "Let's go get her.",
+          "toBeatId": "incomplete:end",
+        },
+      ],
+      "id": "incomplete:time_limit",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree-incomplete",
+      "label": "time_limit",
+      "prompt": "Days, maybe less. Brother Thane's preparing the next shipment of converts, and once they start the final process... there's no bringing them back.",
+    },
+    {
+      "choices": [
+        {
+          "text": "Lead the way.",
+          "toBeatId": "incomplete:end",
+        },
+      ],
+      "id": "incomplete:location",
+      "isEntry": false,
+      "isTerminal": false,
+      "kind": "tree-incomplete",
+      "label": "location",
+      "prompt": "Holding chambers are in the old cistern complex. Two sentinel-constructs patrol the outer perimeter, but I know a way through the drainage tunnels.",
+    },
+    {
+      "choices": [],
+      "id": "incomplete:end",
+      "isEntry": false,
+      "isTerminal": true,
+      "kind": "tree-incomplete",
+      "label": "end",
+      "prompt": "Good. My sister's counting on us. We move fast, we move quiet, and we get out before the Chain knows what hit them.",
+    },
+    {
+      "choices": [
+        {
+          "text": "on complete → tree",
+          "toBeatId": "complete:start",
+        },
+        {
+          "text": "while in progress → tree",
+          "toBeatId": "incomplete:start",
+        },
+        {
+          "text": "on failure → tree",
+          "toBeatId": "failed:start",
+        },
+      ],
+      "id": "quest-gate",
+      "kind": "gate",
+      "label": "Quest gate · Jorik's Request",
+      "prompt": "Outcome decided by quest resolution (type: escort · reward: 35 xp · failure: 2 hp damage).",
+    },
+    {
+      "id": "exhausted",
+      "isTerminal": true,
+      "kind": "exhausted",
+      "label": "Exhausted · after 5 exchanges",
+      "prompt": "That's all the planning I can handle for now. When you're ready to move, find me by the old water cistern. My sister's counting on us.",
+    },
+  ],
+  "edges": [
+    {
+      "from": "tree:start",
+      "kind": "tree",
+      "to": "tree:sister_story",
+    },
+    {
+      "from": "tree:start",
+      "kind": "tree",
+      "to": "tree:chain_info",
+    },
+    {
+      "from": "tree:start",
+      "kind": "tree",
+      "to": "tree:urgency",
+    },
+    {
+      "from": "tree:start",
+      "kind": "tree",
+      "to": "tree:danger",
+    },
+    {
+      "from": "tree:sister_story",
+      "kind": "tree",
+      "to": "tree:time_limit",
+    },
+    {
+      "from": "tree:sister_story",
+      "kind": "tree",
+      "to": "tree:location",
+    },
+    {
+      "from": "tree:chain_info",
+      "kind": "tree",
+      "to": "tree:sister_story",
+    },
+    {
+      "from": "tree:chain_info",
+      "kind": "tree",
+      "to": "tree:urgency",
+    },
+    {
+      "from": "tree:urgency",
+      "kind": "tree",
+      "to": "tree:end",
+    },
+    {
+      "from": "tree:urgency",
+      "kind": "tree",
+      "to": "tree:time_limit",
+    },
+    {
+      "from": "tree:danger",
+      "kind": "tree",
+      "to": "tree:end",
+    },
+    {
+      "from": "tree:danger",
+      "kind": "tree",
+      "to": "tree:location",
+    },
+    {
+      "from": "tree:time_limit",
+      "kind": "tree",
+      "to": "tree:end",
+    },
+    {
+      "from": "tree:location",
+      "kind": "tree",
+      "to": "tree:end",
+    },
+    {
+      "from": "complete:start",
+      "kind": "tree-complete",
+      "to": "complete:end",
+    },
+    {
+      "from": "failed:start",
+      "kind": "tree-failed",
+      "to": "failed:end",
+    },
+    {
+      "from": "incomplete:start",
+      "kind": "tree-incomplete",
+      "to": "incomplete:sister_story",
+    },
+    {
+      "from": "incomplete:start",
+      "kind": "tree-incomplete",
+      "to": "incomplete:chain_info",
+    },
+    {
+      "from": "incomplete:start",
+      "kind": "tree-incomplete",
+      "to": "incomplete:urgency",
+    },
+    {
+      "from": "incomplete:start",
+      "kind": "tree-incomplete",
+      "to": "incomplete:danger",
+    },
+    {
+      "from": "incomplete:sister_story",
+      "kind": "tree-incomplete",
+      "to": "incomplete:time_limit",
+    },
+    {
+      "from": "incomplete:sister_story",
+      "kind": "tree-incomplete",
+      "to": "incomplete:location",
+    },
+    {
+      "from": "incomplete:chain_info",
+      "kind": "tree-incomplete",
+      "to": "incomplete:sister_story",
+    },
+    {
+      "from": "incomplete:chain_info",
+      "kind": "tree-incomplete",
+      "to": "incomplete:urgency",
+    },
+    {
+      "from": "incomplete:urgency",
+      "kind": "tree-incomplete",
+      "to": "incomplete:end",
+    },
+    {
+      "from": "incomplete:urgency",
+      "kind": "tree-incomplete",
+      "to": "incomplete:time_limit",
+    },
+    {
+      "from": "incomplete:danger",
+      "kind": "tree-incomplete",
+      "to": "incomplete:end",
+    },
+    {
+      "from": "incomplete:danger",
+      "kind": "tree-incomplete",
+      "to": "incomplete:location",
+    },
+    {
+      "from": "incomplete:time_limit",
+      "kind": "tree-incomplete",
+      "to": "incomplete:end",
+    },
+    {
+      "from": "incomplete:location",
+      "kind": "tree-incomplete",
+      "to": "incomplete:end",
+    },
+    {
+      "from": "greeting",
+      "kind": "tree",
+      "to": "tree:start",
+    },
+    {
+      "from": "tree:end",
+      "kind": "gate",
+      "label": "quest offered",
+      "to": "quest-gate",
+    },
+    {
+      "from": "tree:end",
+      "kind": "exhausted",
+      "label": "exhausted",
+      "to": "exhausted",
+    },
+    {
+      "from": "quest-gate",
+      "kind": "success",
+      "label": "on complete",
+      "to": "complete:start",
+    },
+    {
+      "from": "quest-gate",
+      "kind": "exhausted",
+      "label": "in progress",
+      "to": "incomplete:start",
+    },
+    {
+      "from": "quest-gate",
+      "kind": "failure",
+      "label": "on failure",
+      "to": "failed:start",
+    },
+    {
+      "from": "complete:end",
+      "kind": "exhausted",
+      "label": "exhausted",
+      "to": "exhausted",
+    },
+    {
+      "from": "failed:end",
+      "kind": "exhausted",
+      "label": "exhausted",
+      "to": "exhausted",
+    },
+    {
+      "from": "incomplete:end",
+      "kind": "exhausted",
+      "label": "exhausted",
+      "to": "exhausted",
+    },
+  ],
+}
+`;

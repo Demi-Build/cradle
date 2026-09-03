@@ -10,6 +10,8 @@ import { ReturningHero } from "./ReturningHero";
 import { RecentsRail } from "./RecentsRail";
 import { FirstRunCard } from "./FirstRunCard";
 import { NotesDrawer } from "./NotesDrawer";
+import { StartAgentPanel } from "../agent/StartAgentPanel";
+import { LiveProjectCard } from "./LiveProjectCard";
 
 export function StartScreen() {
   const recents = useStore((s) => s.recents);
@@ -21,6 +23,14 @@ export function StartScreen() {
 
   const mode = recents.length > 0 ? "returning" : "firstrun";
   const last = recents[0];
+  // Row A9: the panel column, over the hero (agent-panel README §11). It is
+  // ALWAYS present here — with no project open the column IS this page's way
+  // to make one, and `agentUi.open` is the EDITOR's third-column preference
+  // (the toggle that sets it lives in the editor's TopBar, which this page
+  // does not have). `collapsed` still applies, so the 40px rail is how you
+  // get it out of the way, and its own expand button brings it back.
+  const agentUi = useStore((s) => s.agentUi);
+  const agentState = agentUi.collapsed ? "rail" : "open";
 
   useEffect(() => {
     for (const r of recents) {
@@ -71,7 +81,15 @@ export function StartScreen() {
   }, [last, loadWorldByPath, setError]);
 
   return (
-    <div className="start-app" data-mode={mode}>
+    // Row A9: `data-agent` gives the hero room for the column, exactly the way
+    // the editor shell does it (`App`'s `data-agent`). The panel itself is
+    // mounted below — additively; nothing else on this page changed.
+    <div
+      className="start-app"
+      data-mode={mode}
+      data-agent={agentState}
+      style={{ ["--agent-w" as string]: `${agentUi.width}px` } as React.CSSProperties}
+    >
       <IconSymbols />
       <StartTitleBar here="start" />
 
@@ -86,11 +104,16 @@ export function StartScreen() {
             />
           )}
           {mode === "firstrun" && (
-            <FirstRunCard
-              onOpenFromDisk={openFromDisk}
-              onTryDemo={tryDemo}
-              onNewProject={openNewProject}
-            />
+            <>
+              <FirstRunCard
+                onOpenFromDisk={openFromDisk}
+                onTryDemo={tryDemo}
+                onNewProject={openNewProject}
+              />
+              {/* Row A9: no rail on a first run, but a project being created
+                  still needs its live card. */}
+              <LiveProjectCard />
+            </>
           )}
         </section>
 
@@ -99,10 +122,13 @@ export function StartScreen() {
             recents={recents}
             excludePath={last?.path}
             onOpenRecent={(p) => loadWorldByPath(p)}
-            onAddNew={openFromDisk}
+            onAddNew={openNewProject}
+            onOpenFromDisk={openFromDisk}
           />
         )}
       </main>
+
+      <StartAgentPanel />
 
       <StartStatusBar note={statusNote} />
       <NotesDrawer />

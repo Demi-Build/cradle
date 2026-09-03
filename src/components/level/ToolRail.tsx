@@ -17,14 +17,6 @@ import { useDraggablePanel } from "../../lib/useDraggablePanel";
 
 export type Tool = "select" | "paint" | "fill" | "erase";
 
-/** Single-key shortcuts, matching the hints the tooltips show. */
-export const TOOL_KEYS: Record<string, Tool> = {
-  v: "select",
-  b: "paint",
-  g: "fill",
-  e: "erase",
-};
-
 const TOOLS: {
   id: Tool;
   icon: string;
@@ -62,6 +54,11 @@ const TOOLS: {
   },
 ];
 
+/** Rail buttons a surface may switch off, each WITH its reason — the reason
+ *  is the tooltip and the title, never a hidden button (doctrine 4). The
+ *  read-only room view disables the edit tools, bounds and the music lane. */
+export type RailDisabled = Partial<Record<Tool | "bounds" | "music", string>>;
+
 export function ToolRail({
   tool,
   onTool,
@@ -71,6 +68,7 @@ export function ToolRail({
   onToggleMinimap,
   onOpenMusic,
   audioOpen,
+  disabled,
 }: {
   tool: Tool;
   onTool: (t: Tool) => void;
@@ -80,22 +78,26 @@ export function ToolRail({
   onToggleMinimap: () => void;
   onOpenMusic: () => void;
   audioOpen?: boolean;
+  disabled?: RailDisabled;
 }) {
   // Drag-to-move. The grip is a dedicated handle rather than the whole rail,
   // so a click on a tool can never be swallowed as the start of a drag. The
   // behaviour lives in `useDraggablePanel`, shared with the minimap and the
   // world map's rail.
   const { ref, style, gripProps } = useDraggablePanel("toolRailPos");
+  const why = (key: keyof RailDisabled) => disabled?.[key];
 
   return (
     <div ref={ref} className="tool-rail" role="toolbar" aria-label="Level tools" style={style}>
       <span className="tool-grip" {...gripProps} />
       {TOOLS.map((t) => (
-        <Tooltip key={t.id} title={t.title} hint={t.hint} desc={t.desc}>
+        <Tooltip key={t.id} title={t.title} hint={t.hint} desc={why(t.id) ?? t.desc}>
           <button
             className={tool === t.id ? "tool on" : "tool"}
             aria-label={t.title}
             aria-pressed={tool === t.id}
+            disabled={!!why(t.id)}
+            title={why(t.id)}
             onClick={() => onTool(t.id)}
           >
             <Icon id={t.icon} size={15} />
@@ -105,12 +107,17 @@ export function ToolRail({
       <span className="tool-rail-div" />
       <Tooltip
         title="Bounds"
-        desc="Show the ceiling, floor, kill plane and the gaps a player can fall through."
+        desc={
+          why("bounds") ??
+          "Show the ceiling, floor, kill plane and the gaps a player can fall through."
+        }
       >
         <button
           className={showBounds ? "tool on" : "tool"}
           aria-label="Bounds"
           aria-pressed={showBounds}
+          disabled={!!why("bounds")}
+          title={why("bounds")}
           onClick={onToggleBounds}
         >
           <Icon id="g-bounds" size={15} />
@@ -132,12 +139,17 @@ export function ToolRail({
       <Tooltip
         title="Music regions"
         hint="M"
-        desc="Show the audio lane — this level's track and the regions that change the music as the player advances."
+        desc={
+          why("music") ??
+          "Show the audio lane — this level's track and the regions that change the music as the player advances."
+        }
       >
         <button
           className={audioOpen ? "tool on" : "tool"}
           aria-label="Music regions"
           aria-pressed={!!audioOpen}
+          disabled={!!why("music")}
+          title={why("music")}
           onClick={onOpenMusic}
         >
           <Icon id="g-music" size={15} />

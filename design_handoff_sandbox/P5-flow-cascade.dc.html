@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b; --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55;
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;color:var(--fg)}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+</style>
+</helmet>
+
+<div data-screen-label="P5 · the cascade moment" style="min-width:1440px;padding:26px 30px 34px;background:var(--bg)">
+  <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:14px">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">flow board · P5</div>
+      <h1 style="margin:4px 0 0;font-size:21px;font-weight:600;letter-spacing:-.01em">The cascade moment</h1>
+    </div>
+    <div style="flex:1"></div>
+    <p style="margin:0;max-width:540px;font-size:11.5px;color:var(--fg-muted);line-height:1.55;text-wrap:pretty">One edit leaves things the user did not touch out of date. The design goal is that nothing runs without being seen: affected artifacts are flagged NEEDS REVIEW and stay fully usable, the plan is a card, every paid step confirms on its own, and the rollup is honest about the whole blast radius before the first dollar.</p>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">trigger: re-anchor · palette change · tileset swap · level resize</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));background:oklch(72% .14 45/.1);color:var(--warn)">rollup shown before step 1 runs</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">nothing is deleted, ever</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:96px repeat(5,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+    <div style="background:var(--bg-sunken);padding:8px 10px"></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1</div><div style="font-size:11.5px;font-weight:600">The edit lands</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">2</div><div style="font-size:11.5px;font-weight:600">Needs review appears</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3</div><div style="font-size:11.5px;font-weight:600">Plan card · blast radius</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4</div><div style="font-size:11.5px;font-weight:600">Per-step confirm</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">5</div><div style="font-size:11.5px;font-weight:600">Verify, or stop halfway</div></div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)">user</span><span style="font-size:10.5px;color:var(--fg-dim)">decides, approves</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Re-anchors the heron — the coat became a poncho. A normal, deliberate edit.</p>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:6px 7px;font-family:var(--mono);font-size:10px;color:var(--fg-muted);line-height:1.6"><div>anchor · v3 → v4</div><div style="color:var(--fg-dim)">turnaround · locked</div></div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Sees NR badges where the old anchor's art is still in use. Nothing has broken; the game still runs, and shipping as-is is a real choice.</p>
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-muted)"><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--warn);color:var(--warn)">NR</span><span>5 animation states</span></div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-muted)"><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--warn);color:var(--warn)">NR</span><span>6 mood portraits</span></div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg-muted)"><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--ok);color:var(--ok)">fine</span><span>3 skins · maps, not pixels</span></div>
+      </div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Opens the plan card and reads the total before agreeing to anything.</p>
+      <div style="border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));border-radius:var(--radius-sm);background:oklch(72% .14 45/.08);padding:7px 8px">
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);margin-bottom:4px">blast radius</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--fg-muted);line-height:1.6"><div>11 artifacts · 4 steps</div><div>2 levels re-validate · free</div><div style="color:var(--warn)">total $0.46–$1.75</div></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">hand-edited frames listed by name</span>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Runs the steps one at a time, skipping the two frames they would rather keep.</p>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:3px;padding:4px 6px"><span style="font-family:var(--mono);font-size:9px;color:var(--ok)">done</span><span style="font-size:10.5px;color:var(--fg-muted);flex:1">states · 5</span><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">$0.31</span></div>
+        <div style="display:flex;align-items:center;gap:6px;border:1px solid var(--accent);border-radius:3px;padding:4px 6px;background:oklch(72% .13 78/.08)"><span style="font-family:var(--mono);font-size:9px;color:var(--accent)">now</span><span style="font-size:10.5px;flex:1">moods · 6</span><span style="font-family:var(--mono);font-size:9px;color:var(--accent)">$0.15–$0.60</span></div>
+        <div style="display:flex;align-items:center;gap:6px;border:1px dashed var(--border-hi);border-radius:3px;padding:4px 6px"><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">skip</span><span style="font-size:10.5px;color:var(--fg-dim);flex:1">2 hand-edited frames</span></div>
+      </div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Stops after moods, plays the level, and finishes the rest tomorrow. The plan card waits.</p>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:6px 7px;font-size:10.5px;color:var(--fg-muted);line-height:1.5">Plan paused · 2 of 4 steps done. Resume from the History tab or the agent panel.</div>
+    </div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info)">cradle</span><span style="font-size:10.5px;color:var(--fg-dim)">does the work</span></div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Writes the new anchor version and walks the provenance graph for artifacts conditioned on the old one. The walk is free and instant — it is metadata, not pixels.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Marks each dependent artifact <span style="font-family:var(--mono);font-size:10px;color:var(--warn)">NR</span> — needs review — and leaves it fully usable. Validation chips on affected levels clear, per house rule: no stale “valid ✓”. Nothing regenerates on its own.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Builds the plan in Phase 1's card language: ordered steps, each with its verb, its inputs, its estimate, and what it will overwrite. Hand-edited artifacts are separated out, because those are the ones a rerun destroys.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Runs one step per confirm, writing results as they land and updating the rollup with actual spend beside the estimate. Skipped steps stay in the card as skipped, not removed.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Re-runs the free validator and QA checks on what changed, and keeps the paused plan attached to the entity's History so the remaining steps are one click away — not a thing to remember.</div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn)">spend</span><span style="font-size:10.5px;color:var(--fg-dim)">&amp; QA gates</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--warn)">$0.04–$0.48</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">The anchor itself. The cascade is not charged yet and the card says so.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Needs-review is metadata. A project can sit unreviewed indefinitely and ship that way — that is a legitimate choice.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--warn)">$0.46–$1.75</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Rollup is a range, never a single number, and it names the step that dominates it.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--warn)">per step</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Each confirm carries its own estimate. “Run all” exists and shows the total on the button — it is a choice, not the default.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Validator and QA re-run free after every step, so a partially-run cascade is never in an unknown state.</span></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px">
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--err);margin-bottom:5px">failure · mid-plan</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Step 3 of 4 fails: the card marks that step failed with the provider's message, keeps steps 1–2's results, and offers retry on the failed step alone. Actual spend to date is shown next to the estimate.</p></div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);margin-bottom:5px">the hard case</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Regenerating over a hand-edited frame is the only destructive act in the flow. It is a separate confirm with the frame named and a thumbnail: “This replaces your edit to jump · frame 3. The edit stays in History.”</p></div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info);margin-bottom:5px">reuses</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">The agent panel's plan card, its per-step confirm and cost line, and the History/lineage tab. The only new part is the blast-radius rollup header.</p></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}"></script>
+</body>
+</html>

@@ -31,7 +31,7 @@ describe("ValidationBar", () => {
 
   it("renders Checker / Validator / World Editor placeholders when world is set", () => {
     useStore.setState({
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     render(<ValidationBar />);
     expect(screen.getByText("Checker: —")).toBeInTheDocument();

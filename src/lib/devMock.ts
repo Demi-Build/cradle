@@ -3,9 +3,30 @@
 // (built by scratchpad/build_mockdata.py from an actual platformer pack). NOT
 // bundled in production — main.tsx only imports this behind the env flag.
 
+import { USER_ACTOR, agentActor, isAgentActor, parseActor } from "./actor";
 import { DB_NESTING } from "./dbNesting";
 import { handleJobEvent, handleJobProgress } from "./jobs";
-import type { WorldMap } from "./invoke";
+import type { JournalEvent, WorldMap } from "./invoke";
+import { summarizeJournal } from "./cost";
+import { setAgentTransport } from "./agent";
+import { cancelledJobs, installAgentMock, onMockServiceState, scriptedAgent } from "./agentMock";
+import { useStore } from "../store";
+import {
+  dialogueImprove as mockDialogueImprove,
+  dialogueSelect as mockDialogueSelect,
+  dialogueShow as mockDialogueShow,
+  dialogueTest as mockDialogueTest,
+  dialogueUpdate as mockDialogueUpdate,
+  dialogueValidate as mockDialogueValidate,
+  mockNpcRefs,
+  mockNpcRow,
+  mockSceneRefs,
+  mockSceneRow,
+  resetDialogueMock,
+  sceneTest as mockSceneTest,
+  sceneUpdate as mockSceneUpdate,
+  sceneValidate as mockSceneValidate,
+} from "./dialogueMock";
 
 type Ref = { type_id: string; id: string; name: string };
 type JsonMap = Record<string, unknown>;
@@ -142,6 +163,459 @@ function jsonFor(d: MockData, typeId: string): JsonMap {
   return keys ? ((d[keys[1]] as JsonMap | undefined) ?? {}) : {};
 }
 
+// `canon pack templates` (P0 paper P.4.4, row P0-10) — the two installed
+// templates' wizard metadata, copied from canon's seeds so the create wizard
+// renders in the browser exactly what it renders natively (I7). The phase
+// label maps are the §3.0-E ones; the mock's pipelines emit these ids.
+const MOCK_TEMPLATES = [
+  {
+    id: "platformer",
+    label: "Platformer",
+    description: "Side-scrolling stages of levels, wired into a world map.",
+    vocab: ["stages", "levels", "paths"],
+    defaults: { stages: 1, levels: 2, enemies: 4, items: 4 },
+    ranges: { stages: [1, 8], levels: [1, 12], enemies: [0, 24], items: [0, 24] },
+    advanced: [] as string[],
+    engine: ["godot"],
+    dimension: "2D",
+    distribution: ["computer", "mobile", "web"],
+    beta: false,
+    phase_labels: {
+      "plat:world": "World premise",
+      "plat:stage": "Stages",
+      "plat:style": "Art direction",
+      "plat:enemies": "Enemy roster",
+      "plat:items": "Item pool",
+      "plat:tileset": "Tile slots",
+      "plat:layout": "Level layouts",
+      "plat:terrain": "Terrain",
+      "plat:background": "Backgrounds",
+      "plat:placement": "Placing enemies",
+      "plat:item_placement": "Placing items",
+      "plat:decorator": "Decoration",
+      "plat:tileset_art": "Tileset art",
+      "plat:sprite_art": "Sprite art",
+      "plat:sprite_animation": "Animation",
+      "plat:backdrop_art": "Backdrops",
+      "plat:world_art": "Title art",
+      "plat:audio": "Music & SFX",
+      "plat:render": "Review renders",
+      "plat:vlm_qa": "Quality pass",
+      "plat:manifest": "Manifest",
+      "plat:level_steps": "Level steps",
+      // The orchestrator's per-artifact families: the reader tries the whole
+      // id, then `<family>:<leaf>`, then `<family>` (see `phaseLabel`).
+      level: "Level",
+      "level:collision": "Collision",
+      "level:terrain": "Terrain",
+      "level:background": "Background",
+      "level:foreground": "Foreground",
+      "level:hazards": "Hazards",
+      "level:triggers": "Triggers",
+      "level:entities": "Placing enemies",
+      "level:items": "Placing items",
+      "level:level": "Level assembly",
+      review: "Review",
+      "review:legend": "Legend review",
+    },
+    generators: ["llm", "image", "music", "sfx", "vlm"],
+    count_scope: { enemies: "total", items: "total" },
+  },
+  {
+    id: "dungeon",
+    label: "Dungeon crawler",
+    description: "Rooms of encounters, NPCs and loot tables.",
+    vocab: ["rooms", "encounters", "loot"],
+    defaults: { rooms: 3, npc: 2, item: 3, monster: 2, event: 4, quest: 2, class: 4 },
+    ranges: {
+      rooms: [1, 24],
+      npc: [0, 8],
+      monster: [0, 8],
+      item: [0, 8],
+      event: [0, 8],
+      quest: [0, 8],
+      class: [1, 4],
+    },
+    advanced: ["event", "quest", "class"],
+    engine: ["pygame"],
+    dimension: "2D",
+    distribution: [] as string[],
+    beta: false,
+    phase_labels: {
+      story: "Story & world",
+      classes: "Player classes",
+      maze_layout: "Room layouts",
+      "db:item": "Items",
+      "db:monster": "Monsters",
+      "db:npc": "NPCs",
+      "db:event": "Encounters",
+      "db:quest": "Quests",
+      mazeworld_dialogue: "Dialogue",
+      spell_pool: "Spells & abilities",
+      assets: "Portraits & audio",
+      narrative: "Narrative",
+      mazeworld_placement: "Placing entities",
+      validation: "Validation",
+      manifest: "Manifest",
+    },
+    // No `vlm` lane: canon's dungeon runner takes no `--vlm-backend`, so the
+    // wizard disables Animation for it with the reason (doctrine 4).
+    generators: ["llm", "image", "music", "sfx"],
+    count_scope: {
+      npc: "per_room",
+      monster: "per_room",
+      item: "per_room",
+      quest: "per_room",
+      event: "per_room",
+      class: "total",
+    },
+  },
+];
+
+// `canon pack info` for the mock's platformer pack (P0 paper P.4.6) — the
+// registry grids block is what the level editor reads for its Dock tabs.
+const MOCK_PACK_INFO = {
+  pack_type: "platformer",
+  label: "Platformer",
+  // Row P0-9: the mock declares `dialogue` so the vocabulary the pickers and
+  // the grammar read comes from `pack info` in the browser exactly as it does
+  // natively (I7). The block is canon's `DEFAULT_DIALOGUE_DATA`, verbatim.
+  capabilities: ["grid", "dialogue"],
+  vocab: ["stages", "levels", "paths"],
+  dialogue: {
+    storage: {
+      on: "npc",
+      field: "dialogue_trees",
+      legacy_fields: [
+        "dialogue_tree",
+        "dialogue_tree_incomplete",
+        "dialogue_tree_complete",
+        "dialogue_tree_failed",
+      ],
+    },
+    condition_namespaces: [
+      "has_item",
+      "quest",
+      "time",
+      "player",
+      "flag",
+      "segment",
+      "room",
+      "scene",
+      "event",
+    ],
+    scene_only_namespaces: ["actor"],
+    effects: ["gives_item", "takes_item", "gives_quest", "advance_quest", "set_flag"],
+    scopes: ["tree", "selector", "scene", "effects", "music"],
+    operands: {
+      has_item: { entity: "item", field: "id" },
+      quest: {
+        entity: "quest",
+        field: "id",
+        states: ["not_started", "active", "completed", "failed"],
+      },
+      time: { windows: ["dawn", "day", "dusk", "night"] },
+      player: {
+        fields: ["level", "health", "max_health", "stamina", "money", "archetype"],
+        ops: ["<", "<=", "==", ">=", ">"],
+      },
+      flag: { keys: "from set_flag effects", values: ["true", "false"] },
+      segment: { values: [] },
+      room: { entity: "room", field: "id" },
+      scene: {
+        entity: "event",
+        field: "id",
+        filter: { type: "scene" },
+        states: ["seen", "unseen"],
+      },
+      event: { entity: "event", field: "id", states: ["solved", "unsolved"] },
+      actor: {
+        entity: "npc",
+        field: "id",
+        restrict_to: "scene.actors",
+        states: ["present", "absent"],
+      },
+    },
+    selector_axes: ["quest", "segment", "time", "flag", "room", "scene", "player", "custom"],
+    scene: {
+      event_type: "scene",
+      triggers: ["enter_room", "talk_any_actor", "quest_advance"],
+      once: true,
+      on_finish: "effects",
+    },
+  },
+  engine_evaluable_namespaces: {
+    // What the mock's "engine" claims it evaluates. `time` is deliberately
+    // absent so the engine-lag layer has something real to warn about.
+    tree: { has_item: true, quest: { states: ["completed", "failed", "not_started"] }, flag: true },
+    selector: { quest: { states: ["completed", "failed", "not_started"] } },
+    effects: { gives_item: true, takes_item: true, gives_quest: true, advance_quest: true },
+  },
+  entities: {
+    enemy: { label: "Enemies", id_field: "enemy_id", placeable: true },
+    item: { label: "Items", id_field: "item_id", placeable: true },
+  },
+  grids: {
+    level: {
+      placements: {
+        entities: { kind: "enemy", wire: "entities" },
+        items: { kind: "item", wire: "items" },
+      },
+      points: ["spawn", "exit"],
+      dims: { width_field: "grid_width", height_field: "grid_height", default: [48, 16] },
+    },
+  },
+  engines: [{ id: "godot", primary: true }],
+  template: { id: "platformer", version: null },
+  source: "manifest",
+};
+
+/** The room bundles the mock has HANDED OUT, so an edit round-trips exactly
+ *  the way the native path does (canon writes, cradle re-exports). Row P0-8:
+ *  without this a paint or a drag vanished on the next export. */
+const mockRooms: Record<string, Record<string, unknown>> = {};
+
+/** A synthetic dungeon ROOM bundle in the P.6.3a shape (`canon grid export`
+ *  on a room): a 12×8 maze with walls, one NPC / event / item, spawn and
+ *  door — enough for the room view to be exercised headless. */
+export function mockRoomBundle(roomId: string): Record<string, unknown> {
+  const W = 12;
+  const H = 8;
+  // 1 = wall, 0 = path; the sidecars below agree with the grid (no warnings).
+  const rows = [
+    "111111111111",
+    "100000100001",
+    "101110101101",
+    "101000100101",
+    "101011111101",
+    "100000000001",
+    "111111011101",
+    "111111111111",
+  ];
+  const collision = rows.map((r) => r.split("").map((c) => (c === "1" ? 1 : 0)));
+  const slots = [
+    {
+      index: 0,
+      tile_type: 0,
+      name: "empty",
+      px_region: [0, 0, 20, 20],
+      collision: "empty",
+      params: {},
+    },
+    {
+      index: 1,
+      tile_type: 1,
+      name: "wall",
+      px_region: [0, 0, 20, 20],
+      collision: "solid",
+      params: {},
+    },
+  ];
+  const bundle = {
+    level_id: roomId,
+    stage_id: "",
+    display_name: "The Whispering Wood",
+    revision: "sha256:mock-room",
+    revision_short: "mock-room",
+    last_change: null,
+    grid_width: W,
+    grid_height: H,
+    spawn: [1, 1],
+    exit: [6, 6],
+    layout_fallback: false,
+    parent_level: null,
+    brief: null,
+    tile_px: 20,
+    actor_scale: 1,
+    water_alpha: 1,
+    variants: [],
+    grids: {
+      collision,
+      terrain: collision.map((r) => [...r]),
+      background: collision.map((r) => r.map(() => 0)),
+    },
+    tileset: {
+      slots,
+      palette: { background: "--bg-sunken", wall: "#225022" },
+      render_filter: "nearest",
+      tilesheet_path_abs: null,
+    },
+    tiles_by_type: Object.fromEntries(slots.map((s) => [String(s.tile_type), s])),
+    entities: [
+      {
+        enemy_id: "1000",
+        x: 9,
+        y: 1,
+        variant: null,
+        name: "Mira",
+        archetype: "RandomNPC",
+        size: 1,
+        placeholder_color: "#3c823c",
+        sprite_path_abs: null,
+      },
+    ],
+    items: [
+      {
+        item_id: "2000",
+        x: 3,
+        y: 3,
+        source: null,
+        name: "ration cube",
+        kind: "food",
+        placeholder_color: "#ffd700",
+        sprite_path_abs: null,
+      },
+    ],
+    triggers: [
+      {
+        x: 5,
+        y: 5,
+        type: "combat",
+        params: { event_id: 3000, is_gate: true, is_climax_boss: false, monster_ids: [5000] },
+      },
+    ],
+    hazards: [],
+    foreground: [],
+    props: {},
+    backdrop: null,
+    music_path: "",
+    music_path_abs: null,
+    music_sections: [],
+    stage_music: "",
+    stage_music_abs: null,
+    warnings: [],
+    room: {
+      environment: "forest",
+      environment_name: "The Whispering Wood",
+      door_revealed: false,
+      gate_encounter_id: 3000,
+      quest_ids: [4000],
+      monsters: [
+        {
+          entity_type: "monster",
+          entity_id: "5000",
+          name: "Wolf",
+          room_id: roomId,
+          lore: "",
+          tags: [],
+        },
+      ],
+    },
+  };
+  return bundle;
+}
+
+/** The live copy of a mock room — created on first ask, mutated by the write
+ *  handlers below (`save_level_edit` / `save_level_grids` / `roll_grid_step`
+ *  / `restore_grid_step`), so devMock parity (I7) covers the room path. */
+function mockRoom(roomId: string): Record<string, unknown> {
+  if (!mockRooms[roomId]) mockRooms[roomId] = mockRoomBundle(roomId);
+  return mockRooms[roomId];
+}
+
+/** A room write's own `last_change` chip (the room bundle carries the field
+ *  itself, where a platformer bundle stamps `_last_change` for the export). */
+function stampRoom(room: Record<string, unknown>, label: string, op = "edit"): void {
+  room.last_change = {
+    op,
+    source: "user",
+    kind: "",
+    actor: USER_ACTOR,
+    ts: new Date().toISOString(),
+    hash: "",
+    label,
+  };
+}
+
+/** `canon grid apply-edit` on a room (row P0-8): the sparse wire keys land on
+ *  the bundle's own lists, and `encounters` does the cross-file thing —
+ *  building or joining the combat event on that cell (P.9 G4). */
+function mockRoomEdit(roomId: string, edit: Record<string, unknown>): unknown {
+  const room = mockRoom(roomId);
+  const updated: string[] = [];
+  const grid = (room.grids as { collision: number[][] }).collision;
+  if (Array.isArray(edit.entities)) {
+    const prev = room.entities as Record<string, unknown>[];
+    room.entities = (edit.entities as Record<string, unknown>[]).map((e) => ({
+      ...(prev.find((p) => p.enemy_id === e.enemy_id) ?? {
+        name: e.enemy_id,
+        archetype: null,
+        size: 1,
+        placeholder_color: "#7a8b99",
+        sprite_path_abs: null,
+        variant: null,
+      }),
+      ...e,
+    }));
+    updated.push("entities");
+  }
+  if (Array.isArray(edit.items)) {
+    const prev = room.items as Record<string, unknown>[];
+    for (const it of prev) grid[it.y as number][it.x as number] = 0;
+    room.items = (edit.items as Record<string, unknown>[]).map((it) => ({
+      ...(prev.find((p) => p.item_id === it.item_id) ?? {
+        name: it.item_id,
+        kind: null,
+        placeholder_color: "#ffd700",
+        sprite_path_abs: null,
+        source: null,
+      }),
+      ...it,
+    }));
+    updated.push("items");
+  }
+  if (Array.isArray(edit.triggers)) {
+    const prev = room.triggers as Record<string, unknown>[];
+    room.triggers = (edit.triggers as Record<string, unknown>[]).map((t) => {
+      const old = prev.find(
+        (p) =>
+          String((p.params as Record<string, unknown>)?.event_id) ===
+          String((t.params as Record<string, unknown>)?.event_id),
+      );
+      return { ...t, params: { ...(old?.params ?? {}), ...(t.params ?? {}) } };
+    });
+    updated.push("triggers");
+  }
+  if (Array.isArray(edit.encounters)) {
+    const triggers = room.triggers as Record<string, unknown>[];
+    for (const raw of edit.encounters as Record<string, unknown>[]) {
+      const at = triggers.find(
+        (t) => String((t.params as Record<string, unknown>).event_id) === String(raw.event_id),
+      );
+      if (at) {
+        (at.params as Record<string, unknown>).monster_ids = raw.monster_ids;
+        at.x = raw.x;
+        at.y = raw.y;
+      } else {
+        // A new combat event: the id comes from the kind's allocator (base
+        // 3000) — the mock takes the next free one the same way.
+        const next =
+          Math.max(
+            2999,
+            ...triggers.map((t) => Number((t.params as Record<string, unknown>).event_id) || 0),
+          ) + 1;
+        triggers.push({
+          x: raw.x,
+          y: raw.y,
+          type: "combat",
+          params: {
+            event_id: next,
+            is_gate: false,
+            is_climax_boss: false,
+            monster_ids: raw.monster_ids ?? [],
+          },
+        });
+      }
+    }
+    updated.push("encounters");
+  }
+  if (edit.spawn) room.spawn = edit.spawn;
+  if (edit.exit) room.exit = edit.exit;
+  if (edit.spawn || edit.exit) updated.push("markers");
+  stampRoom(room, "Saved room edit");
+  return { level_id: roomId, room_id: roomId, stage_id: "", updated, warnings: [], events: 1 };
+}
+
 // The PLAYER has no row file in any pack — Rust synthesizes one from
 // sprite/player/. Mirror that here so nav/buttons are exercisable headless.
 // (public/__mockassets__ points at a real pack, so the portrait resolves.)
@@ -156,6 +630,172 @@ const MOCK_PLAYER_ROW: JsonMap = {
   },
 };
 const MOCK_PLAYER_REF: Ref[] = [{ type_id: "player", id: "player", name: "Player" }];
+
+/** The mock's scenes are EVENT rows, so the events count has to include them
+ *  or the left nav hides the type and the Scene tab is unreachable in the
+ *  browser — the one place a contributor without a dungeon pack can exercise
+ *  it (I7). Adds an `events` row when the pack has none. */
+function withMockCounts(counts: { type_id: string; count: number }[]) {
+  const scenes = mockSceneRefs().length;
+  if (scenes === 0) return counts;
+  const at = counts.findIndex((c) => c.type_id === "events");
+  if (at < 0) return [...counts, { type_id: "events", count: scenes }];
+  return counts.map((c, i) => (i === at ? { ...c, count: c.count + scenes } : c));
+}
+
+/** Row P0-12's provider rows (I7 parity). A COPY of what `canon providers
+ *  list` answers — the browser mock stands in for canon, so it carries the
+ *  same DATA the native path renders. Adding a provider is still a row in
+ *  `canon/providers.py`; this list follows it, exactly as MOCK_TEMPLATES
+ *  follows the template seeds. */
+const MOCK_PROVIDERS = [
+  {
+    id: "anthropic",
+    label: "Anthropic",
+    env_var: "ANTHROPIC_API_KEY",
+    aliases: [] as string[],
+    unlocks: "LLM generation, VLM animation review, and the agent's Claude models.",
+    backends: { llm: ["anthropic"], vlm: ["anthropic"], chat: ["anthropic"] } as Record<
+      string,
+      string[]
+    >,
+    docs: "https://console.anthropic.com/settings/keys",
+    note: "",
+    test: {
+      url: "https://api.anthropic.com/v1/models?limit=1",
+      header: "x-api-key",
+      prefix: "",
+      note: "a free, read-only list call: no tokens, no generation",
+    },
+  },
+  {
+    id: "fal",
+    label: "fal.ai",
+    env_var: "FAL_KEY",
+    aliases: [] as string[],
+    unlocks: "Image generation and animation frames on the nano-banana line.",
+    backends: { image: ["fal"] } as Record<string, string[]>,
+    docs: "https://fal.ai/dashboard/keys",
+    note: "",
+    test: null,
+  },
+  {
+    id: "lyria",
+    label: "Google (Lyria music)",
+    env_var: "GOOGLE_API_KEY",
+    aliases: [] as string[],
+    unlocks: "Music generation through Lyria on the Gemini API.",
+    backends: { music: ["lyria"] } as Record<string, string[]>,
+    docs: "https://aistudio.google.com/apikey",
+    note: "Lyria is paid-tier only — a free-tier Gemini key authenticates but cannot generate music.",
+    test: {
+      url: "https://generativelanguage.googleapis.com/v1beta/models",
+      header: "x-goog-api-key",
+      prefix: "",
+      note: "a free, read-only list call: no tokens, no generation",
+    },
+  },
+  {
+    id: "elevenlabs",
+    label: "ElevenLabs",
+    env_var: "ELEVENLABS_API_KEY",
+    aliases: [] as string[],
+    unlocks: "Sound-effect generation.",
+    backends: { sfx: ["elevenlabs"] } as Record<string, string[]>,
+    docs: "https://elevenlabs.io/app/settings/api-keys",
+    note: "The free tier does not carry a commercial licence; SFX credits are shared with the rest of the account.",
+    test: {
+      url: "https://api.elevenlabs.io/v1/user",
+      header: "xi-api-key",
+      prefix: "",
+      note: "reads your own account row: free",
+    },
+  },
+  {
+    id: "pixellab",
+    label: "PixelLab",
+    env_var: "PIXELLAB_SECRET",
+    aliases: ["PIXELLAB_API_KEY"],
+    unlocks: "Pixel-art sprites and animation through PixelLab.",
+    backends: { image: ["pixellab"] } as Record<string, string[]>,
+    docs: "https://www.pixellab.ai/",
+    note: "PIXELLAB_API_KEY is the dashboard's name for the same token; canon accepts either, PIXELLAB_SECRET first.",
+    test: null,
+  },
+  {
+    id: "retro",
+    label: "Retro Diffusion",
+    env_var: "RD_API_KEY",
+    aliases: [] as string[],
+    unlocks: "Retro Diffusion pixel-art images and animation clips.",
+    backends: { image: ["retro", "retro-diffusion"] } as Record<string, string[]>,
+    docs: "https://www.retrodiffusion.ai/",
+    note: "",
+    test: null,
+  },
+  {
+    id: "meshy",
+    label: "Meshy (3D)",
+    env_var: "MESHY_API_KEY",
+    aliases: [] as string[],
+    unlocks: "Image-to-3D meshes, texturing, auto-rigging (the 3D lane arrives with W2.2).",
+    backends: { mesh: ["meshy"] } as Record<string, string[]>,
+    docs: "https://www.meshy.ai/api",
+    note: "Free-tier outputs are CC BY 4.0 — commercial use IS allowed with attribution. A paid tier is required for full ownership / commercial use without attribution.",
+    test: null,
+  },
+  {
+    id: "openai",
+    label: "OpenAI",
+    env_var: "OPENAI_API_KEY",
+    aliases: [] as string[],
+    unlocks: "The agent's GPT models.",
+    backends: { chat: ["openai"] } as Record<string, string[]>,
+    docs: "https://platform.openai.com/api-keys",
+    note: "",
+    test: {
+      url: "https://api.openai.com/v1/models",
+      header: "Authorization",
+      prefix: "Bearer ",
+      note: "a free, read-only list call: no tokens, no generation",
+    },
+  },
+  {
+    id: "kimi",
+    label: "Moonshot (Kimi)",
+    env_var: "MOONSHOT_API_KEY",
+    aliases: [] as string[],
+    unlocks: "The agent's Kimi models.",
+    backends: { chat: ["kimi"] } as Record<string, string[]>,
+    docs: "https://platform.moonshot.ai/console/api-keys",
+    note: "",
+    test: {
+      url: "https://api.moonshot.ai/v1/models",
+      header: "Authorization",
+      prefix: "Bearer ",
+      note: "a free, read-only list call: no tokens, no generation",
+    },
+  },
+];
+
+/** `{kind: {backend id: env var}}`, derived from the rows exactly as canon
+ *  derives it — never a second literal. */
+function mockBackendKeyVars(): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {};
+  for (const row of MOCK_PROVIDERS) {
+    for (const [kind, ids] of Object.entries(row.backends)) {
+      for (const id of ids) (out[kind] ??= {})[id] = row.env_var;
+    }
+  }
+  return out;
+}
+
+/** Which vars the mock reports as SET. Names only — the mock holds no key
+ *  value at all, realistic-looking or otherwise. */
+const MOCK_PRESENT_KEYS = new Set<string>(["ANTHROPIC_API_KEY", "FAL_KEY", "GOOGLE_API_KEY"]);
+
+/** The relocated project store, when the Environment pane moved it. */
+let MOCK_PROJECT_STORE: string | null = null;
 
 function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unknown {
   switch (cmd) {
@@ -172,17 +812,36 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       return {
         path: String(args.path ?? "mock://pack"),
         name: d.name,
+        // The mock's data is a platformer pack; native answers this from
+        // `canon pack info` (the pack's registry id, verbatim).
+        world_kind: "platformer",
+        // …and carries that document whole (row P0-5): the platformer's
+        // registry grids, as `canon pack info` reports them.
+        pack_info: MOCK_PACK_INFO,
         // Splice the synthesized player in after levels, matching the Rust
-        // registry order so the ACTORS group renders contiguously.
-        entity_counts: d.entity_counts.some((c) => c.type_id === "player")
-          ? d.entity_counts
-          : [
-              ...d.entity_counts.slice(0, 1),
-              { type_id: "player", count: 1 },
-              ...d.entity_counts.slice(1),
-            ],
+        // registry order so the ACTORS group renders contiguously. Row P0-9
+        // splices `npcs` in the same way: the mock's data is a platformer pack
+        // with no NPC rows, and without a count the dialogue surface is
+        // unreachable in the browser — the one place a contributor without a
+        // dungeon pack can exercise it (I7).
+        entity_counts: withMockCounts(
+          d.entity_counts.some((c) => c.type_id === "player")
+            ? d.entity_counts
+            : [
+                ...d.entity_counts.slice(0, 1),
+                { type_id: "player", count: 1 },
+                { type_id: "npcs", count: mockNpcRefs().length },
+                ...d.entity_counts.slice(1),
+              ],
+        ),
       };
     case "list_entities":
+      if (String(args.typeId) === "npcs") return mockNpcRefs();
+      // Scenes are EVENTS (P0-9 step 12), so they ride the events list rather
+      // than a fourth entity type — one store of truth, three readers.
+      if (String(args.typeId) === "events") {
+        return [...refsFor(d, "events"), ...mockSceneRefs()];
+      }
       return String(args.typeId) === "player" ? MOCK_PLAYER_REF : refsFor(d, String(args.typeId));
     case "list_entity_rows":
       return (
@@ -195,10 +854,19 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
             : (jsonFor(d, String(args.typeId))[r.id] ?? {}),
       }));
     case "get_entity":
+      if (String(args.typeId) === "npcs") return mockNpcRow(String(args.id)) ?? {};
+      if (String(args.typeId) === "events") {
+        const scene = mockSceneRow(String(args.id));
+        if (scene) return scene;
+      }
       return String(args.typeId) === "player"
         ? (MOCK_PLAYER_ROW[String(args.id)] ?? {})
         : (jsonFor(d, String(args.typeId))[String(args.id)] ?? {});
     case "export_level": {
+      // A room id answers with a synthetic room bundle in the P.6.3a shape —
+      // the one export serves both grids natively (`canon grid export`), and
+      // the mock mirrors that without a second mock world (I7).
+      if (String(args.levelId).startsWith("room_")) return mockRoom(String(args.levelId));
       const b = d.bundles[String(args.levelId)] as Record<string, unknown> | undefined;
       if (!b) return null;
       // Revision is derived from the mutable content (so it changes exactly when
@@ -209,6 +877,9 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       // Apply the sparse edit into the stored bundle so the post-save
       // re-export reflects it (native persists via canon apply-edit).
       const edit = (args.edit as Record<string, unknown>) ?? {};
+      if (String(args.levelId).startsWith("room_")) {
+        return mockRoomEdit(String(args.levelId), edit);
+      }
       const b = d.bundles[String(args.levelId)] as Record<string, unknown> | undefined;
       if (b) {
         if (edit.entities) {
@@ -256,6 +927,18 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       // Provenance journalling is a native/canon concern; ack in the mock.
       return { level_id: String(args.levelId), baselined: [] };
     case "save_level_grids": {
+      if (String(args.levelId).startsWith("room_")) {
+        const room = mockRoom(String(args.levelId));
+        const grids = room.grids as { collision: number[][]; terrain: number[][] };
+        const painted = (args.collision as number[][]).map((r) => [...r]);
+        // canon re-stamps every placement after the paint (P.6.3); the mock
+        // does the same so what renders is what "canon wrote".
+        for (const it of room.items as { x: number; y: number }[]) painted[it.y][it.x] = 0;
+        grids.collision = painted;
+        grids.terrain = painted.map((r) => [...r]);
+        stampChange(room, "Painted the maze", "edit", "user");
+        return { level_id: args.levelId, room_id: args.levelId, updated: ["grid"] };
+      }
       // Update the stored bundle so re-export reflects the paint; terrain gets
       // a naive re-derivation (base slot per type — no autotile in the mock).
       const b = d.bundles[String(args.levelId)] as {
@@ -283,6 +966,74 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         );
       }
       return { level_id: String(args.levelId), updated: ["collision"], status: "user_edited" };
+    }
+    case "roll_grid_step": {
+      // `canon grid roll` — code only and $0, so the mock never asks to spend.
+      // It jitters the room enough to make the reload visible.
+      const roomId = String(args.levelId);
+      const step = String(args.step);
+      const room = mockRoom(roomId);
+      const grid = (room.grids as { collision: number[][]; terrain: number[][] }).collision;
+      if (step === "layout" || step === "whole") {
+        for (let y = 1; y < grid.length - 1; y++) {
+          for (let x = 1; x < grid[y].length - 1; x++)
+            grid[y][x] = (x * y + step.length) % 4 === 0 ? 1 : 0;
+        }
+        (room.grids as { terrain: number[][] }).terrain = grid.map((r) => [...r]);
+      }
+      if (step === "npcs" || step === "whole") {
+        (room.entities as { x: number; y: number }[]).forEach((e, i) => {
+          e.x = 1 + ((i * 3 + 2) % 9);
+          e.y = 1 + ((i * 5 + 1) % 5);
+        });
+      }
+      if (step === "items" || step === "whole") {
+        (room.items as { x: number; y: number }[]).forEach((it, i) => {
+          it.x = 1 + ((i * 4 + 5) % 9);
+          it.y = 1 + ((i * 2 + 3) % 5);
+        });
+      }
+      if (step === "events" || step === "whole") {
+        (room.triggers as { x: number; y: number }[]).forEach((t, i) => {
+          t.x = 1 + ((i * 7 + 1) % 9);
+          t.y = 1 + ((i * 3 + 2) % 5);
+        });
+      }
+      if (step === "monsters") {
+        const target = (room.triggers as Record<string, unknown>[]).find(
+          (t) => String((t.params as Record<string, unknown>).event_id) === String(args.encounter),
+        );
+        if (!target)
+          throw new Error("select an encounter first — a monsters roll re-rolls ONE encounter");
+        (target.params as Record<string, unknown>).monster_ids = ["5000"];
+      }
+      stampRoom(room, `${step} rolled`);
+      return {
+        room_id: roomId,
+        level_id: roomId,
+        step,
+        seed: String(args.seed ?? "mock-seed"),
+        changed: true,
+        changed_artifacts: [
+          `room:${roomId}/${step === "layout" || step === "whole" ? "grid" : "placements"}`,
+        ],
+        no_change: false,
+        cost_usd: 0,
+        warnings: [],
+        updated: [step],
+      };
+    }
+    case "restore_grid_step": {
+      // Restore writes a NEW version through the same writer (doctrine 6);
+      // the mock only has to answer in the shape the panel reads.
+      const roomId = String(args.levelId);
+      stampRoom(mockRoom(roomId), `restored ${String(args.step)}`, "restore");
+      return {
+        level_id: roomId,
+        room_id: roomId,
+        restored_step: String(args.step),
+        restored_to: String(args.to),
+      };
     }
     case "create_level": {
       // Synthesize a draft bundle from an existing bundle's stage assets.
@@ -342,29 +1093,44 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       return { level_id: lid, stage_id: stageId, dims: [w, h], draft: true };
     }
     case "new_project": {
-      // Mock: the browser can't scaffold a real pack — hand back the demo
-      // path so the open-flow works for UI testing. Real scaffold is native.
-      // The step-log relay is mocked too (see simulateWorldProgress), so the
-      // create tracker is exercisable headless at a watchable speed.
+      // Mock: the browser can't scaffold a real pack — hand back a path so the
+      // open-flow works for UI testing. Real scaffold is native. The step-log
+      // relay is mocked too (see simulateWorldRun), so the create tracker is
+      // exercisable headless at a watchable speed for BOTH templates (row
+      // P0-10, I7 devMock parity).
       const id = String(args.jobId ?? "");
-      const packDir = "mock://plat_pack";
-      simulateWorldRun(
-        id,
-        {
-          stages: Number(args.stages ?? 1),
-          levels: Number(args.levels ?? 2),
-          enemies: Number(args.enemies ?? 4),
-          items: Number(args.items ?? 4),
-        },
-        {
-          pack_dir: packDir,
-          world: String(args.name ?? "My Platformer"),
-          seed: "mock",
-          changed: true,
-        },
-      );
+      const template = String(args.template ?? "platformer");
+      const counts = (args.counts ?? {}) as Record<string, number>;
+      // Mirrors the native slug + project-store + uniquify rules well enough
+      // for the UI: a null parentDir means the store.
+      const slug =
+        String(args.name ?? "project")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "") || "project";
+      const parent = args.parentDir ? String(args.parentDir) : "mock://CradleProjects";
+      const taken = `${parent}/${slug}`;
+      const packDir = MOCK_CREATED.has(taken) ? `${taken}_${MOCK_CREATED.size + 1}` : taken;
+      MOCK_CREATED.add(taken);
+      simulateWorldRun(id, template, counts, {
+        pack_dir: packDir,
+        template,
+        world: String(args.name ?? "New project"),
+        seed: String(args.seed ?? "mock"),
+        engines: [template === "dungeon" ? "pygame" : "godot"],
+        changed: true,
+      });
       return { job_id: id, status: "queued", pack_dir: packDir };
     }
+    case "project_store":
+      return {
+        root: MOCK_PROJECT_STORE ?? "mock://CradleProjects",
+        exists: true,
+        source: MOCK_PROJECT_STORE ? "settings" : "default",
+        locked_by_env: false,
+      };
+    case "pack_templates":
+      return { result: "templates", templates: MOCK_TEMPLATES };
     case "generate_level": {
       // Mock: synthesize a draft like create_level, plus a few placements
       // copied from the stage template so the Art view shows enemies/items.
@@ -565,8 +1331,42 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         changed_artifacts: changed ? [`level:${b.stage_id}/${lid}/collision`] : [],
       });
     }
-    case "db_types":
-      return { types: d.dbTypes ?? {} };
+    case "db_types": {
+      // Row P0-6 widened `canon db types` with the P.1 lists (user_fields /
+      // hidden / decorative / protected / routed) and RowEditor reads them
+      // instead of its old HIDDEN literal (row P0-8). Mock data captured
+      // before that carries only the original four keys, so fill the rest in
+      // with the core protected set — parity (I7) without a refreshed fixture.
+      const types = Object.fromEntries(
+        Object.entries((d.dbTypes ?? {}) as Record<string, Record<string, unknown>>).map(
+          ([kind, block]) => [
+            kind,
+            {
+              user_fields: [],
+              hidden: [],
+              decorative: [],
+              protected: [
+                "artifact_id",
+                `${kind}_id`,
+                "provenance_hash",
+                "parents",
+                "status",
+                "review_status",
+                "sprite_path",
+                "sprite_hash",
+                "animation",
+                "canon_version",
+              ],
+              routed: {},
+              label: `${kind[0].toUpperCase()}${kind.slice(1)}s`,
+              id_field: `${kind}_id`,
+              ...block,
+            },
+          ],
+        ),
+      );
+      return { types };
+    }
     case "db_new": {
       // Mock: synthesize a row locally so the table flow is visible; native
       // runs the real anchored generation via canon.
@@ -672,7 +1472,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
             objects: { row: "sha256:mockrow-wisp", sprite: "sha256:mocksprite-wisp" },
             meta: {},
             preview: "sha256:mocksprite-wisp",
-            actor: "cradle:user",
+            actor: USER_ACTOR,
           },
           {
             library_id: "lib-mock-band",
@@ -689,7 +1489,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
             objects: { art: "sha256:mocksprite-band" },
             meta: { depth: 0.5 },
             preview: "sha256:mocksprite-band",
-            actor: "cradle:user",
+            actor: USER_ACTOR,
           },
         ]
           .filter((e) => !args.kind || e.kind === args.kind)
@@ -722,7 +1522,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         objects: {},
         meta: {},
         preview: "",
-        actor: "cradle:user",
+        actor: USER_ACTOR,
       };
     case "library_import": {
       // Mock: land a visible row so the select-after-import flow demos.
@@ -797,7 +1597,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
             facet: "row",
             op: "edit",
             source: "user",
-            actor: "cradle:user",
+            actor: USER_ACTOR,
             ts: "2026-07-22T09:00:00",
             gen: null,
             artifacts: [target],
@@ -811,7 +1611,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
             facet: "sprite",
             op: "import",
             source: "import",
-            actor: "cradle:user",
+            actor: USER_ACTOR,
             ts: "2026-07-21T12:00:00",
             gen: null,
             artifacts: [target],
@@ -821,9 +1621,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
             depth: 0,
           },
         ],
-        edges: [
-          { from: rowA, to: rowB, op: "edit", kind: "db_update", actor: "cradle:user", ts: "" },
-        ],
+        edges: [{ from: rowA, to: rowB, op: "edit", kind: "db_update", actor: USER_ACTOR, ts: "" }],
         metadata: { total_nodes: 3, max_depth: 1, pruned: false },
       };
     }
@@ -931,16 +1729,179 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
             "and something older than the grove waiting at the end.",
         },
       };
+    // -- Row P1-A5: the agent sidecar's lifecycle + ⏹ on a queued job (I7
+    //    parity for the new commands). The scripted agent (`agentMock.ts`)
+    //    stands in for the whole service, so `agent_start` answers at once. --
+    case "agent_start": {
+      // The sidecar's `--backend` / `--model` are the ONLY seam that carries
+      // a model to the service, so the scripted agent adopts them the same
+      // way (I7). A restart re-installs the transport, which `agent_stop`
+      // cleared.
+      const backend = args.backend ? String(args.backend) : null;
+      const model = args.model ? String(args.model) : null;
+      scriptedAgent.startedOn(backend, model);
+      setAgentTransport(scriptedAgent);
+      return {
+        port: 0,
+        pid: 0,
+        mock: true,
+        command:
+          "scripted agent (devMock — no sidecar)" +
+          `${backend ? ` --backend ${backend}` : ""}${model ? ` --model ${model}` : ""}`,
+      };
+    }
+    case "agent_stop":
+      return { stopped: true };
+    case "agent_status":
+      return {
+        running: true,
+        port: 0,
+        pid: 0,
+        pack: String(args.pack ?? ""),
+        exit_code: null,
+        stderr: [],
+      };
+    case "cancel_job": {
+      // Row A4.5's contract: a queued job is dropped outright; a running one
+      // stops at its next item boundary and keeps what landed. The scripted
+      // agent's paid loop checks `cancelledJobs` at each item.
+      const id = String(args.jobId ?? "");
+      cancelledJobs.add(id);
+      const job = useStore.getState().jobs.find((j) => j.id === id);
+      if (job?.status === "queued") {
+        void handleJobEvent({ id, status: "cancelled", result: { kept: [], not_started: [] } });
+        return { job_id: id, status: "cancelled" };
+      }
+      if (job?.status === "running" && !id.startsWith("agentjob-")) {
+        // An editor-launched mock job has no item loop to stop at: it ends now.
+        setTimeout(
+          () =>
+            void handleJobEvent({ id, status: "cancelled", result: { kept: [], not_started: [] } }),
+          80,
+        );
+      }
+      return { job_id: id, status: "cancelling" };
+    }
     case "sandbox_level":
       // Mock the canon verb: a reserved-id draft room, idempotent.
       return { level_id: "sandbox", stage_id: "mock_stage", created: false };
-    case "provider_keys":
-      // Mock: pretend the usual keys are present so paid gates are reachable
-      // headless; the native app reports what it can actually see.
+    case "runtime_status":
+      // I7 parity for row P0-11's startup probe. The browser mock has no
+      // canon at all, so it reports the leg a dev machine actually uses —
+      // `ok: true` keeps the guided failure screen out of the mock, which is
+      // not what it is there to test.
+      return {
+        ok: true,
+        origin: "path",
+        command: "canon",
+        triple: "mock",
+        resource_dir: null,
+        legs: [
+          { leg: "env", tried: null, found: false, note: "CANON_BIN is not set (mock)." },
+          { leg: "bundled", tried: null, found: false, note: "no bundle in the browser mock." },
+          { leg: "path", tried: "canon", found: true, note: "`canon` on PATH (mock)." },
+        ],
+        version: { canon_version: "0.1", package_version: "0.1.0" },
+        error: null,
+      };
+    case "provider_keys": {
+      // I7 parity for row P0-12's extended status read. Pretend the usual keys
+      // are PRESENT so paid gates are reachable headless — but only as names
+      // and sources. There is deliberately NO key value anywhere in this mock:
+      // a realistic-looking key in the repo is a secret-shaped liability even
+      // when it is fake, and the real command cannot return one either.
+      const present = new Set(MOCK_PRESENT_KEYS);
+      const asked = Array.isArray(args.vars) ? (args.vars as string[]) : [];
+      const names = [...new Set([...asked, ...MOCK_PRESENT_KEYS])].sort();
       return {
         env_file: "mock://.env",
-        keys: ["ANTHROPIC_API_KEY", "FAL_KEY", "GOOGLE_API_KEY"],
+        keys: names.filter((n) => present.has(n)),
+        vars: names.map((name) => ({
+          name,
+          set: present.has(name),
+          source: present.has(name) ? "keychain" : null,
+          also_in: [],
+        })),
+        backend: "keychain",
+        warning: null,
+        config_dir: "mock://config/cradle",
       };
+    }
+    case "set_provider_key": {
+      // Write-only in the mock too: the value is READ and DROPPED, never
+      // stored and never echoed back.
+      MOCK_PRESENT_KEYS.add(String(args.var));
+      return { var: String(args.var), stored: true, backend: "keychain", warning: null };
+    }
+    case "delete_provider_key": {
+      const had = MOCK_PRESENT_KEYS.delete(String(args.var));
+      return { var: String(args.var), removed: had, backend: "keychain", warning: null };
+    }
+    case "provider_rows":
+      return {
+        result: "providers",
+        providers: MOCK_PROVIDERS,
+        backend_key_vars: mockBackendKeyVars(),
+      };
+    case "test_provider_key": {
+      // The mock NEVER contacts a provider (doctrine 3). It answers the shape
+      // the button renders, honouring the row's own `test: null`.
+      const row = MOCK_PROVIDERS.find((r) => r.id === String(args.provider));
+      if (!row?.test)
+        return {
+          id: String(args.provider),
+          ran: false,
+          ok: false,
+          status: null,
+          reason: `${row?.label ?? args.provider} publishes no free authenticated endpoint — a test would have to run a paid generation, which this button never does.`,
+        };
+      return {
+        id: row.id,
+        ran: true,
+        ok: MOCK_PRESENT_KEYS.has(row.env_var),
+        status: MOCK_PRESENT_KEYS.has(row.env_var) ? 200 : 401,
+        reason: MOCK_PRESENT_KEYS.has(row.env_var)
+          ? "the provider accepted the key (mock: nothing was contacted)"
+          : "the provider rejected the key (mock: nothing was contacted)",
+      };
+    }
+    case "environment_status":
+      return {
+        canon: dispatch("runtime_status", {}, d),
+        godot: {
+          tool: "godot",
+          label: "Godot",
+          env_var: "GODOT_BIN",
+          found: true,
+          origin: "path",
+          path: "/usr/local/bin/godot",
+          version: "4.3.stable.official",
+          major: 4,
+          gate: "unpinned",
+          note: "Godot is available.",
+          install: "https://godotengine.org/download",
+          legs: [],
+        },
+        blender: {
+          tool: "blender",
+          label: "Blender",
+          env_var: "BLENDER_BIN",
+          found: false,
+          origin: null,
+          path: null,
+          version: null,
+          major: null,
+          gate: "missing",
+          note: "Blender is not installed here. Set $BLENDER_BIN to its binary, put `blender` on PATH, or install it.",
+          install: "https://www.blender.org/download/",
+          legs: [],
+        },
+        project_store: dispatch("project_store", {}, d),
+        config_dir: "mock://config/cradle",
+      };
+    case "set_project_store":
+      MOCK_PROJECT_STORE = args.path ? String(args.path) : null;
+      return dispatch("project_store", {}, d);
     case "play_game":
       return {
         launched: false,
@@ -951,6 +1912,40 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
             ? "mock: the Godot movement sandbox opens in the native app"
             : "mock: playtesting launches from the native app",
       };
+    // Row P0-9's dialogue and scene verbs. The mock stands in for CANON here,
+    // so it is the mock — never a component — that evaluates a gate. `improve`
+    // answers a PROPOSAL and never calls a provider (doctrine 3).
+    case "dialogue_show":
+      return mockDialogueShow(String(args.npc));
+    case "dialogue_validate":
+      return mockDialogueValidate(String(args.npc));
+    case "dialogue_update":
+      return mockDialogueUpdate(
+        String(args.npc),
+        (args.ops ?? []) as Parameters<typeof mockDialogueUpdate>[1],
+      );
+    case "dialogue_test":
+      return mockDialogueTest(
+        args.tree as Parameters<typeof mockDialogueTest>[0],
+        args.state,
+        (args.node ?? null) as string | null,
+        (args.choose ?? null) as number | null,
+      );
+    case "dialogue_select":
+      return mockDialogueSelect(String(args.npc), args.state);
+    case "dialogue_improve":
+      return mockDialogueImprove(String(args.npc), args as Record<string, unknown>);
+    case "scene_update":
+      return mockSceneUpdate(
+        args.scene === null || args.scene === undefined ? null : String(args.scene),
+        (args.ops ?? []) as Parameters<typeof mockSceneUpdate>[1],
+        !!args.create,
+        String(args.title ?? ""),
+      );
+    case "scene_validate":
+      return mockSceneValidate(String(args.scene));
+    case "scene_test":
+      return mockSceneTest(args.scene, args.state);
     case "db_schema": {
       const t = String(args.entityType);
       const schemas = (d.dbSchemas ??= {});
@@ -1077,17 +2072,28 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       }
       return { tracks };
     }
-    case "estimate_world":
+    case "estimate_world": {
+      const c = (args.counts ?? {}) as Record<string, number>;
+      // The dungeon prices per ROOM; the platformer per stage × level. Enough
+      // shape for the wizard's chip to move as the numbers move.
+      const rooms = Number(c.rooms ?? 0);
       return {
         result: "estimate",
         estimate: mockEstimate(
           "world",
-          {
-            stages: Number(args.stages ?? 3),
-            levels: Number(args.levels ?? 9),
-            enemies: Number(args.enemies ?? 7),
-            items: Number(args.items ?? 5),
-          },
+          rooms
+            ? {
+                stages: rooms,
+                levels: rooms,
+                enemies: rooms * Number(c.monster ?? 2),
+                items: rooms * Number(c.item ?? 3),
+              }
+            : {
+                stages: Number(c.stages ?? 3),
+                levels: Number(c.levels ?? 9),
+                enemies: Number(c.enemies ?? 7),
+                items: Number(c.items ?? 5),
+              },
           {
             llm: String(args.llmBackend ?? "fake"),
             image: String(args.imageBackend ?? "fake"),
@@ -1097,6 +2103,7 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
           },
         ),
       };
+    }
     case "estimate_level":
       return {
         result: "estimate",
@@ -1382,6 +2389,34 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         jobs: { count: MOCK_JOBS.length, by_op: byOp, by_status: byStatus, entries: MOCK_JOBS },
       };
     }
+    case "journal_list": {
+      // I7 parity: same filters, same read-time defaults, same roll-up the
+      // canon verb applies — computed by the SAME function the dashboard
+      // falls back on, so the mock can never drift from the real shape.
+      let events = MOCK_JOURNAL.map((e) => ({
+        ...e,
+        identity: e.identity || (e.actor?.startsWith("agent:") ? e.actor : "user"),
+      }));
+      if (args.identity) events = events.filter((e) => e.identity === args.identity);
+      if (args.session) events = events.filter((e) => e.session === args.session);
+      if (args.genKind) events = events.filter((e) => e.genKind === args.genKind);
+      if (args.since) events = events.filter((e) => (e.ts ?? "") >= String(args.since));
+      if (args.artifactPrefix) {
+        events = events.filter((e) =>
+          (e.artifact_id ?? "").startsWith(String(args.artifactPrefix)),
+        );
+      }
+      if (typeof args.limit === "number") events = events.slice(-args.limit);
+      // Parity with the verb: `--summary` REPLACES the event list unless the
+      // caller bounded the read itself (canon `cli/main.py` journal_list).
+      if (args.summary) {
+        const summary = summarizeJournal(events, "2026-09-13");
+        return typeof args.limit === "number"
+          ? { result: "journal_list", events, summary }
+          : { result: "journal_list", summary };
+      }
+      return { result: "journal_list", events };
+    }
     case "spend_list": {
       const byOp: Record<string, { count: number; actual_usd: number; estimate_usd: number }> = {};
       let totalActual = 0;
@@ -1440,6 +2475,82 @@ const MOCK_SPEND: Record<string, unknown>[] = [];
 /** In-memory job ledger for the browser mock (native writes .canon/jobs.jsonl). */
 const MOCK_JOBS: Record<string, unknown>[] = [];
 
+/** In-memory provenance journal for the browser mock (row P1-A6; native reads
+ *  `.canon/journal.jsonl` through `canon journal list`). Seeded with a spread
+ *  the cost dashboard can actually be looked at: both doors (editor buttons and
+ *  two agent conversations), tokens beside generation, a measured lane and an
+ *  estimated one, an unpriced run, and a kind that is NOT in the launch list —
+ *  because "a new generation kind is a field value, not a schema change"
+ *  (README §12) is only true if the mock proves it. */
+const MOCK_JOURNAL: JournalEvent[] = (() => {
+  const day = (n: number) => `2026-09-${String(n).padStart(2, "0")}T12:0${n % 10}:00+00:00`;
+  const row = (
+    i: number,
+    actor: string,
+    genKind: string,
+    costCents: number,
+    backend: string,
+    model: string,
+    accuracy: string,
+    extra: Partial<JournalEvent> = {},
+  ): JournalEvent => {
+    const identity = isAgentActor(actor) ? actor : "user";
+    const session = parseActor(identity).conversation ?? undefined;
+    return {
+      schema: 1,
+      ts: day(i),
+      artifact_id: genKind === "tokens" ? `conversation:${session}` : `enemy:mock_${i}`,
+      op: "generate",
+      source: "llm",
+      actor,
+      identity,
+      ...(session ? { session } : {}),
+      detail: { kind: genKind === "tokens" ? "turn" : "asset_generate" },
+      gen: { backend, model, cost_usd: costCents / 100 },
+      genKind,
+      costCents,
+      accuracy,
+      ...extra,
+    };
+  };
+  return [
+    row(1, USER_ACTOR, "image", 510, "fal", "flux-pixel-v2", "estimated"),
+    row(2, USER_ACTOR, "animation", 162, "fal", "anim-lcm", "estimated"),
+    row(3, USER_ACTOR, "video", 140, "runway", "gen-4", "estimated"),
+    row(4, USER_ACTOR, "code", 31, "anthropic", "sonnet-4-6", "measured"),
+    row(5, USER_ACTOR, "audio", 20, "fal", "stable-audio", "estimated"),
+    row(6, agentActor("wick", "artist"), "image", 341, "pixellab", "pixflux", "measured"),
+    row(7, agentActor("wick", "artist"), "tokens", 22, "anthropic", "sonnet-4-6", "measured"),
+    row(8, agentActor("wick", "level_designer"), "animation", 16, "fal", "anim-lcm", "estimated"),
+    row(
+      9,
+      agentActor("wick", "level_designer"),
+      "tokens",
+      48,
+      "anthropic",
+      "sonnet-4-6",
+      "measured",
+    ),
+    row(10, agentActor("wick", "writer"), "tokens", 39, "anthropic", "sonnet-4-6", "measured"),
+    // A kind nothing in the launch vocabulary knows about — it must render.
+    row(11, agentActor("ember", "mesh_smith"), "mesh", 84, "meshy", "preview", "estimated"),
+    row(12, agentActor("ember", "mesh_smith"), "tokens", 12, "anthropic", "sonnet-4-6", "measured"),
+    // A paid run canon could not price: no costCents, no accuracy, a reason.
+    {
+      schema: 1,
+      ts: day(13),
+      artifact_id: "enemy:mock_unpriced",
+      op: "regenerate",
+      source: "llm",
+      actor: USER_ACTOR,
+      identity: "user",
+      detail: { kind: "asset_generate", cost_error: "fal: no price row for 'fal-ai/new-thing'" },
+      gen: { backend: "fal", model: "fal-ai/new-thing" },
+      genKind: "image",
+    },
+  ];
+})();
+
 /** FNV-1a → 8 hex; a cheap synchronous content hash for the mock revision id
  *  (native uses a real sha256 over the level's state files). */
 function hashStr(s: string): string {
@@ -1479,7 +2590,7 @@ function stampChange(
     op,
     source,
     kind: "",
-    actor: "cradle:user",
+    actor: USER_ACTOR,
     ts: new Date().toISOString(),
     hash: "",
     label,
@@ -1500,99 +2611,209 @@ function simulateJob(jobId: string | undefined, result: Record<string, unknown>)
   return { job_id: id, status: "queued" };
 }
 
-/** The sequential platformer pipeline, in canon's run order — the mock's copy
- *  of what `.canon/log.jsonl` reports. `per` names the sub-phase unit a phase
- *  loops over, so the mock exercises the item line too. */
-const MOCK_PIPELINE: Array<{ node: string; per?: "levels" | "enemies" | "sprites" | "stages" }> = [
+/** One node of a mocked run. `per` names the sub-phase unit a phase loops
+ *  over, so the mock exercises the item line too. */
+type MockPhase = { node: string; per?: "levels" | "enemies" | "sprites" | "stages" | "rooms" };
+
+/** One SEGMENT of a run: canon's schedulers each open with a `run_start` and
+ *  close with a `run_end`, and an ORCHESTRATED create is two of them (the
+ *  macro bootstrap pass, then the full graph, which re-reports the macro nodes
+ *  as skipped). `key` is the name that scheduler gives the step total —
+ *  `phases` sequential, `nodes` orchestrated — because the relay must read
+ *  either. */
+type MockSegment = { key: "phases" | "nodes"; phases: MockPhase[]; skip?: string[] };
+
+/** The platformer's MACRO pass — the six design phases that invent the stage
+ *  plan the per-level graph expands against. */
+const MOCK_MACRO: MockPhase[] = [
   { node: "phase:plat:world" },
   { node: "phase:plat:stage", per: "stages" },
   { node: "phase:plat:style" },
   { node: "phase:plat:enemies" },
   { node: "phase:plat:items" },
   { node: "phase:plat:tileset" },
-  { node: "phase:plat:layout", per: "levels" },
-  { node: "phase:plat:terrain" },
-  { node: "phase:plat:background" },
-  { node: "phase:plat:placement", per: "levels" },
-  { node: "phase:plat:item_placement", per: "levels" },
-  { node: "phase:plat:decorator" },
+];
+
+/** The per-artifact layers the orchestrator emits for every level, in canon's
+ *  dependency order — `level:<stage>/<level>/<layer>`. */
+const MOCK_LEVEL_LAYERS = [
+  "collision",
+  "terrain",
+  "background",
+  "hazards",
+  "triggers",
+  "entities",
+  "items",
+  "foreground",
+  "level",
+];
+
+/** The platformer's art/audio phases, which the graph pass runs beside the
+ *  level nodes. */
+const MOCK_PLAT_ART: MockPhase[] = [
   { node: "phase:plat:tileset_art", per: "stages" },
   { node: "phase:plat:sprite_art", per: "sprites" },
   { node: "phase:plat:sprite_animation", per: "enemies" },
   { node: "phase:plat:backdrop_art", per: "stages" },
   { node: "phase:plat:world_art" },
   { node: "phase:plat:audio", per: "stages" },
-  { node: "phase:plat:render", per: "levels" },
-  { node: "phase:plat:vlm_qa", per: "levels" },
-  { node: "phase:plat:manifest" },
 ];
+
+/** The two passes `canon world new --template platformer` emits under the
+ *  create default (master §8 Q6, `--orchestrate`): 55-ish per-ARTIFACT nodes
+ *  under `nodes`, not 21 phases under `phases`. I7 parity is the point — the
+ *  mock must exercise the same relay path the native create does, or the
+ *  browser proves a stream the app never sends. */
+function mockPlatformerSegments(stages: number, levelsPerStage: number): MockSegment[] {
+  const graph: MockPhase[] = [];
+  for (let s = 1; s <= stages; s++) {
+    for (let l = 1; l <= levelsPerStage; l++) {
+      for (const layer of MOCK_LEVEL_LAYERS)
+        graph.push({ node: `level:stage_${s}/l${l}/${layer}` });
+      graph.push({ node: `review:stage_${s}/l${l}` });
+    }
+  }
+  graph.push(...MOCK_PLAT_ART);
+  graph.push({ node: "review:legend" });
+  graph.push({ node: "plat:vlm_qa" });
+  graph.push({ node: "plat:manifest" });
+  const macro = MOCK_MACRO.map((p) => p.node);
+  return [
+    { key: "nodes", phases: MOCK_MACRO },
+    { key: "nodes", phases: graph, skip: macro },
+  ];
+}
+
+/** The dungeon pipeline (row P0-10), in canon's run order — the ids
+ *  `canon.packs.dungeon.run_world`'s StepLog emits, so the mock exercises the
+ *  SAME relay and the SAME template label map the native dungeon create does
+ *  (I7 devMock parity). */
+const MOCK_DUNGEON_PIPELINE: MockPhase[] = [
+  { node: "phase:story" },
+  { node: "phase:classes" },
+  { node: "phase:maze_layout", per: "rooms" },
+  { node: "phase:db:item", per: "rooms" },
+  { node: "phase:db:monster", per: "rooms" },
+  { node: "phase:db:npc", per: "rooms" },
+  { node: "phase:db:event", per: "rooms" },
+  { node: "phase:db:quest", per: "rooms" },
+  { node: "phase:mazeworld_dialogue", per: "rooms" },
+  { node: "phase:spell_pool" },
+  { node: "phase:assets", per: "rooms" },
+  { node: "phase:narrative", per: "rooms" },
+  { node: "phase:mazeworld_placement", per: "rooms" },
+  { node: "phase:validation" },
+  { node: "phase:manifest" },
+];
+
+/** Pack dirs this session already handed out — the mock's stand-in for the
+ *  native auto-uniquify (row P0-10). */
+const MOCK_CREATED = new Set<string>();
 
 /** Simulate a whole `world new` run for the browser mock: the `job-progress`
  *  step-log stream AND the lifecycle events, on one clock so they stay
- *  coherent. Paced (a phase every ~260ms) so the tracker is actually
- *  WATCHABLE headless — the native $0 run is over in three seconds, and the
- *  case this display exists for is the paid one that takes minutes. */
+ *  coherent. Paced so the tracker is actually WATCHABLE headless — the native
+ *  $0 run is over in three seconds, and the case this display exists for is
+ *  the paid one that takes minutes.
+ *
+ *  Row P0-10 parity (I7): the platformer replays the ORCHESTRATED shape the
+ *  create default now emits — two `run_start`/`run_end` segments, the step
+ *  total under `nodes`, and per-artifact `level:*` / `review:*` ids — so the
+ *  browser exercises the same relay the app does. The dungeon is sequential
+ *  (`phases`, one segment), which is what its runner emits. */
 function simulateWorldRun(
   jobId: string,
-  counts: { stages: number; levels: number; enemies: number; items: number },
+  template: string,
+  counts: Record<string, number>,
   result: Record<string, unknown>,
 ): void {
   if (!jobId) return;
-  const unit = {
-    stages: Math.max(1, counts.stages),
-    levels: Math.max(1, counts.stages * counts.levels),
-    enemies: Math.max(1, counts.enemies),
-    sprites: Math.max(1, counts.enemies + counts.items + 1),
+  const n = (key: string, fallback: number) => Math.max(1, Number(counts[key] ?? fallback));
+  const segments: MockSegment[] =
+    template === "dungeon"
+      ? [{ key: "phases", phases: MOCK_DUNGEON_PIPELINE }]
+      : mockPlatformerSegments(n("stages", 1), n("levels", 2));
+  const unit: Record<string, number> = {
+    stages: n("stages", 1),
+    levels: n("stages", 1) * n("levels", 2),
+    enemies: n("enemies", 4),
+    sprites: n("enemies", 4) + n("items", 4) + 1,
+    rooms: n("rooms", 3),
   };
-  const names = {
+  const names: Record<string, (i: number) => string> = {
     stages: (i: number) => `stage_${i}`,
     levels: (i: number) => `l${i}`,
     enemies: (i: number) => `enemy:e${i}`,
     sprites: (i: number) => `sprite ${i}`,
+    rooms: (i: number) => `room_${i - 1}`,
   };
   const stamp = () => new Date().toISOString();
   let at = 60;
-  const step = 260;
+  // Paced so the tracker is watchable whatever the run's size: ~6s of events,
+  // floored so a short dungeon run doesn't blur past.
+  const nodeCount = segments.reduce((sum, s) => sum + s.phases.length, 0);
+  const step = Math.max(50, Math.min(260, Math.round(6000 / Math.max(1, nodeCount))));
   const fire = (fn: () => void, gap = step) => {
     setTimeout(fn, at);
     at += gap;
   };
 
   fire(() => void handleJobEvent({ id: jobId, status: "running" }), 40);
-  fire(() =>
-    handleJobProgress({
-      id: jobId,
-      ts: stamp(),
-      event: "run_start",
-      phases: MOCK_PIPELINE.length,
-    }),
-  );
-  for (const phase of MOCK_PIPELINE) {
+  for (const seg of segments) {
+    const size = seg.phases.length + (seg.skip?.length ?? 0);
     fire(() =>
-      handleJobProgress({ id: jobId, ts: stamp(), event: "node_start", node: phase.node }),
+      handleJobProgress({
+        id: jobId,
+        ts: stamp(),
+        event: "run_start",
+        ...(seg.key === "phases" ? { phases: size } : { nodes: size }),
+      }),
     );
-    if (phase.per) {
-      const total = unit[phase.per];
-      const label = names[phase.per];
-      for (let i = 1; i <= total; i++) {
-        fire(
-          () =>
-            handleJobProgress({
-              id: jobId,
-              ts: stamp(),
-              event: "node_item",
-              node: phase.node,
-              item: label(i),
-              index: i,
-              total,
-            }),
-          Math.max(60, step / total),
-        );
-      }
+    // The graph pass re-reports what the macro pass of the SAME run finished.
+    for (const node of seg.skip ?? []) {
+      fire(
+        () =>
+          handleJobProgress({
+            id: jobId,
+            ts: stamp(),
+            event: "node_skipped",
+            node,
+            reason: "done",
+          }),
+        0,
+      );
     }
-    fire(() => handleJobProgress({ id: jobId, ts: stamp(), event: "node_done", node: phase.node }));
+    for (const phase of seg.phases) {
+      fire(() =>
+        handleJobProgress({ id: jobId, ts: stamp(), event: "node_start", node: phase.node }),
+      );
+      if (phase.per) {
+        const total = unit[phase.per];
+        const label = names[phase.per];
+        for (let i = 1; i <= total; i++) {
+          fire(
+            () =>
+              handleJobProgress({
+                id: jobId,
+                ts: stamp(),
+                event: "node_item",
+                node: phase.node,
+                item: label(i),
+                index: i,
+                total,
+              }),
+            Math.max(60, step / total),
+          );
+        }
+      }
+      fire(() =>
+        handleJobProgress({ id: jobId, ts: stamp(), event: "node_done", node: phase.node }),
+      );
+    }
+    // NOT the end of the run when another segment follows — the terminal
+    // event is the job's own `job-updated`, below.
+    fire(() => handleJobProgress({ id: jobId, ts: stamp(), event: "run_end", ok: true }));
   }
-  fire(() => handleJobProgress({ id: jobId, ts: stamp(), event: "run_end", ok: true }));
   fire(() => void handleJobEvent({ id: jobId, status: "done", result }));
 }
 
@@ -1703,6 +2924,9 @@ export function installDevMock(): void {
     __TAURI_INTERNALS__?: { invoke?: (...a: unknown[]) => unknown };
   };
   if (w.__TAURI_INTERNALS__?.invoke) return; // real Tauri backend present
+  // A fresh mock world per install: the dialogue store is module state that a
+  // `dialogue_update` mutates, exactly as canon mutates a pack file.
+  resetDialogueMock();
   w.__TAURI_INTERNALS__ = {
     invoke: (cmd: string, args?: Record<string, unknown>) =>
       ensureData().then((d) => dispatch(cmd, args ?? {}, d)),
@@ -1710,4 +2934,11 @@ export function installDevMock(): void {
     // convertFileSrc identity: mock paths are already same-origin URLs.
     convertFileSrc: (p: string) => p,
   } as never;
+  // The scripted agent behind `agentApi` (row P1-A5): every panel state
+  // headless — streaming, the four errors, chips, the paid card's states,
+  // run cards, plans, Stop. `mock:` commands drive the service states.
+  installAgentMock(setAgentTransport);
+  onMockServiceState((state) =>
+    useStore.getState().setAgent((a) => ({ service: { ...a.service, ...(state as object) } })),
+  );
 }

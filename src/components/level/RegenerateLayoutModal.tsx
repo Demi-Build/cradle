@@ -3,6 +3,7 @@ import { api, type CostEstimate } from "../../lib/invoke";
 import { fmtRange } from "../../lib/cost";
 import { enqueueJob } from "../../lib/jobs";
 import { PromptOverride } from "../PromptOverride";
+import { confirmSpend } from "../agent/confirmGateState";
 
 /** Regenerate an EXISTING level's terrain from a brief — turns a flat draft
  *  into a designed level, or redesigns an existing one. Replaces the terrain
@@ -43,13 +44,16 @@ export function RegenerateLayoutModal({
   }, [worldPath, levelId, backend]);
 
   const run = async () => {
-    const paid = backend === "anthropic";
+    // The paid card gates a paid backend (row P1-A5); fake runs at once.
     if (
-      !window.confirm(
-        `${paid ? `PAID (anthropic — est. ${fmtRange(est?.total_usd)})` : "FAKE — $0, no API calls"}: ` +
-          `regenerate ${levelId}'s layout from your brief.\n\n` +
-          "This REPLACES the terrain and CLEARS placements (re-run 🎲 Enemies/Items after). Proceed?",
-      )
+      !(await confirmSpend({
+        title: `regenerate ${levelId}'s layout`,
+        body:
+          `est. ${fmtRange(est?.total_usd)} — regenerates from your brief. ` +
+          "This REPLACES the terrain and CLEARS placements (re-run 🎲 Enemies/Items after).",
+        estimate: est,
+        backends: { llm: backend },
+      }))
     )
       return;
     setBusy(true);

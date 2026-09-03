@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px; --radius-lg:10px;
+  --accent:oklch(72% 0.13 78); --accent-ink:oklch(28% 0.05 78);
+  --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45); --err:oklch(62% 0.18 25);
+  --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b;
+  --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55; --stage:#08090b;
+  --shadow-2:0 12px 32px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.03);
+}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+<div data-theme="dark" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);position:relative;font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>the-chain-of-orbit</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">whisper-tam · dialogue</span>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px">
+      <button onClick="{{ showSave }}" style="{{ saveBtn }}">Unsaved changes</button>
+      <button onClick="{{ showPalette }}" style="{{ palBtn }}">⌘K palette</button>
+    </div>
+  </header>
+
+  <div style="overflow:hidden;min-height:0;padding:12px 14px;display:flex;flex-direction:column;gap:10px;position:relative">
+
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px">
+        <button style="background:none;color:var(--fg-muted);border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500">View</button>
+        <button style="background:var(--bg-hover);color:var(--fg);border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500;box-shadow:inset 0 -2px 0 var(--accent)">Edit</button>
+        <button style="background:none;color:var(--fg-muted);border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500">Test</button>
+      </div>
+      <span style="width:1px;height:18px;background:var(--border)"></span>
+      <span style="display:inline-flex;align-items:center;background:oklch(72% .13 78/.1);color:var(--accent);border:1px solid var(--accent);font-size:10.5px;padding:2px 9px;border-radius:99px;font-family:var(--mono)">default</span>
+      <div style="flex:1"></div>
+      <span style="display:inline-flex;align-items:center;gap:6px;background:oklch(72% .14 45/.12);color:var(--warn);border:1px solid color-mix(in oklch,var(--warn) 55%,var(--border));font-size:10px;padding:3px 9px;border-radius:10px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;cursor:pointer">4 unsaved · 2 nodes 2 choices <span style="opacity:.7">▾</span></span>
+      <button style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">✨ Improve…</button>
+      <button style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid transparent;border-radius:var(--radius-sm);background:var(--accent);color:var(--accent-ink);font-size:11.5px;font-weight:500;cursor:pointer">Save<span style="display:inline-block;padding:1px 5px;border:1px solid oklch(28% .05 78/.35);border-bottom-width:2px;border-radius:3px;font-family:var(--mono);font-size:10px">⌘S</span></button>
+    </div>
+
+    <div style="flex:1;min-height:0;position:relative;background:var(--stage);border:1px solid var(--border);border-top:2px solid var(--accent);border-radius:var(--radius);background-image:radial-gradient(var(--border-hi) 1px,transparent 1px);background-size:20px 20px;overflow:hidden">
+
+      <sc-if value="{{ isSave }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;right:12px;top:12px;width:352px;background:var(--bg-raised);border:1px solid var(--border-hi);border-radius:var(--radius-lg);box-shadow:var(--shadow-2);overflow:hidden;z-index:6">
+          <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+            <span style="font-size:12.5px;font-weight:600">4 unsaved edits</span>
+            <span style="margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">⌘Z to step back</span>
+          </div>
+          <div style="padding:8px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);background:var(--bg-sunken);font-size:11.5px">
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--ok);width:44px">edit</span>
+              <span style="flex:1;min-width:0">node <span style="font-family:var(--mono)">voices</span> · prompt</span>
+              <button style="background:none;border:0;color:var(--fg-dim);font-size:10.5px;font-family:var(--mono);cursor:pointer;text-decoration:underline">revert</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);background:var(--bg-sunken);font-size:11.5px">
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--special);width:44px">add</span>
+              <span style="flex:1;min-width:0">node <span style="font-family:var(--mono)">reward</span> · 1 choice</span>
+              <button style="background:none;border:0;color:var(--fg-dim);font-size:10.5px;font-family:var(--mono);cursor:pointer;text-decoration:underline">revert</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);background:var(--bg-sunken);font-size:11.5px">
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--ok);width:44px">edit</span>
+              <span style="flex:1;min-width:0">choice <span style="font-family:var(--mono)">voices[3]</span> · 2 conditions, 3 effects</span>
+              <button style="background:none;border:0;color:var(--fg-dim);font-size:10.5px;font-family:var(--mono);cursor:pointer;text-decoration:underline">revert</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);background:var(--bg-sunken);font-size:11.5px">
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn);width:44px">rewire</span>
+              <span style="flex:1;min-width:0">choice <span style="font-family:var(--mono)">heresy[1]</span> · end → reward</span>
+              <button style="background:none;border:0;color:var(--fg-dim);font-size:10.5px;font-family:var(--mono);cursor:pointer;text-decoration:underline">revert</button>
+            </div>
+          </div>
+          <div style="padding:9px 12px;border-top:1px solid var(--border);background:var(--bg-sunken);display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:10.5px;color:var(--fg-dim);line-height:1.5">⌘S sends all four as one <span style="font-family:var(--mono);color:var(--fg-muted)">canon dialogue update</span>. canon journals each edit separately, so after saving you undo from <span style="color:var(--fg-muted)">History</span> — ⌘Z only reaches unsaved edits.</span>
+            <div style="display:flex;gap:6px">
+              <button style="flex:1;padding:4px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Revert all</button>
+              <button style="flex:1;padding:4px 10px;border:1px solid transparent;border-radius:var(--radius-sm);background:var(--accent);color:var(--accent-ink);font-size:11.5px;font-weight:500;cursor:pointer">Save all</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="position:absolute;left:16px;bottom:16px;width:392px;background:var(--bg-raised);border:1px solid var(--border-hi);border-radius:var(--radius-lg);box-shadow:var(--shadow-2);overflow:hidden;z-index:6">
+          <div style="padding:9px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+            <span style="font-size:12.5px;font-weight:600">Validator · whisper-tam</span>
+            <span style="margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--warn)">2 warnings · 0 errors</span>
+          </div>
+          <div style="padding:8px;display:flex;flex-direction:column;gap:4px;font-size:11.5px">
+            <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);background:oklch(72% .14 45/.1)">
+              <span style="font-family:var(--mono);color:var(--warn);flex:none">⚠</span>
+              <span style="flex:1;color:var(--fg-muted);line-height:1.5">Node <span style="font-family:var(--mono);color:var(--fg)">vigil</span> is unreachable. Work-in-progress trees are legal — this never blocks a save.</span>
+              <button style="background:none;border:0;color:var(--info);font-size:10.5px;font-family:var(--mono);cursor:pointer;text-decoration:underline;flex:none">reveal</button>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);background:oklch(72% .14 45/.1)">
+              <span style="font-family:var(--mono);color:var(--warn);flex:none">⚠</span>
+              <span style="flex:1;color:var(--fg-muted);line-height:1.5"><span style="font-family:var(--mono);color:var(--fg)">time:22-04</span> on <span style="font-family:var(--mono)">voices[4]</span> — this engine won't evaluate it.</span>
+              <button style="background:none;border:0;color:var(--info);font-size:10.5px;font-family:var(--mono);cursor:pointer;text-decoration:underline;flex:none">reveal</button>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:var(--radius-sm);background:var(--bg-sunken)">
+              <span style="font-family:var(--mono);color:var(--ok);flex:none">✓</span>
+              <span style="flex:1;color:var(--fg-muted);line-height:1.5">Entry exists · no orphaned targets · 5 ids resolve in the pack · 6 conditions parse.</span>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isPalette }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:flex-start;justify-content:center;padding-top:8vh;z-index:1100">
+          <div role="dialog" style="width:560px;max-width:92vw;background:var(--bg-raised);border:1px solid var(--border-hi);border-radius:12px;box-shadow:var(--shadow-2);overflow:hidden">
+            <input value="dial" placeholder="Search commands…" style="width:100%;padding:13px 16px;border:none;border-bottom:1px solid var(--border);background:transparent;color:var(--fg);font-size:14px;outline:none" />
+            <div style="max-height:46vh;overflow-y:auto;padding:6px">
+              <div style="padding:8px 10px 4px;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-family:var(--mono);color:var(--fg-dim)">Dialogue</div>
+              <button style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 10px;border:none;border-radius:6px;background:var(--bg-hover);box-shadow:inset 2px 0 0 var(--accent);color:var(--fg);font-size:13px;cursor:pointer">
+                <span style="flex:1">Edit this dialogue tree</span><span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">E</span>
+              </button>
+              <button style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 10px;border:none;border-radius:6px;background:transparent;color:var(--fg);font-size:13px;cursor:pointer">
+                <span style="flex:1">Test this dialogue against a simulated state</span><span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">T</span>
+              </button>
+              <button style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 10px;border:none;border-radius:6px;background:transparent;color:var(--fg);font-size:13px;cursor:pointer">
+                <span style="flex:1">Add a dialogue node</span><span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">N</span>
+              </button>
+              <button style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 10px;border:none;border-radius:6px;background:transparent;color:var(--fg);font-size:13px;cursor:pointer">
+                <span style="flex:1">Save this dialogue tree</span><span style="font-size:11px;color:var(--fg-dim)">4 unsaved</span><span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">⌘S</span>
+              </button>
+              <button disabled="" title="no dialogue backend selected — set one in Generators" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 10px;border:none;border-radius:6px;background:transparent;color:var(--fg-dim);font-size:13px;cursor:default">
+                <span style="flex:1">✨ Improve this dialogue tree…</span><span style="font-size:11px;color:var(--fg-dim)">no backend selected</span>
+              </button>
+              <button disabled="" title="the failed variant has no nodes yet" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 10px;border:none;border-radius:6px;background:transparent;color:var(--fg-dim);font-size:13px;cursor:default">
+                <span style="flex:1">Duplicate the failed variant</span><span style="font-size:11px;color:var(--fg-dim)">variant is empty</span>
+              </button>
+              <button style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 10px;border:none;border-radius:6px;background:transparent;color:var(--fg);font-size:13px;cursor:pointer">
+                <span style="flex:1">Reveal unreachable nodes</span><span style="font-size:11px;color:var(--warn)">1 found</span>
+              </button>
+              <button style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 10px;border:none;border-radius:6px;background:transparent;color:var(--fg);font-size:13px;cursor:pointer">
+                <span style="flex:1">Change the entry node…</span>
+              </button>
+              <div style="padding:8px 10px 4px;font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;font-family:var(--mono);color:var(--fg-dim)">View</div>
+              <button style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 10px;border:none;border-radius:6px;background:transparent;color:var(--fg);font-size:13px;cursor:pointer">
+                <span style="flex:1">Fit the dialogue graph to view</span><span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">⇧1</span>
+              </button>
+              <button style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:7px 10px;border:none;border-radius:6px;background:transparent;color:var(--fg);font-size:13px;cursor:pointer">
+                <span style="flex:1">Hide the inspector</span><span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">⌘I</span>
+              </button>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;padding:7px 12px;border-top:1px solid var(--border);background:var(--bg-sunken);font-family:var(--mono);font-size:10px;color:var(--fg-dim)">
+              <span>↑↓ navigate</span><span>↵ run</span><span>esc close</span><span style="margin-left:auto">⌘K</span>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:16px;padding:0 12px;border-top:1px solid var(--border);background:var(--bg-raised);font-size:10.5px;color:var(--fg-muted);font-family:var(--mono)">
+    <span style="color:var(--accent)">MODE EDIT</span>
+    <span>Validator: whisper-tam <span style="color:var(--warn)">⚠ 2 warnings</span></span>
+    <span style="color:var(--warn)">4 unsaved</span>
+    <span style="color:var(--fg-dim);font-style:italic">(canon dialogue validate — warnings never block a write)</span>
+    <span style="margin-left:auto;display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10px">⌘K</span>
+  </footer>
+
+  <div style="position:absolute;left:12px;bottom:32px;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);border:1px dashed var(--border-hi);border-radius:99px;padding:3px 9px;background:var(--bg-sunken);z-index:1200">{{ badge }}</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { view: "save" };
+  seg(on) {
+    return "background:" + (on ? "var(--bg-hover)" : "none") +
+      ";color:" + (on ? "var(--fg)" : "var(--fg-muted)") +
+      ";border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500" +
+      (on ? ";box-shadow:inset 0 -2px 0 var(--accent)" : "");
+  }
+  renderVals() {
+    const s = this.state.view === "save";
+    return {
+      isSave: s,
+      isPalette: !s,
+      saveBtn: this.seg(s),
+      palBtn: this.seg(!s),
+      showSave: () => this.setState({ view: "save" }),
+      showPalette: () => this.setState({ view: "palette" }),
+      badge: s
+        ? "screen 05a · dirty chips, unsaved list, validator detail"
+        : "screen 05b · ⌘K lists dialogue actions · disabled with a reason",
+    };
+  }
+}
+</script>
+</body>
+</html>

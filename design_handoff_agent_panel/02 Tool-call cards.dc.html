@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --accent-ink:oklch(28% 0.05 78);
+  --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45); --err:oklch(62% 0.18 25);
+}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55;--stage:#08090b;--shadow-2:0 12px 32px rgba(0,0,0,.55)}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a;--stage:#e9e6dc;--shadow-2:0 12px 32px rgba(20,16,8,.12)}
+html,body{margin:0;padding:0}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button{font-family:inherit}
+@keyframes barsweep{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" style="min-height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui);padding:0 0 40px">
+
+  <header style="display:flex;align-items:center;gap:10px;height:36px;padding:0 14px;background:var(--bg-raised);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">cradle <span style="color:var(--fg-dim)">/</span> agent panel <span style="color:var(--fg-dim)">/</span> <span style="color:var(--fg)">tool-call cards</span></span>
+    <div style="flex:1"></div>
+    <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">panel width 412px</span>
+    <button onClick="{{ toggleTheme }}" style="width:26px;height:22px;display:grid;place-items:center;color:var(--fg-muted);background:none;border:0;cursor:pointer">
+      <svg width="14" height="14" viewBox="0 0 16 16" style="stroke:currentColor;fill:none;stroke-width:1.4"><path d="M13 9.5A5.5 5.5 0 1 1 6.5 3a4.5 4.5 0 0 0 6.5 6.5z"></path></svg>
+    </button>
+  </header>
+
+  <div style="display:flex;gap:22px;padding:20px 24px;align-items:flex-start;overflow-x:auto">
+
+    <section style="width:412px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">Tier 1 · read</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:38ch">No card, no border, no approval. One line per call, collapsed. Clicking the caret expands the payload the agent saw.</p>
+      <div style="background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:10px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--fg-dim)">
+          <span style="font-size:8px">▸</span><span style="color:var(--fg-muted)">read</span> level 2-3<span style="margin-left:auto">53×16</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--fg-dim)">
+          <span style="font-size:8px">▸</span><span style="color:var(--fg-muted)">read</span> enemy:ember_hopper, enemy:wax_minnow<span style="margin-left:auto">2 rows</span>
+        </div>
+        <div style="border:1px dashed var(--border-hi);border-radius:var(--radius-sm);padding:7px 8px">
+          <div style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--fg-muted)">
+            <span style="font-size:8px;color:var(--fg-dim)">▾</span><span>read</span> tileset:ember_grove<span style="margin-left:auto;color:var(--fg-dim)">expanded</span>
+          </div>
+          <pre style="margin:6px 0 0;font-family:var(--mono);font-size:10.5px;color:var(--fg-dim);white-space:pre-wrap">tileset:ember_grove
+  tiles      8   (floor, platform, wall, breakable, …)
+  palette    warm-autumn
+  used_by    2-1 · 2-2 · 2-3 · 2-4</pre>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--err)">
+          <span style="font-size:8px">▸</span><span>read</span> level 3-1<span style="margin-left:auto">not found</span>
+        </div>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim);margin-top:7px">A run with more than 6 reads folds into “read 9 artifacts ▸”.</div>
+    </section>
+
+    <section style="width:412px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">Tier 2 · write</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:38ch">Bordered card, accent “write” badge, diff always visible before the chips. Three diff shapes by payload.</p>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <div style="border:1px solid var(--border-hi);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 8px;border-bottom:1px solid var(--border)">
+            <span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent);border-radius:2px;padding:1px 5px">write</span>
+            <span style="font-size:11.5px">Spatial · place 6 enemies in <span style="font-family:var(--mono);font-size:11px">2-3</span></span>
+            <a href="#" style="margin-left:auto;font-size:11px">Show me</a>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;padding:9px">
+            <div>
+              <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">before</div>
+              <div style="height:58px;background:var(--stage);border:1px solid var(--border);position:relative;image-rendering:pixelated">{{ beforeDots }}</div>
+            </div>
+            <span style="color:var(--fg-dim)">→</span>
+            <div>
+              <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">after <span style="color:var(--ok)">+6</span></div>
+              <div style="height:58px;background:var(--stage);border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));position:relative;image-rendering:pixelated">{{ afterDots }}</div>
+            </div>
+          </div>
+          <div style="padding:0 9px 9px;font-family:var(--mono);font-size:10px;color:var(--fg-dim)">ember_hopper ×6 · x 13–26, y 5–6 · no overlap with checkpoints</div>
+        </div>
+
+        <div style="border:1px solid var(--border-hi);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 8px;border-bottom:1px solid var(--border)">
+            <span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent);border-radius:2px;padding:1px 5px">write</span>
+            <span style="font-size:11.5px">Row · <span style="font-family:var(--mono);font-size:11px">enemy:ember_hopper</span></span>
+            <a href="#" style="margin-left:auto;font-size:11px">Show me</a>
+          </div>
+          <div style="padding:8px 9px;display:grid;grid-template-columns:auto 1fr auto 1fr;gap:5px 8px;font-family:var(--mono);font-size:11px;align-items:center">
+            <span style="color:var(--fg-dim)">rarity</span><span style="color:var(--err);text-decoration:line-through">rare</span><span style="color:var(--fg-dim)">→</span><span style="color:var(--ok)">uncommon</span>
+            <span style="color:var(--fg-dim)">size</span><span style="color:var(--err);text-decoration:line-through">1</span><span style="color:var(--fg-dim)">→</span><span style="color:var(--ok)">2</span>
+            <span style="color:var(--fg-dim)">habitats</span><span style="color:var(--fg-muted)">forest</span><span style="color:var(--fg-dim)">→</span><span style="color:var(--ok)">forest, ridge</span>
+          </div>
+          <div style="padding:0 9px 9px;font-family:var(--mono);font-size:10px;color:var(--fg-dim)">3 fields · 11 unchanged hidden</div>
+        </div>
+
+        <div style="border:1px solid var(--border-hi);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 8px;border-bottom:1px solid var(--border)">
+            <span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);background:var(--accent);border-radius:2px;padding:1px 5px">write</span>
+            <span style="font-size:11.5px">Code · <span style="font-family:var(--mono);font-size:11px">systems/hopper.py</span></span>
+            <a href="#" style="margin-left:auto;font-size:11px">Show me</a>
+          </div>
+          <pre style="margin:0;padding:8px 9px;font-family:var(--mono);font-size:10.5px;line-height:1.6;overflow-x:auto">
+<span style="color:var(--fg-dim)">@@ -41,7 +41,9 @@ class Hopper</span>
+<span style="color:var(--fg-muted)">     def step(self, dt):</span>
+<span style="color:var(--err);background:oklch(62% .18 25/.1);display:block">-        self.vy += GRAVITY * dt</span>
+<span style="color:var(--ok);background:oklch(68% .13 150/.1);display:block">+        g = GRAVITY * (0.6 if self.in_ember else 1.0)</span>
+<span style="color:var(--ok);background:oklch(68% .13 150/.1);display:block">+        self.vy += g * dt</span>
+<span style="color:var(--fg-muted)">         if self.grounded:</span></pre>
+          <div style="padding:0 9px 9px;font-family:var(--mono);font-size:10px;color:var(--fg-dim)">1 file · +2 −1 · <a href="#">open full diff</a></div>
+        </div>
+
+      </div>
+    </section>
+
+    <section style="width:412px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">Tier 3 · paid</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:38ch">The only card that spends money. Price and model are on the card before the confirm exists, and stay on it afterwards.</p>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <div style="border:1px solid var(--accent);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="height:2px;background:var(--accent)"></div>
+          <div style="display:flex;align-items:center;gap:7px;padding:7px 9px">
+            <span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:2px;padding:1px 5px">paid</span>
+            <span style="font-size:11.5px"><span style="font-weight:600">Artist</span> wants to generate 4 sprites</span>
+          </div>
+          <div style="margin:0 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:8px 9px;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-family:var(--mono);font-size:11px">
+            <span style="color:var(--fg-dim)">estimate</span><span style="color:var(--accent);font-size:13px;font-weight:500">$0.48 – $0.64</span>
+            <span style="color:var(--fg-dim)">backend</span><span>fal · flux-pixel-v2</span>
+            <span style="color:var(--fg-dim)">work</span><span>4 sprites × 2 passes</span>
+            <span style="color:var(--fg-dim)">budget</span><span>$1.86 spent today · no cap set</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;padding:9px">
+            <button style="background:var(--accent);color:var(--accent-ink);border:0;border-radius:var(--radius-sm);padding:4px 10px;font-size:11.5px;font-weight:600;cursor:pointer">Accept · spend up to $0.64</button>
+            <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:4px 10px;font-size:11.5px;cursor:pointer">Reject</button>
+          </div>
+          <div style="padding:0 9px 9px;font-size:10.5px;color:var(--fg-dim)">Paid work is never covered by “always allow”. Every spend asks.</div>
+        </div>
+
+        <div style="border:1px solid var(--accent);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="height:2px;background:var(--border);overflow:hidden"><div style="width:25%;height:2px;background:var(--accent);animation:barsweep 1.6s linear infinite"></div></div>
+          <div style="display:flex;align-items:center;gap:7px;padding:7px 9px">
+            <span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:2px;padding:1px 5px">paid</span>
+            <span style="font-size:11.5px">Generating sprites</span>
+            <span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">0:47 elapsed</span>
+            <button style="background:none;border:1px solid color-mix(in oklch,var(--err) 50%,var(--border));color:var(--err);border-radius:var(--radius-sm);padding:2px 7px;font-size:10.5px;cursor:pointer">⏹ Stop</button>
+          </div>
+          <div style="padding:0 9px 9px;font-family:var(--mono);font-size:11px;color:var(--fg-muted)">
+            <div style="display:flex"><span style="flex:1">upscaling · ember_hopper_hurt</span><span style="color:var(--fg-dim)">3 / 4</span></div>
+            <div style="height:4px;background:var(--bg-sunken);border-radius:2px;margin-top:6px;overflow:hidden"><div style="width:68%;height:4px;background:var(--accent)"></div></div>
+            <div style="margin-top:6px;color:var(--fg-dim)">✓ base ✓ hurt ✓ jump · spent so far $0.36 of $0.64</div>
+          </div>
+        </div>
+
+        <div style="border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:7px;padding:7px 9px;border-bottom:1px solid var(--border)">
+            <span style="color:var(--ok)">✓</span>
+            <span style="font-size:11.5px">4 sprites generated</span>
+            <span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--accent)">$0.51</span>
+          </div>
+          <div style="display:flex;gap:6px;padding:9px">
+            <span style="width:44px;height:44px;background:var(--stage);border:1px solid var(--border);image-rendering:pixelated"></span>
+            <span style="width:44px;height:44px;background:var(--stage);border:1px solid var(--border);image-rendering:pixelated"></span>
+            <span style="width:44px;height:44px;background:var(--stage);border:1px solid var(--border);image-rendering:pixelated"></span>
+            <span style="width:44px;height:44px;background:var(--stage);border:1px solid var(--border);image-rendering:pixelated"></span>
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:center;font-family:var(--mono);font-size:10px;color:var(--fg-dim)">
+              <span>1:12 · fal/flux-pixel-v2</span><a href="#">Show me in Library</a>
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--border-hi);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:7px;padding:7px 9px;border-bottom:1px solid var(--border)">
+            <span style="color:var(--fg-muted)">⏹</span>
+            <span style="font-size:11.5px;color:var(--fg-muted)">Stopped by you at 0:52</span>
+            <span style="margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--accent)">$0.36</span>
+          </div>
+          <div style="padding:8px 9px;font-family:var(--mono);font-size:11px;color:var(--fg-muted)">
+            <div><span style="color:var(--ok)">✓</span> kept 3 sprites — base, hurt, jump</div>
+            <div style="color:var(--fg-dim)">— not started: fall</div>
+            <div style="color:var(--fg-dim);margin-top:5px">Billed $0.36 of the $0.64 estimate. Nothing was rolled back.</div>
+          </div>
+          <div style="display:flex;gap:6px;padding:0 9px 9px">
+            <button style="background:transparent;color:var(--fg);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Finish the last one · ~$0.16</button>
+            <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Undo all 3</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section style="width:412px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">Permission chips</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:38ch">Chips name the specialist and the verb. Grants are scoped to this project and the copy says so.</p>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <div style="border:1px solid var(--warn);border-radius:var(--radius-sm);background:oklch(72% .14 45/.07);padding:9px">
+          <div style="font-size:12px;margin-bottom:8px"><span style="font-weight:600">Level designer</span> wants to import grids into <span style="font-family:var(--mono);font-size:11px">2-4</span>.</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <button style="background:var(--accent);color:var(--accent-ink);border:0;border-radius:var(--radius-sm);padding:4px 10px;font-size:11.5px;font-weight:600;cursor:pointer">Accept</button>
+            <button style="background:transparent;color:var(--fg);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:4px 10px;font-size:11.5px;cursor:pointer">Always allow in this project</button>
+            <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:4px 10px;font-size:11.5px;cursor:pointer">Reject</button>
+          </div>
+          <div style="font-size:10.5px;color:var(--fg-dim);margin-top:7px">“Always allow” covers <span style="font-family:var(--mono)">import_grid</span> for The Wandering Wick only. Revoke in Settings → Permissions.</div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--fg-dim);border-left:2px solid var(--border-hi);padding:2px 0 2px 8px">
+          <span style="color:var(--ok)">✓</span> Level designer imported 1 grid into 2-4 <span style="color:var(--fg-dim)">· allowed in this project</span>
+        </div>
+
+        <div style="border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-raised);padding:9px">
+          <div style="font-size:12px;color:var(--fg-muted)"><span style="color:var(--fg)">Rejected.</span> Level designer did not import grids into <span style="font-family:var(--mono);font-size:11px">2-4</span>.</div>
+          <div style="font-size:11.5px;color:var(--fg-dim);margin-top:6px">Wick continued with the rest of the task and skipped the checkpoint pass that depended on it.</div>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button style="background:transparent;color:var(--fg);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Allow after all</button>
+            <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Tell it why</button>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-raised);padding:9px">
+          <div style="font-size:12px;margin-bottom:8px"><span style="font-weight:600">Writer</span> wants to rewrite 3 dialogue nodes on <span style="font-family:var(--mono);font-size:11px">whisper-tam</span>.</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <button style="background:var(--accent);color:var(--accent-ink);border:0;border-radius:var(--radius-sm);padding:4px 10px;font-size:11.5px;font-weight:600;cursor:pointer">Accept</button>
+            <button disabled="" title="Ask mode never grants standing permission" style="background:transparent;color:var(--fg-dim);border:1px dashed var(--border-hi);border-radius:var(--radius-sm);padding:4px 10px;font-size:11.5px;cursor:not-allowed">Always allow in this project</button>
+            <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:4px 10px;font-size:11.5px;cursor:pointer">Reject</button>
+          </div>
+          <div style="font-size:10.5px;color:var(--fg-dim);margin-top:7px">Disabled in Ask mode — standing grants are only offered in Allow mode.</div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { theme: "dark" };
+  renderVals() {
+    const R = React.createElement;
+    const dot = (l, t, c) => R("span", { key: l + "" + t, style: { position: "absolute", left: l + "%", top: t + "%", width: 5, height: 5, borderRadius: 99, background: c } });
+    const floor = R("span", { key: "f", style: { position: "absolute", left: 0, right: 0, top: "74%", height: 3, background: "#3a2a1a" } });
+    const base = [dot(10, 60, "#c8802f"), dot(24, 46, "#c8802f"), dot(40, 66, "#c8802f")];
+    const added = [56, 64, 72, 78, 86, 92].map((x, i) => dot(x, [40, 58, 34, 62, 44, 56][i], "oklch(68% 0.13 150)"));
+    return {
+      theme: this.state.theme,
+      toggleTheme: () => this.setState(s => ({ theme: s.theme === "dark" ? "light" : "dark" })),
+      beforeDots: [floor, ...base],
+      afterDots: [floor, ...base, ...added]
+    };
+  }
+}
+</script>
+</body>
+</html>

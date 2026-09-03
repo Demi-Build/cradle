@@ -6,7 +6,20 @@ use std::path::{Path, PathBuf};
 pub struct WorldSummary {
     pub path: String,
     pub name: String,
+    /// The pack's registry id — canon's `pack_type` verbatim (P0 paper
+    /// P.4.6): one vocabulary, an open string, never a union. The `load_world`
+    /// command asks `canon pack info` for it; `pack_kind` below is the local
+    /// read-both shim the store's own branches use.
+    pub world_kind: String,
     pub entity_counts: Vec<EntityTypeCount>,
+    /// The `canon pack info` document the `load_world` command already
+    /// shells for (P0 paper P.4.6), carried whole: the store reads its
+    /// `grids.<kind>.placements` for the room editor's Dock tabs (row P0-5)
+    /// and later rows read the rest — one stateless command, one shell-out
+    /// per world load (I3). `Null` from this local source; `load_world`
+    /// fills it.
+    #[serde(default)]
+    pub pack_info: Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -163,7 +176,42 @@ pub fn canon_world_root(input: &Path) -> PathBuf {
 // from the JSON bundle emitted by `canon level export`, which we shell out to.
 // ---------------------------------------------------------------------------
 
-pub fn is_platformer_pack(root: &Path) -> bool {
+/// The pack's registry id — canon's `pack_type` verbatim (P0 paper P.4.1 /
+/// P.4.6; cradle's `world_kind` is the same string). This is the READ side of
+/// the read-both shim: the `manifest.json.pack_type` mirror every canon
+/// manifest writer stamps wins; only a legacy unstamped pack falls back to the
+/// shape check below. It is the one place the store branches on kind, and it
+/// dissolves when P0-8 makes entity kinds registry-driven (`pack info`).
+///
+/// Not the authority: canon's `resolve_pack` is (`load_world` in lib.rs asks
+/// `canon pack info` for `WorldSummary.world_kind`). This local read exists so
+/// the store can pick its entity registry without a subprocess per call, and
+/// its shape fallback deliberately requires `manifest.json` + `level/` (canon
+/// accepts a bare `level/`); a legacy platformer always carries a manifest,
+/// so the two agree on every tree canon itself wrote.
+pub fn pack_kind(root: &Path) -> String {
+    #[derive(Deserialize)]
+    struct ManifestKind {
+        pack_type: Option<String>,
+    }
+    if let Ok(text) = std::fs::read_to_string(root.join("manifest.json")) {
+        if let Ok(m) = serde_json::from_str::<ManifestKind>(&text) {
+            if let Some(kind) = m.pack_type.filter(|k| !k.is_empty()) {
+                return kind;
+            }
+        }
+    }
+    if is_platformer_pack(root) {
+        "platformer".to_string()
+    } else {
+        "dungeon".to_string()
+    }
+}
+
+/// Legacy shape fallback for packs written before the `pack_type` stamp
+/// (P0-3): `manifest.json` + `level/` is a platformer; everything else is the
+/// MazeWorld (dungeon) tree this store was born reading.
+fn is_platformer_pack(root: &Path) -> bool {
     root.join("manifest.json").is_file() && root.join("level").is_dir()
 }
 
@@ -360,7 +408,12 @@ fn find_level_json(root: &Path, level_id: &str) -> Option<PathBuf> {
 }
 
 impl LocalFsDataSource {
-    fn data_root(world_path: &Path) -> PathBuf {
+    /// The directory that actually holds the pack files: MazeWorld worlds
+    /// keep theirs under `<root>/data/`, canon's platformer output at the
+    /// root. `pub` so the `load_world` command hands canon the same directory
+    /// this store reads (`canon pack info` resolves the pack, not the world
+    /// folder around it).
+    pub fn data_root(world_path: &Path) -> PathBuf {
         let data = world_path.join("data");
         if data.is_dir() {
             data
@@ -460,7 +513,8 @@ impl DataSource for LocalFsDataSource {
             return Err(format!("world path is not a directory: {}", path.display()));
         }
         let mut counts = Vec::new();
-        if is_platformer_pack(&root) {
+        let world_kind = pack_kind(&root);
+        if world_kind == "platformer" {
             for t in PLATFORMER_TYPES {
                 counts.push(EntityTypeCount {
                     type_id: (*t).to_string(),
@@ -484,7 +538,9 @@ impl DataSource for LocalFsDataSource {
         Ok(WorldSummary {
             path: path.to_string_lossy().to_string(),
             name,
+            world_kind,
             entity_counts: counts,
+            pack_info: Value::Null,
         })
     }
 
@@ -508,7 +564,7 @@ impl DataSource for LocalFsDataSource {
 
     fn list_entities(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRef>, String> {
         let root = Self::data_root(path);
-        if is_platformer_pack(&root) {
+        if pack_kind(&root) == "platformer" {
             return platformer_refs(&root, type_id);
         }
         Self::collection_entries(&root, type_id)
@@ -516,7 +572,7 @@ impl DataSource for LocalFsDataSource {
 
     fn list_entity_rows(&self, path: &Path, type_id: &str) -> Result<Vec<EntityRow>, String> {
         let root = Self::data_root(path);
-        if is_platformer_pack(&root) {
+        if pack_kind(&root) == "platformer" {
             let refs = platformer_refs(&root, type_id)?;
             return Ok(refs
                 .into_iter()
@@ -604,7 +660,7 @@ impl DataSource for LocalFsDataSource {
         // (sprite/…, tileset/…, review/…, music/…): resolve directly against
         // the pack root. `join` passes absolute hints through unchanged, so
         // the same accept() containment check covers both forms.
-        if is_platformer_pack(&root) {
+        if pack_kind(&root) == "platformer" {
             if let Some(s) = accept(root.join(&normalized)) {
                 return Some(s);
             }
@@ -650,7 +706,7 @@ impl DataSource for LocalFsDataSource {
 
     fn get_entity(&self, path: &Path, type_id: &str, id: &str) -> Result<Value, String> {
         let root = Self::data_root(path);
-        if is_platformer_pack(&root) {
+        if pack_kind(&root) == "platformer" {
             match type_id {
                 "levels" => {
                     let lp = find_level_json(&root, id)
@@ -880,6 +936,49 @@ mod tests {
             .find(|c| c.type_id == "npcs")
             .unwrap();
         assert_eq!(npcs.count, 1);
+    }
+
+    // --- pack_kind (the read side of the P.4.1 read-both shim) ---
+
+    #[test]
+    fn pack_kind_prefers_the_manifest_stamp_over_shape() {
+        let f = WorldFixture::new();
+        // A stamped dungeon that ALSO carries a level/ dir: the mirror wins.
+        f.write_json("manifest.json", &json!({"pack_type": "dungeon"}));
+        fs::create_dir_all(f.root.join("level")).unwrap();
+        assert_eq!(pack_kind(&f.root), "dungeon");
+    }
+
+    #[test]
+    fn pack_kind_is_open_data_not_a_union() {
+        let f = WorldFixture::new();
+        f.write_json("manifest.json", &json!({"pack_type": "shooter"}));
+        assert_eq!(pack_kind(&f.root), "shooter");
+    }
+
+    #[test]
+    fn pack_kind_falls_back_to_shape_for_legacy_unstamped_packs() {
+        let f = WorldFixture::new();
+        f.write_json("manifest.json", &json!({"game": "platformer_slice"}));
+        fs::create_dir_all(f.root.join("level")).unwrap();
+        assert_eq!(pack_kind(&f.root), "platformer");
+
+        let g = WorldFixture::new();
+        g.write_json("world_bible.json", &json!({"story": {}}));
+        assert_eq!(pack_kind(&g.root), "dungeon");
+    }
+
+    #[test]
+    fn load_world_carries_the_world_kind() {
+        let f = WorldFixture::new();
+        f.write_json("data/manifest.json", &json!({"pack_type": "dungeon"}));
+        f.write_json(
+            "data/npcs/npcs.json",
+            &json!([{"id": "npc_a", "name": "Alice"}]),
+        );
+        let summary = LocalFsDataSource.load_world(&f.root).unwrap();
+        assert_eq!(summary.world_kind, "dungeon");
+        assert!(summary.entity_counts.iter().any(|c| c.type_id == "npcs"));
     }
 
     // --- list_entities / extract_refs ---

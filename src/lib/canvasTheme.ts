@@ -63,6 +63,20 @@ function isDark(hex: string): boolean {
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 < 0.5;
 }
 
+/** A palette value that NAMES a theme token (`--bg-sunken`) resolved to the
+ *  colour the stylesheet currently gives it; any other value passes through.
+ *  Template data may hand the canvas a token instead of a literal — the
+ *  dungeon room's open cell takes the app surface (P0 paper P.9 G2) — and a
+ *  `<canvas>` cannot read custom properties on its own. Unknown token →
+ *  `fallback`, never an invalid fillStyle. */
+export function resolveToken(value: string | null | undefined, fallback: string): string {
+  if (!value) return fallback;
+  if (!value.startsWith("--")) return value;
+  if (typeof window === "undefined" || typeof getComputedStyle !== "function") return fallback;
+  const resolved = getComputedStyle(document.body).getPropertyValue(value).trim();
+  return resolved || fallback;
+}
+
 export function readCanvasTheme(el?: Element | null): CanvasTheme {
   let vars: Record<string, string> = {};
   if (typeof window !== "undefined" && typeof getComputedStyle === "function") {

@@ -1,13 +1,35 @@
-import { useEffect, useMemo, useState } from "react";
-import { DialogueCardMode } from "./DialogueCardMode";
-import { DialogueGraphMode } from "./DialogueGraphMode";
-import { buildDialogue, type NpcLike, type QuestLike } from "./types";
+// The NPC's Dialogue tab — now the MODE HOST (PLAN "What exists today":
+// `DialogueTab` is *Extended — becomes the mode host*).
+//
+// What it kept: the quest fetch, which `buildDialogue` needs to draw the gate
+// and the outcome one-liners. What moved: the Card/Graph segmented control and
+// the beat/edge counter now live in `ModeBar`, inside View mode, because Card
+// and Graph are two readers of ONE mode rather than two modes.
+//
+// The empty check moved too. `buildDialogue` returning nothing used to mean
+// "No dialogue content."; the surface now decides, because an NPC with no tree
+// is a legal, authorable state (screen 06) and not an absence.
+
+import { useEffect, useState } from "react";
+import { DialogueSurface } from "./DialogueSurface";
+import type { QuestLike } from "./types";
+import type { NpcRow } from "./model";
 import { api } from "../../lib/invoke";
 import { useStore } from "../../store";
 
-export function DialogueTab({ npc }: { npc: NpcLike }) {
+export function DialogueTab({
+  npc,
+  npcId,
+  onOpenScene,
+  onOpenQuest,
+}: {
+  npc: NpcRow;
+  npcId?: string;
+  /** Cross-surface entry — the rail deep-links to the scene and quest scopes. */
+  onOpenScene?: (sceneId: string) => void;
+  onOpenQuest?: (questId: string) => void;
+}) {
   const worldPath = useStore((s) => s.worldPath);
-  const [mode, setMode] = useState<"card" | "graph">("card");
   const [quest, setQuest] = useState<QuestLike | null>(null);
 
   useEffect(() => {
@@ -25,40 +47,13 @@ export function DialogueTab({ npc }: { npc: NpcLike }) {
     };
   }, [npc.quest_id, worldPath]);
 
-  const { beats, edges } = useMemo(() => buildDialogue(npc, quest), [npc, quest]);
-
-  if (beats.length === 0) {
-    return <div className="dialogue-empty">No dialogue content.</div>;
-  }
-
   return (
-    <div className="dialogue-tab">
-      <div className="dialogue-toolbar">
-        <div className="segmented">
-          <button
-            className={`seg-btn ${mode === "card" ? "active" : ""}`}
-            onClick={() => setMode("card")}
-          >
-            Card
-          </button>
-          <button
-            className={`seg-btn ${mode === "graph" ? "active" : ""}`}
-            onClick={() => setMode("graph")}
-          >
-            Graph
-          </button>
-        </div>
-        <span className="dialogue-meta">
-          {beats.length} beats · {edges.length} edges
-        </span>
-      </div>
-      <div className="dialogue-body">
-        {mode === "card" ? (
-          <DialogueCardMode beats={beats} edges={edges} />
-        ) : (
-          <DialogueGraphMode beats={beats} beatEdges={edges} />
-        )}
-      </div>
-    </div>
+    <DialogueSurface
+      npc={npc}
+      npcId={String(npcId ?? npc.id ?? "")}
+      quest={quest}
+      onOpenScene={onOpenScene}
+      onOpenQuest={onOpenQuest}
+    />
   );
 }

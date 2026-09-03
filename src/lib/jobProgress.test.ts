@@ -102,6 +102,45 @@ describe("handleJobProgress", () => {
     expect((p?.endedAt ?? 0) - (p?.startedAt ?? 0)).toBe(10_000);
   });
 
+  it("takes the step total from `nodes` too — the orchestrated create default", () => {
+    // The sequential scheduler says `phases`, the orchestrated one says
+    // `nodes`. Reading only the first left every create with an idle bar and
+    // "counting steps…" for its whole life (doctrine 5).
+    fire({ event: "run_start", nodes: 55 });
+    expect(progress()?.total).toBe(55);
+  });
+
+  it("survives the two passes a fresh orchestrated create emits", () => {
+    // Pass 1 is the six macro phases; pass 2 is the full graph, which
+    // re-reports them as skipped. The first `run_end` is NOT the end of the
+    // run: it used to freeze the display at "Finishing up…", stop the clock
+    // and remove ⏹ Stop for the whole (long, paid) second half.
+    fire({ event: "run_start", nodes: 6, ts: "2026-09-02T02:16:53.227+00:00" });
+    fire({ event: "node_start", node: "phase:plat:world" });
+    fire({ event: "node_done", node: "phase:plat:world" });
+    fire({ event: "run_end", ok: true, ts: "2026-09-02T02:16:53.267+00:00" });
+    fire({ event: "run_start", nodes: 55, ts: "2026-09-02T02:16:53.268+00:00" });
+    fire({ event: "node_skipped", node: "phase:plat:world", reason: "done" });
+
+    const p = progress();
+    expect(p?.endedAt).toBeUndefined(); // the run is still going
+    expect(p?.total).toBe(55); // the bigger segment is the run's real size
+    // …and a node THIS run completed is not reported as "unchanged".
+    expect(p?.phases[0]).toMatchObject({ node: "phase:plat:world", status: "done" });
+  });
+
+  it("never shrinks the total when a later segment is smaller", () => {
+    fire({ event: "run_start", nodes: 55 });
+    fire({ event: "run_end", ok: true });
+    fire({ event: "run_start", nodes: 6 });
+    expect(progress()?.total).toBe(55);
+  });
+
+  it("still marks a node skipped when the run genuinely reused it", () => {
+    fire({ event: "node_skipped", node: "phase:plat:audio", reason: "unchanged" });
+    expect(progress()?.phases[0]).toMatchObject({ status: "skipped", item: "unchanged" });
+  });
+
   it("ignores an event for a job this session never enqueued", () => {
     handleJobProgress({ id: "someone-elses-job", event: "run_start", phases: 21 });
     expect(progress()).toBeUndefined();

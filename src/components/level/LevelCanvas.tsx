@@ -209,14 +209,17 @@ export function LevelCanvas({
     const ro = new ResizeObserver(syncViewSize);
     ro.observe(box);
     return () => ro.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reset camera when switching levels.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     cam.current = { ox: 0, oy: 0, zoom: 1 };
     redraw();
+    // `redraw` is deliberately excluded: it is rebuilt on every render, so
+    // depending on it would reset the camera on every render instead of only
+    // when the level changes. (The unconditional `useEffect(redraw)` below is
+    // what keeps the picture current.)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bundle.level_id, bundle.stage_id]);
 
   // Redraw after every render — a full draw is cheap at this scale, dep-array

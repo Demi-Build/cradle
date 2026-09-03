@@ -34,6 +34,7 @@ describe("store: sync actions", () => {
     useStore.getState().setWorld({
       path: "/w",
       name: "w",
+      world_kind: "dungeon",
       entity_counts: [{ type_id: "npcs", count: 0 }],
     });
     const s = useStore.getState();
@@ -71,7 +72,7 @@ describe("store: sync actions", () => {
 
   it("closeWorld clears world-related state and returns to start route", () => {
     useStore.setState({
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
       worldPath: "/w",
       worldStoryTitle: "t",
       worldBeats: [{ summary: "b" }],
@@ -124,6 +125,7 @@ describe("store: loadWorldByPath", () => {
           return Promise.resolve({
             path: "/canonical/world",
             name: "canonical",
+            world_kind: "dungeon",
             entity_counts: [
               { type_id: "rooms", count: 5 },
               { type_id: "npcs", count: 3 },
@@ -189,6 +191,7 @@ describe("store: loadWorldByPath", () => {
           return Promise.resolve({
             path: "/w",
             name: "w",
+            world_kind: "dungeon",
             entity_counts: [
               { type_id: "rooms", count: 9 },
               { type_id: "npcs", count: 8 },
@@ -226,7 +229,12 @@ describe("store: loadWorldByPath", () => {
       invokeMock.mockImplementation((cmd: string) => {
         switch (cmd) {
           case "load_world":
-            return Promise.resolve({ path: "/w", name: "w", entity_counts: [] });
+            return Promise.resolve({
+              path: "/w",
+              name: "w",
+              world_kind: "dungeon",
+              entity_counts: [],
+            });
           case "get_world_bible":
             return Promise.resolve({ story: {} });
           case "read_world_json":
@@ -267,6 +275,7 @@ describe("store: enrichRecent", () => {
           return Promise.resolve({
             path: "/w",
             name: "fresh",
+            world_kind: "dungeon",
             entity_counts: [],
           });
         case "get_world_bible":
@@ -283,6 +292,7 @@ describe("store: enrichRecent", () => {
     expect(r.lastOpenedAt).toBe(1234);
     expect(r.pinned).toBe(true);
     expect(r.storyTitle).toBe("T");
+    expect(r.world_kind).toBe("dungeon");
   });
 
   it("silently ignores failure (stale entry preserved)", async () => {
@@ -292,5 +302,72 @@ describe("store: enrichRecent", () => {
 
     await useStore.getState().enrichRecent("/w");
     expect(useStore.getState().recents).toEqual([original]);
+  });
+});
+
+describe("store: world_kind (P0-3)", () => {
+  beforeEach(resetStore);
+
+  it("opens a platformer straight to its first level and primes levels + enemies", async () => {
+    invokeMock.mockImplementation((cmd: string, args: { typeId?: string }) => {
+      switch (cmd) {
+        case "load_world":
+          return Promise.resolve({
+            path: "/plat",
+            name: "plat",
+            world_kind: "platformer",
+            entity_counts: [
+              { type_id: "levels", count: 1 },
+              { type_id: "enemies", count: 2 },
+            ],
+          });
+        case "list_entities":
+          return Promise.resolve(
+            args.typeId === "levels"
+              ? [{ type_id: "levels", id: "l1", name: "1-1" }]
+              : [{ type_id: "enemies", id: "e1", name: "Wisp" }],
+          );
+        default:
+          return Promise.reject(new Error(`unexpected cmd ${cmd}`));
+      }
+    });
+
+    await useStore.getState().loadWorldByPath("/plat");
+
+    const s = useStore.getState();
+    expect(s.selection).toEqual({ kind: "entity", typeId: "levels", id: "l1" });
+    expect(Object.keys(s.entities).sort()).toEqual(["enemies", "levels"]);
+    expect(s.worldStoryTitle).toBe("plat");
+    expect(s.recents[0]).toMatchObject({ path: "/plat", world_kind: "platformer" });
+  });
+
+  it("does not treat a dungeon with a levels count as a platformer (the retired sniff)", async () => {
+    invokeMock.mockImplementation((cmd: string) => {
+      switch (cmd) {
+        case "load_world":
+          return Promise.resolve({
+            path: "/d",
+            name: "d",
+            world_kind: "dungeon",
+            entity_counts: [
+              { type_id: "levels", count: 3 },
+              { type_id: "rooms", count: 2 },
+            ],
+          });
+        case "get_world_bible":
+          return Promise.resolve({ story: { title: "Depths" } });
+        case "read_world_json":
+          return Promise.reject(new Error("no manifest"));
+        default:
+          return Promise.reject(new Error(`unexpected cmd ${cmd}`));
+      }
+    });
+
+    await useStore.getState().loadWorldByPath("/d");
+
+    const s = useStore.getState();
+    expect(s.selection).toEqual({ kind: "bible" });
+    expect(s.worldStoryTitle).toBe("Depths");
+    expect(s.recents[0]).toMatchObject({ path: "/d", world_kind: "dungeon", rooms: 2 });
   });
 });

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b; --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55;
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;color:var(--fg)}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+</style>
+</helmet>
+
+<div data-screen-label="P3 · recolour and reskin" style="min-width:1440px;padding:26px 30px 34px;background:var(--bg)">
+  <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:14px">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">flow board · P3</div>
+      <h1 style="margin:4px 0 0;font-size:21px;font-weight:600;letter-spacing:-.01em">Region recolour &amp; reskin</h1>
+    </div>
+    <div style="flex:1"></div>
+    <p style="margin:0;max-width:540px;font-size:11.5px;color:var(--fg-muted);line-height:1.55;text-wrap:pretty">The cheapest way to get a second character: select a region of an existing one and remap its colours. Pure code, no generation, no confirm. It lives as a tool in the pixel editor — one home, so the selection semantics are never duplicated.</p>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">entry: PixEd ▸ Recolour region · R</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">exit: a skin beside the base, or a new entity</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));background:oklch(68% .13 150/.1);color:var(--ok)">free end to end</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:96px repeat(5,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+    <div style="background:var(--bg-sunken);padding:8px 10px"></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1</div><div style="font-size:11.5px;font-weight:600">Select the region</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">2</div><div style="font-size:11.5px;font-weight:600">Remap by role</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3</div><div style="font-size:11.5px;font-weight:600">See it on every frame</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4</div><div style="font-size:11.5px;font-weight:600">Save as skin or variant</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">5</div><div style="font-size:11.5px;font-weight:600">Where it lives</div></div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)">user</span><span style="font-size:10.5px;color:var(--fg-dim)">decides, approves</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Lassos the cloak, or picks a palette role to catch every pixel of it at once.</p>
+      <div style="height:56px;border:1px solid var(--border);border-radius:3px;background:var(--bg-sunken);position:relative">
+        <div style="position:absolute;left:22px;top:10px;width:34px;height:38px;background:oklch(60% .11 250/.5)"></div>
+        <div style="position:absolute;left:18px;top:6px;width:42px;height:46px;border:1px dashed var(--accent)"></div>
+        <span style="position:absolute;right:4px;bottom:3px;font-family:var(--mono);font-size:8.5px;color:var(--accent)">38 px · role coat</span>
+      </div>
+      <div style="display:flex;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--accent);color:var(--accent)">by role</span><span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-dim)">freeform</span><span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-dim)">rect</span></div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Maps each source colour to a target. Ramps stay ramps — shading survives.</p>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border-radius:2px;background:oklch(60% .11 250)"></span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">→</span><span style="width:14px;height:14px;border-radius:2px;background:oklch(58% .1 30)"></span><span style="font-size:10.5px;color:var(--fg-muted);flex:1">coat</span></div>
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border-radius:2px;background:oklch(72% .06 250)"></span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">→</span><span style="width:14px;height:14px;border-radius:2px;background:oklch(74% .07 30)"></span><span style="font-size:10.5px;color:var(--fg-muted);flex:1">coat · light</span></div>
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border-radius:2px;background:oklch(40% .05 250)"></span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">→</span><span style="width:14px;height:14px;border-radius:2px;background:oklch(40% .06 30)"></span><span style="font-size:10.5px;color:var(--fg-muted);flex:1">coat · shadow</span></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">hue shift keeps the ramp spacing</span>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Checks the remap across all states before committing to it.</p>
+      <div style="display:flex;gap:3px">
+        <div style="flex:1;height:40px;border:1px solid var(--border);border-radius:2px;background:oklch(58% .1 30/.35)"></div>
+        <div style="flex:1;height:40px;border:1px solid var(--border);border-radius:2px;background:oklch(58% .1 30/.35)"></div>
+        <div style="flex:1;height:40px;border:1px solid var(--warn);border-radius:2px;background:oklch(58% .1 30/.2);position:relative"><span style="position:absolute;left:2px;bottom:1px;font-family:var(--mono);font-size:8px;color:var(--warn)">hurt</span></div>
+        <div style="flex:1;height:40px;border:1px solid var(--border);border-radius:2px;background:oklch(58% .1 30/.35)"></div>
+      </div>
+      <p style="margin:0;font-size:10.5px;color:var(--fg-muted);line-height:1.45"><span style="font-family:var(--mono);font-size:10px;color:var(--warn)">hurt</span> uses a flash colour outside the mapped set — flagged, not blocked.</p>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Two outcomes, one dialog. The wording is the whole decision.</p>
+      <div style="border:1px solid var(--special);border-radius:var(--radius-sm);background:oklch(74% .12 300/.1);padding:6px 7px"><div style="font-size:11px">Save as skin</div><div style="font-size:10.5px;color:var(--fg-muted);line-height:1.45">Same character, another look. Shares states, moods and lineage.</div></div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 7px"><div style="font-size:11px;color:var(--fg-muted)">Save as new character</div><div style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Own id and row in the DB. Diverges from here.</div></div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Skins appear on the entity beside the base and in the level palette as pickable variants.</p>
+      <div style="display:flex;gap:4px">
+        <div style="flex:1;border:1px solid var(--accent);border-radius:3px;padding:4px;text-align:center"><div style="height:22px;border-radius:2px;background:oklch(60% .11 250/.5)"></div><div style="font-family:var(--mono);font-size:8px;color:var(--accent);margin-top:2px">base</div></div>
+        <div style="flex:1;border:1px solid var(--border);border-radius:3px;padding:4px;text-align:center"><div style="height:22px;border-radius:2px;background:oklch(58% .1 30/.5)"></div><div style="font-family:var(--mono);font-size:8px;color:var(--fg-dim);margin-top:2px">rust</div></div>
+        <div style="flex:1;border:1px solid var(--border);border-radius:3px;padding:4px;text-align:center"><div style="height:22px;border-radius:2px;background:oklch(72% .1 140/.5)"></div><div style="font-family:var(--mono);font-size:8px;color:var(--fg-dim);margin-top:2px">moss</div></div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info)">cradle</span><span style="font-size:10.5px;color:var(--fg-dim)">does the work</span></div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Role selection reads the style palette, so “the cloak” is a query rather than a lasso. The selection is stored with the operation, which is what makes it repeatable across frames.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">The remap is deterministic and reversible: a colour map plus a region mask, applied per frame. Nothing is resampled, so pixel edges are untouched.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Applies the map to every frame of every state and the expression sheet, and lists any frame containing unmapped colours from the region.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">A skin writes one journaled version holding the colour map, not a copy of the pixels — the content-addressed store keeps one set of frames. A new character mints a fresh id with <span style="font-family:var(--mono);font-size:10px">parents</span> pointing at the base.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Because a skin is a map, later edits to the base's pixels flow into it. That is the reason to prefer skin over new character — and the reason a diverging design should not be a skin.</div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn)">spend</span><span style="font-size:10.5px;color:var(--fg-dim)">&amp; QA gates</span></div>
+    <div style="background:var(--bg-raised);padding:10px;font-family:var(--mono);font-size:10px;color:var(--ok);display:flex;align-items:center">free</div>
+    <div style="background:var(--bg-raised);padding:10px;font-family:var(--mono);font-size:10px;color:var(--ok);display:flex;align-items:center">free</div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Palette conformance re-runs on the remapped set; an off-palette target is allowed and metered.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">No confirm dialog for the write — it is journaled and restorable, like any Save.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">A skin never triggers a cascade: no generated artifact depends on it.</span></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px">
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info);margin-bottom:5px">answered here</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Recolour lives in the pixel editor only. An entity quick-action would need its own selection UI to be useful, and two selection models is how the tool ends up inconsistent.</p></div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);margin-bottom:5px">empty state</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Tool armed, nothing selected: “Select pixels, or click a palette role to select every pixel using it.” The remap panel is present and disabled, not absent.</p></div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--err);margin-bottom:5px">edge case</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Recolouring a skin: allowed, and it stacks as a second map. Three deep, the UI stops offering it and says to save a new character instead.</p></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}"></script>
+</body>
+</html>

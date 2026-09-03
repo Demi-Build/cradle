@@ -7,6 +7,13 @@ on:
     tags:
       - "v*"
 
+# Which canon-ai ref the vendored runtime installs is NOT here: it is the
+# `canon_ref` line in scripts/runtime-manifest.txt, read by the "Read the
+# canon pin" step below (row P0-11). A release tag has to name exactly one
+# canon commit, and the manifest is the file that already claims to be THE
+# pin — and the file the runtime cache key hashes, so bumping the ref busts
+# the cache the way bumping a checksum does. ci.yml reads the same line.
+
 jobs:
   create-release:
     name: Create draft GitHub Release
@@ -47,16 +54,27 @@ jobs:
           # macOS universal binary (Intel + Apple Silicon), signed with the
           # Developer ID identity in src-tauri/tauri.conf.json and notarized
           # via the APPLE_* env vars on tauri-action below.
+          # BOTH runtimes are fetched: a universal .app runs whichever slice
+          # matches the CPU, and the resolver picks its runtime by the target
+          # triple that slice was compiled for (row P0-11).
           - platform: macos-latest
             args: "--target universal-apple-darwin"
+            runtime_triples: "aarch64-apple-darwin x86_64-apple-darwin"
           # Pinned to ubuntu-22.04 (not ubuntu-latest) because AppImages built
           # on 24.04 link against a glibc too new for many user systems.
           - platform: ubuntu-22.04
             args: ""
+            runtime_triples: "x86_64-unknown-linux-gnu"
           - platform: windows-latest
             args: ""
+            runtime_triples: "x86_64-pc-windows-msvc"
 
     runs-on: ${{ matrix.platform }}
+    # `secrets` is not a context `steps.*.if` can read, and a step's own `env:`
+    # is evaluated AFTER its `if:` — so anything an `if:` tests is lifted here.
+    env:
+      CANON_TOKEN: ${{ secrets.CANON_REPO_TOKEN }}
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
     steps:
       - uses: actions/checkout@v4
 
@@ -97,6 +115,132 @@ jobs:
         env:
           DEMO_TAG: demo-v0.1.0
         run: bash scripts/fetch-demo.sh
+
+      # =====================================================================
+      # Row P0-11 — the vendored Python runtime.
+      #
+      # A release build with no runtime is the bug this row exists to fix (a
+      # user with no Python could not create a world), so unlike ci.yml this
+      # is NOT optional: a missing cross-repo token fails the build by name.
+      # =====================================================================
+      - name: Require the canon-ai token
+        shell: bash
+        run: |
+          if [ -z "${CANON_TOKEN}" ]; then
+            echo "::error::CANON_REPO_TOKEN is not set. A release bundle must carry the"
+            echo "::error::vendored runtime, and building it needs read access to Demi-Build/canon-ai."
+            exit 1
+          fi
+
+      - name: Read the canon pin
+        id: canon-pin
+        shell: bash
+        run: |
+          ref=$(awk '$1 == "canon_ref" { print $2; exit }' scripts/runtime-manifest.txt)
+          if [ -z "$ref" ]; then
+            echo "::error::scripts/runtime-manifest.txt has no \`canon_ref\` line — that file is the pin."
+            exit 1
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "canon ref: $ref"
+
+      - name: Check out canon-ai (the wheel the runtime installs)
+        uses: actions/checkout@v4
+        with:
+          repository: Demi-Build/canon-ai
+          ref: ${{ steps.canon-pin.outputs.ref }}
+          token: ${{ env.CANON_TOKEN }}
+          path: .canon-src
+
+      # Rosetta 2. The macOS leg fetches BOTH darwin triples on one arm64
+      # runner, and fetch-runtime.sh RUNS each freshly unpacked interpreter
+      # (pip, then the import verification) — so the x86_64 pass is a
+      # cross-execution. Idempotent, and a no-op on an Intel host.
+      - name: Ensure Rosetta 2 (macOS, for the x86_64 runtime pass)
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        run: |
+          if [ "$(uname -m)" = "arm64" ]; then
+            softwareupdate --install-rosetta --agree-to-license
+          else
+            echo "Intel runner — no Rosetta needed."
+          fi
+
+      # Keyed by the pin file's hash: bump scripts/runtime-manifest.txt and the
+      # download happens again; otherwise the verified tarball is reused and the
+      # fetch needs no network.
+      - name: Cache the runtime payload
+        uses: actions/cache@v4
+        with:
+          path: .cache/runtime
+          key: pbs-${{ runner.os }}-${{ hashFiles('scripts/runtime-manifest.txt') }}
+
+      - name: Fetch the vendored runtime
+        shell: bash
+        env:
+          CANON_SPEC: ${{ github.workspace }}/.canon-src
+        run: |
+          for triple in ${{ matrix.runtime_triples }}; do
+            echo "::group::$triple"
+            RUNTIME_TRIPLE="$triple" bash scripts/fetch-runtime.sh
+            echo "::endgroup::"
+          done
+
+      # THE IMPORT THIS STEP EXISTS FOR. tauri-action imports the Developer ID
+      # cert itself, but it runs AFTER the runtime is signed — so without an
+      # import of our own, `sign-runtime.sh`'s keychain precheck could never
+      # match and every macOS release shipped an unsigned vendored CPython
+      # inside a hardened-runtime bundle. This does the same `security import`
+      # into a keychain of its own name (tauri-action creates and fronts its
+      # own further down, so the two do not collide).
+      - name: Import the Developer ID cert (macOS, for the runtime signing)
+        if: matrix.platform == 'macos-latest' && env.APPLE_CERTIFICATE != ''
+        shell: bash
+        env:
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          kc="$RUNNER_TEMP/runtime-signing.keychain-db"
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$kc"
+          security set-keychain-settings -lut 21600 "$kc"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$kc"
+          security import "$RUNNER_TEMP/cert.p12" -k "$kc" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$kc" >/dev/null
+          # Put it on the search list so `security find-identity` (which
+          # sign-runtime.sh prechecks with) and `codesign` can both see it.
+          security list-keychain -d user -s "$kc" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security find-identity -v -p codesigning "$kc"
+
+      # Nested Mach-O binaries inside Contents/Resources are not signed by the
+      # bundler, and the notary service rejects a hardened-runtime app that
+      # contains an unsigned one. This signs them at their source path before
+      # the bundler copies them (signatures live in the files).
+      # RUNTIME_SIGN_REQUIRED=1: on a release tag a "skipped" signing is not a
+      # warning to read later, it is a bundle the notary will reject — so the
+      # script's defensive skip branch becomes a named failure here.
+      - name: Sign the vendored runtime (macOS)
+        if: matrix.platform == 'macos-latest' && env.APPLE_CERTIFICATE != ''
+        shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          RUNTIME_SIGN_REQUIRED: "1"
+        run: |
+          for triple in aarch64-apple-darwin x86_64-apple-darwin; do
+            RUNTIME_TRIPLE="$triple" bash scripts/sign-runtime.sh
+          done
+
+      # ASSUMPTION-1: complete transitive notices for everything shipped —
+      # the CPython build and the C libraries it links, every wheel in the
+      # runtime, every Rust crate. Non-zero exit means a component declared no
+      # license, which is a release blocker, not a warning.
+      - name: Generate third-party notices
+        shell: bash
+        run: bash scripts/gen-notices.sh
 
       - uses: tauri-apps/tauri-action@v0
         env:

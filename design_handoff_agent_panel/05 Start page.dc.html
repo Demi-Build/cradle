@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{--ui:"Inter",-apple-system,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;--radius:6px;--radius-sm:4px;--accent:oklch(72% 0.13 78);--accent-ink:oklch(28% 0.05 78);--ok:oklch(68% 0.13 150);--warn:oklch(72% 0.14 45);--err:oklch(62% 0.18 25)}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55;--stage:#08090b;--hero:radial-gradient(120% 90% at 50% 30%,#123027 0%,#0c1a18 45%,#0a0c0d 100%)}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a;--stage:#e9e6dc;--hero:radial-gradient(120% 90% at 50% 30%,#cfd9cf 0%,#dfe2d8 45%,#eceade 100%)}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button{font-family:inherit}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui);overflow:hidden">
+
+  <header style="display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">cradle <span style="color:var(--fg-dim)">/</span> <span style="color:var(--fg)">start</span></span>
+    <div style="flex:1"></div>
+    <button onClick="{{ togglePanel }}" style="width:26px;height:22px;display:grid;place-items:center;color:var(--accent);background:none;border:0;cursor:pointer">
+      <svg width="14" height="14" viewBox="0 0 16 16" style="stroke:currentColor;fill:none;stroke-width:1.3"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"></rect><path d="M10.5 2.5v11"></path></svg>
+    </button>
+    <button onClick="{{ toggleTheme }}" style="width:26px;height:22px;display:grid;place-items:center;color:var(--fg-muted);background:none;border:0;cursor:pointer">
+      <svg width="14" height="14" viewBox="0 0 16 16" style="stroke:currentColor;fill:none;stroke-width:1.4"><path d="M13 9.5A5.5 5.5 0 1 1 6.5 3a4.5 4.5 0 0 0 6.5 6.5z"></path></svg>
+    </button>
+  </header>
+
+  <div style="{{ shellCols }}">
+
+    <main style="position:relative;overflow:hidden;background:var(--hero);min-width:0">
+      <div style="position:absolute;inset:0;padding:44px 56px;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:22px;height:22px;border:1px solid var(--border-hi);border-radius:99px;display:grid;place-items:center;font-size:11px;color:var(--fg-muted)">◗</span>
+          <div><div style="font-size:13px;font-weight:600">Cradle</div><div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">v0.2</div></div>
+        </div>
+        <div style="margin-top:32px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-muted)">Last world</div>
+        <h1 style="margin:6px 0 10px;font-size:38px;font-weight:600;letter-spacing:-.02em">The Wandering Wick</h1>
+        <p style="margin:0;max-width:44ch;font-size:13px;color:var(--fg-muted);text-wrap:pretty">A lantern-lit autumn forest where the light you carry is the only thing keeping the hollows at bay. Three areas, nine levels, and something…</p>
+        <div style="display:flex;gap:8px;margin-top:22px">
+          <button style="display:flex;align-items:center;gap:8px;background:#efeade;color:#1a1916;border:0;border-radius:var(--radius);padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer">Enter world <span style="font-family:var(--mono);font-size:10px;border:1px solid rgba(0,0,0,.2);border-radius:3px;padding:0 4px">↵</span></button>
+          <button style="background:transparent;color:var(--fg);border:1px solid var(--border-hi);border-radius:var(--radius);padding:8px 14px;font-size:13px;cursor:pointer">+ New project</button>
+          <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);border-radius:var(--radius);padding:8px 14px;font-size:13px;cursor:pointer">Open another…</button>
+        </div>
+        <div style="flex:1"></div>
+        <div style="border-top:1px solid var(--border);padding-top:16px">
+          <div style="display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-muted)">Recent · 1<div style="flex:1"></div><span>All projects →</span></div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <div style="width:186px;height:104px;border:1px solid var(--accent);border-radius:var(--radius);background:var(--bg-raised);padding:9px;display:flex;flex-direction:column">
+              <div style="font-size:12px;font-weight:600">Coldhearth</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--accent);margin-top:3px">being created…</div>
+              <div style="height:4px;background:var(--bg-sunken);border-radius:2px;margin-top:8px;overflow:hidden"><div style="width:34%;height:4px;background:var(--accent)"></div></div>
+              <div style="flex:1"></div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">step 2 of 6 · tilesets</div>
+            </div>
+            <div style="width:186px;height:104px;border:1px dashed var(--border-hi);border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--fg-muted)">
+              <span style="font-size:15px">+</span><span style="font-size:11.5px">Open world from disk</span><span style="font-family:var(--mono);font-size:10px;border:1px solid var(--border);border-radius:3px;padding:0 4px;color:var(--fg-dim)">⌘O</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div style="width:4px;background:var(--border);opacity:.6;cursor:col-resize"></div>
+
+    <aside style="border-left:1px solid var(--border);background:var(--bg-raised);display:flex;flex-direction:column;min-width:0;overflow:hidden">
+
+      <div style="display:flex;align-items:stretch;border-bottom:1px solid var(--border);background:var(--bg-sunken)">
+        <button style="display:flex;align-items:center;gap:6px;padding:0 10px;height:30px;background:var(--bg-raised);border:0;border-right:1px solid var(--border);color:var(--fg);font-size:11.5px;cursor:pointer;box-shadow:inset 0 -2px 0 var(--accent)"><span style="width:6px;height:6px;border-radius:99px;background:var(--accent)"></span>Coldhearth</button>
+        <div style="flex:1"></div>
+        <button style="width:28px;height:30px;background:none;border:0;border-left:1px solid var(--border);color:var(--fg-muted);font-size:14px;cursor:pointer">+</button>
+        <button style="width:28px;height:30px;background:none;border:0;color:var(--fg-muted);font-size:12px;cursor:pointer">⏱</button>
+        <button onClick="{{ togglePanel }}" style="width:28px;height:30px;background:none;border:0;color:var(--fg-muted);font-size:12px;cursor:pointer">→|</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-bottom:1px solid var(--border)">
+        <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px">
+          <button style="background:none;border:0;color:var(--fg-muted);font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer">Ask</button>
+          <button style="background:var(--accent);border:0;color:var(--accent-ink);font-size:11px;font-weight:600;padding:2px 8px;border-radius:3px;cursor:pointer">Plan</button>
+          <button disabled="" title="Allow mode needs an open project — grants are per project" style="background:none;border:0;color:var(--fg-dim);font-size:11px;padding:2px 8px;cursor:not-allowed;text-decoration:line-through">Allow</button>
+        </div>
+        <button style="display:inline-flex;align-items:center;gap:5px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px 8px;color:var(--fg);font-size:11px;cursor:pointer;font-family:var(--mono)">claude-sonnet-4.6 <span style="color:var(--fg-dim)">▾</span></button>
+        <div style="flex:1"></div>
+        <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">$0.07</span>
+      </div>
+      <div style="padding:4px 9px;border-bottom:1px solid var(--border);font-size:10.5px;color:var(--fg-dim);background:var(--bg-sunken)">No project open — Allow mode is off. Grants are per project.</div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px">
+
+        <div style="align-self:flex-end;max-width:90%;background:var(--bg-hover);border:1px solid var(--border-hi);border-radius:var(--radius) var(--radius) 2px var(--radius);padding:8px 10px;font-size:12.5px">
+          Make me a game about a lighthouse keeper in a frozen harbour. Slow, a bit sad, lots of climbing.
+        </div>
+
+        <div style="display:flex;align-items:baseline;gap:7px;font-size:12.5px">
+          <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim);flex-shrink:0;padding-top:2px">Wick</span>
+          <span>Two things before I build it: should the harbour be one continuous climb, or separate areas you unlock? And is there combat, or only hazards?</span>
+        </div>
+
+        <div style="align-self:flex-end;max-width:90%;background:var(--bg-hover);border:1px solid var(--border-hi);border-radius:var(--radius) var(--radius) 2px var(--radius);padding:8px 10px;font-size:12.5px">
+          Separate areas. Hazards only — ice, wind, dark.
+        </div>
+
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:11px">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
+            <span style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg);border:1px solid var(--border-hi);border-radius:2px;padding:1px 5px">plan</span>
+            <span style="font-size:12px;font-weight:600">Coldhearth</span>
+            <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--fg-dim)">new project</span>
+          </div>
+          <ol style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px">
+            <li style="display:grid;grid-template-columns:16px 1fr;gap:8px"><span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim)">1</span><div><div style="font-size:12px">World bible — harbour, keeper, three ascents</div><div style="display:flex;gap:6px;margin-top:3px;font-family:var(--mono);font-size:9.5px"><span style="color:var(--accent-ink);background:var(--accent);border-radius:2px;padding:0 5px">write</span><span style="color:var(--fg-muted)">Writer</span></div></div></li>
+            <li style="display:grid;grid-template-columns:16px 1fr;gap:8px"><span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim)">2</span><div><div style="font-size:12px">Tilesets — harbour ice, lamp room, black water</div><div style="display:flex;gap:6px;margin-top:3px;font-family:var(--mono);font-size:9.5px;align-items:center"><span style="color:var(--accent);border:1px solid var(--accent);border-radius:2px;padding:0 5px">paid</span><span style="color:var(--fg-muted)">Artist</span><span style="color:var(--accent)">$1.10 – $1.40</span></div></div></li>
+            <li style="display:grid;grid-template-columns:16px 1fr;gap:8px"><span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim)">3</span><div><div style="font-size:12px">9 levels across 3 areas, hazards only</div><div style="display:flex;gap:6px;margin-top:3px;font-family:var(--mono);font-size:9.5px"><span style="color:var(--accent-ink);background:var(--accent);border-radius:2px;padding:0 5px">write</span><span style="color:var(--fg-muted)">Level designer</span></div></div></li>
+            <li style="display:grid;grid-template-columns:16px 1fr;gap:8px"><span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim)">4</span><div><div style="font-size:12px">Keeper sprite and 4 hazard actors</div><div style="display:flex;gap:6px;margin-top:3px;font-family:var(--mono);font-size:9.5px;align-items:center"><span style="color:var(--accent);border:1px solid var(--accent);border-radius:2px;padding:0 5px">paid</span><span style="color:var(--fg-muted)">Artist</span><span style="color:var(--accent)">$0.60 – $0.80</span></div></div></li>
+            <li style="display:grid;grid-template-columns:16px 1fr;gap:8px"><span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim)">5</span><div><div style="font-size:12px">Walk every level for reachability</div><div style="display:flex;gap:6px;margin-top:3px;font-family:var(--mono);font-size:9.5px"><span style="color:var(--fg-dim);border:1px solid var(--border);border-radius:2px;padding:0 5px">read</span><span style="color:var(--fg-muted)">Playtester</span></div></div></li>
+          </ol>
+          <div style="border-top:1px solid var(--border);margin:10px -11px 0;padding:9px 11px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <button style="background:var(--accent);color:var(--accent-ink);border:0;border-radius:var(--radius-sm);padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer">Create · up to $2.20</button>
+            <button style="background:transparent;color:var(--fg);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:5px 10px;font-size:11.5px;cursor:pointer">Edit steps</button>
+            <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:5px 10px;font-size:11.5px;cursor:pointer">Start blank instead</button>
+          </div>
+          <div style="font-size:10.5px;color:var(--fg-dim);margin-top:7px">A folder is written to disk before anything is spent. You can stop at any step and keep what exists.</div>
+        </div>
+
+        <div style="border:1px solid var(--accent);border-radius:var(--radius);background:var(--bg);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:7px;padding:7px 9px;border-bottom:1px solid var(--border)">
+            <span style="width:6px;height:6px;border-radius:99px;background:var(--accent)"></span>
+            <span style="font-size:11.5px">Creating Coldhearth</span>
+            <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--fg-muted)">1:52</span>
+            <button style="background:none;border:1px solid color-mix(in oklch,var(--err) 50%,var(--border));color:var(--err);border-radius:var(--radius-sm);padding:2px 7px;font-size:10.5px;cursor:pointer">⏹ Stop</button>
+          </div>
+          <div style="padding:8px 9px;font-family:var(--mono);font-size:11px;color:var(--fg-muted)">
+            <div><span style="color:var(--ok)">✓</span> world bible · 6 pages</div>
+            <div style="color:var(--accent)">● tilesets · harbour_ice 2 of 3 · $0.71 so far</div>
+            <div style="color:var(--fg-dim)">· levels, actors, playtest</div>
+            <div style="height:4px;background:var(--bg-sunken);border-radius:2px;margin-top:7px;overflow:hidden"><div style="width:34%;height:4px;background:var(--accent)"></div></div>
+          </div>
+          <div style="padding:0 9px 9px;font-size:11px;color:var(--fg-dim)">The project card on the left fills in as each step lands. <a href="#">Open it now</a></div>
+        </div>
+
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding:8px">
+        <div style="border:1px solid var(--border-hi);border-radius:var(--radius);background:var(--bg-sunken);padding:7px 9px">
+          <div style="font-size:12.5px;color:var(--fg-dim)">Describe a game, or ask about a world you have…<span style="display:inline-block;width:7px;height:13px;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(1) infinite"></span></div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">Plan mode · no project open</span>
+            <div style="flex:1"></div>
+            <button style="background:var(--accent);color:var(--accent-ink);border:0;border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer">↵ Send</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:14px;padding:0 10px;background:var(--bg-raised);border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--fg-dim)">
+    <span><span style="color:var(--accent)">●</span> creating coldhearth — step 2 of 6</span>
+    <span style="margin-left:auto">cradle v0.2 · canon 0.4 · tauri 2.0</span>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { theme: "dark", open: true };
+  renderVals() {
+    return {
+      theme: this.state.theme,
+      toggleTheme: () => this.setState(s => ({ theme: s.theme === "dark" ? "light" : "dark" })),
+      togglePanel: () => this.setState(s => ({ open: !s.open })),
+      shellCols: `display:grid;grid-template-columns:1fr 4px ${this.state.open ? "412px" : "0px"};overflow:hidden;min-height:0`
+    };
+  }
+}
+</script>
+</body>
+</html>

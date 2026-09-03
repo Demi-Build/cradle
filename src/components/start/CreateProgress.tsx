@@ -1,5 +1,7 @@
+import { fmtElapsed } from "./createProgressCopy";
 import { useEffect, useState } from "react";
 import type { JobProgress } from "../../lib/invoke";
+import { phaseLabel, type PackTemplate } from "../../lib/packTemplates";
 
 /** The live display for a generation run: what canon is doing right now, what
  *  it already finished, and how long it has been at it.
@@ -10,18 +12,32 @@ import type { JobProgress } from "../../lib/invoke";
  *  sub-item, and a clock that keeps moving. The bar is secondary.
  *
  *  Reads the folded step log (`Job.progress`), so it renders whatever canon
- *  reported; a phase this build has no name for shows its raw node id rather
- *  than being hidden. */
+ *  reported; a phase no installed template names still renders (de-prefixed
+ *  and humanized) rather than being hidden.
+ *
+ *  Row P0-10: the phase NAMES come from `templates` — canon's per-template
+ *  phase-id → label map (master §3.0-E) — so a dungeon run reads as "NPCs" /
+ *  "Room layouts" through the same component, with no `plat:*` list in this
+ *  build at all. */
 export function CreateProgress({
   progress,
   startedAt,
   paid,
   error,
+  templates = [],
+  onStop,
 }: {
   progress?: JobProgress;
   startedAt: number;
   paid: boolean;
   error?: string | null;
+  /** The templates whose label maps this run may be named by — normally just
+   *  the one being created. Empty = every phase renders its humanized id. */
+  templates?: PackTemplate[];
+  /** ⏹ Stop (row P1-A5, README §10): the same one contract as the job tray
+   *  — start nothing new, keep what landed, say what it cost. Absent = no
+   *  button (a run that is already over). */
+  onStop?: () => void;
 }) {
   const elapsed = useElapsed(startedAt, !error && !progress?.endedAt);
   const phases = progress?.phases ?? [];
@@ -49,9 +65,9 @@ export function CreateProgress({
             // says THAT it died, so repeating that here wastes the line.
             <span className="cp-fail">
               {failed
-                ? `Stopped in ${phaseLabel(failed.node)}`
+                ? `Stopped in ${phaseLabel(failed.node, templates)}`
                 : headline
-                  ? `Stopped after ${phaseLabel(headline.node)}`
+                  ? `Stopped after ${phaseLabel(headline.node, templates)}`
                   : "Stopped before the first step"}
             </span>
           ) : waiting ? (
@@ -59,7 +75,7 @@ export function CreateProgress({
           ) : progress?.endedAt ? (
             "Finishing up…"
           ) : headline ? (
-            phaseLabel(headline.node)
+            phaseLabel(headline.node, templates)
           ) : (
             "Working…"
           )}
@@ -67,6 +83,17 @@ export function CreateProgress({
         <span className="cp-clock" aria-label="elapsed">
           {fmtElapsed(elapsed)}
         </span>
+        {onStop && !dead && !progress?.endedAt && (
+          <button
+            className="ag-stop sm"
+            onClick={onStop}
+            title="Stop — finishes nothing new, keeps what landed, says what it cost"
+            aria-label="Stop this run"
+            style={{ marginLeft: 8 }}
+          >
+            ⏹ Stop
+          </button>
+        )}
       </div>
 
       {/* The sub-phase line: the one thing that keeps moving during the long
@@ -131,7 +158,7 @@ export function CreateProgress({
                       ? "–"
                       : "•"}
               </span>
-              <span className="cp-row-name">{phaseLabel(p.node)}</span>
+              <span className="cp-row-name">{phaseLabel(p.node, templates)}</span>
               {p.status === "skipped" && <span className="cp-row-note">unchanged</span>}
               {p.status === "running" && p.itemTotal != null && (
                 <span className="cp-row-note">
@@ -147,40 +174,6 @@ export function CreateProgress({
   );
 }
 
-/** Human name for a canon pipeline node. Cradle-side on purpose: canon's node
- *  ids are its own contract, and an id this build hasn't seen still renders
- *  (de-prefixed and de-underscored) instead of vanishing. */
-export function phaseLabel(node: string): string {
-  const id = node.replace(/^phase:/, "");
-  const known: Record<string, string> = {
-    "plat:world": "World premise",
-    "plat:stage": "Stages",
-    "plat:style": "Art direction",
-    "plat:enemies": "Enemy roster",
-    "plat:items": "Item pool",
-    "plat:tileset": "Tile slots",
-    "plat:layout": "Level layouts",
-    "plat:terrain": "Terrain",
-    "plat:background": "Backgrounds",
-    "plat:placement": "Placing enemies",
-    "plat:item_placement": "Placing items",
-    "plat:decorator": "Decoration",
-    "plat:tileset_art": "Tileset art",
-    "plat:sprite_art": "Sprite art",
-    "plat:sprite_animation": "Animation",
-    "plat:backdrop_art": "Backdrops",
-    "plat:world_art": "Title art",
-    "plat:audio": "Music & SFX",
-    "plat:render": "Review renders",
-    "plat:vlm_qa": "Quality pass",
-    "plat:manifest": "Manifest",
-    "plat:level_steps": "Level steps",
-  };
-  if (known[id]) return known[id];
-  const bare = id.includes(":") ? id.slice(id.indexOf(":") + 1) : id;
-  return bare.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
-}
-
 /** Wall-clock since `from`, ticking while `live`. The clock is the honest
  *  liveness signal when a single phase owns several minutes. */
 function useElapsed(from: number, live: boolean): number {
@@ -191,11 +184,4 @@ function useElapsed(from: number, live: boolean): number {
     return () => clearInterval(t);
   }, [live]);
   return Math.max(0, (live ? now : Math.max(now, from)) - from);
-}
-
-export function fmtElapsed(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}:${String(s % 60).padStart(2, "0")}`;
-  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }

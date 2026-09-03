@@ -40,3 +40,19 @@ design_handoff_editor_worldmap_start/
 # release build's public/ copy too.
 public/__mockdata__/
 public/__mockassets__
+
+# Row P0-11 — the vendored Python runtime. `scripts/fetch-runtime.sh` builds
+# hundreds of MB per platform into resources/runtime/<triple>/ and caches the
+# python-build-standalone tarball; both are fetched payloads, never sources.
+# The directory itself stays tracked (its .gitkeep) so tauri-build's
+# bundle.resources validation passes on a fresh clone.
+src-tauri/resources/runtime/*
+!src-tauri/resources/runtime/.gitkeep
+.cache/
+# THIRD_PARTY_NOTICES.md is generated at build time from what actually
+# ships (scripts/gen-notices.sh) — reproducible, and ~2.5 MB of license text.
+# Only the .gitkeep is tracked, for the same bundle.resources reason.
+src-tauri/resources/notices/*
+!src-tauri/resources/notices/.gitkeep
+# CI's own `python3 -m py_compile scripts/gen_notices.py` leaves this behind.
+__pycache__/

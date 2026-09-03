@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px; --radius-lg:10px;
+  --accent:oklch(72% 0.13 78); --accent-ink:oklch(28% 0.05 78);
+  --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45); --err:oklch(62% 0.18 25);
+  --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b;
+  --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55;
+}
+html,body{margin:0;padding:0;min-height:100%}
+body{background:var(--bg);font-family:var(--ui);font-size:13px;line-height:1.45;color:var(--fg);-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--fg);text-decoration:none}
+a:hover{color:var(--accent)}
+</style>
+</helmet>
+<div style="min-height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui);padding:0 0 60px">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;height:36px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">design_handoff_dialogue</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:var(--bg-sunken);color:var(--fg-muted);letter-spacing:.06em;text-transform:uppercase">september phase 0 · build-order #2 · rev 2</span>
+  </header>
+
+  <div style="max-width:1040px;margin:0 auto;padding:40px 28px 0">
+
+    <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">handoff bundle</div>
+    <h1 style="margin:8px 0 0;font-size:34px;font-weight:600;letter-spacing:-.022em;line-height:1.1">Dialogue editor &amp; tester</h1>
+    <p style="margin:12px 0 0;max-width:660px;font-size:13.5px;color:var(--fg-muted);line-height:1.6;text-wrap:pretty">
+      Nine screens designing the editing and testing layer over cradle's read-only dialogue views. One recommended model: the graph grows editing affordances rather than being replaced, a navigator rail and ⌘P switcher handle characters with many trees, the tester is a bottom dock that lights the graph as it walks, and dialogue is authored at three scopes — NPC, quest, and scene. Real content throughout: Whisper-Tam and Rust-Kell from the 79-NPC sci-fi MazeWorld pack.
+    </p>
+
+    <div style="margin:20px 0 0;display:flex;flex-direction:column;gap:8px;background:var(--bg-raised);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:14px 16px;max-width:660px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--accent)">what changed in revision 2</div>
+      <div style="font-size:12.5px;color:var(--fg-muted);line-height:1.6">
+        Variants are replaced by <span style="color:var(--fg)">selectors</span> — a tree is chosen by an ordered predicate over any axis (quest state, segment, time, flag, room, scene attendance, player fields, or an axis you name), and the quest-gate becomes a router node whose row order <em>is</em> the precedence rule. The tester moved into a bottom dock. Two surfaces were added: quest-scoped dialogue across NPCs, and group scenes as their own entity.
+      </div>
+    </div>
+
+    <div style="margin:16px 0 0;display:flex;gap:6px;flex-wrap:wrap">
+      <span style="display:inline-flex;align-items:center;background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border);font-size:10px;padding:2px 8px;border-radius:10px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase">dark-first · light sample on screen 01</span>
+      <span style="display:inline-flex;align-items:center;background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border);font-size:10px;padding:2px 8px;border-radius:10px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase">tokens from src/styles/tokens.css</span>
+      <span style="display:inline-flex;align-items:center;background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border);font-size:10px;padding:2px 8px;border-radius:10px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase">designed for 1560×980 · scroll below that</span>
+    </div>
+
+    <div style="margin:30px 0 0;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">npc scope</div>
+    <div style="margin:9px 0 0;display:flex;flex-direction:column;gap:8px">
+
+      <a href="00 Dialogue today.dc.html" style="display:flex;align-items:center;gap:16px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px" style-hover="border-color:var(--border-hi);background:var(--bg-hover)">
+        <span style="font-family:var(--mono);font-size:15px;color:var(--fg-dim);width:26px;flex:none">00</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:14px;font-weight:600">Dialogue today</span>
+          <span style="display:block;margin-top:3px;font-size:12px;color:var(--fg-muted);line-height:1.5">Recreation of the shipped read-only tab — Card and Graph modes, both clickable. The baseline everything else extends.</span>
+        </span>
+        <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);flex:none">baseline</span>
+      </a>
+
+      <a href="01 Editor.dc.html" style="display:flex;align-items:center;gap:16px;background:var(--bg-raised);border:1px solid var(--accent);border-radius:var(--radius);padding:14px 16px" style-hover="background:var(--bg-hover)">
+        <span style="font-family:var(--mono);font-size:15px;color:var(--accent);width:26px;flex:none">01</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:14px;font-weight:600">Editor — rail, canvas, tray, docked tester</span>
+          <span style="display:block;margin-top:3px;font-size:12px;color:var(--fg-muted);line-height:1.5">The load-bearing screen. Navigator rail listing nine trees grouped by selector axis, in-place prompt editing, the selector router node, the condition builder, and the tester docked along the bottom. Titlebar toggles the theme and the ⌘P switcher.</span>
+        </span>
+        <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);flex:none">start here</span>
+      </a>
+
+      <a href="02 Tester.dc.html" style="display:flex;align-items:center;gap:16px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px" style-hover="border-color:var(--border-hi);background:var(--bg-hover)">
+        <span style="font-family:var(--mono);font-size:15px;color:var(--fg-dim);width:26px;flex:none">02</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:14px;font-weight:600">Tester — dock expanded</span>
+          <span style="display:block;margin-top:3px;font-size:12px;color:var(--fg-muted);line-height:1.5">All four gate results in one view: pass, pass-by-flag, fail with the failing condition named, and engine-can't-evaluate-yet. State panel with checkpoints and every selector axis; the rail splits trees into would-play-now and blocked-by-state.</span>
+        </span>
+      </a>
+
+      <a href="03 Engine lag.dc.html" style="display:flex;align-items:center;gap:16px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px" style-hover="border-color:var(--border-hi);background:var(--bg-hover)">
+        <span style="font-family:var(--mono);font-size:15px;color:var(--fg-dim);width:26px;flex:none">03</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:14px;font-weight:600">Engine lag — choice, tree, save moment</span>
+          <span style="display:block;margin-top:3px;font-size:12px;color:var(--fg-muted);line-height:1.5">Data outrunning the engine at all three scales, plus the pack's namespace capability table. Loud, specific, never blocking.</span>
+        </span>
+      </a>
+
+      <a href="04 Destructive edits and Improve.dc.html" style="display:flex;align-items:center;gap:16px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px" style-hover="border-color:var(--border-hi);background:var(--bg-hover)">
+        <span style="font-family:var(--mono);font-size:15px;color:var(--fg-dim);width:26px;flex:none">04</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:14px;font-weight:600">Destructive edits &amp; ✨ Improve</span>
+          <span style="display:block;margin-top:3px;font-size:12px;color:var(--fg-muted);line-height:1.5">Two states, switched in the titlebar. (a) Delete-node consequence preview drawn on the canvas behind the confirm sheet. (b) Improve as a paid, prompt-editable, per-row-acceptable proposal.</span>
+        </span>
+        <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);flex:none">2 states</span>
+      </a>
+
+      <a href="05 Save, validation and palette.dc.html" style="display:flex;align-items:center;gap:16px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px" style-hover="border-color:var(--border-hi);background:var(--bg-hover)">
+        <span style="font-family:var(--mono);font-size:15px;color:var(--fg-dim);width:26px;flex:none">05</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:14px;font-weight:600">Save, validation &amp; ⌘K</span>
+          <span style="display:block;margin-top:3px;font-size:12px;color:var(--fg-muted);line-height:1.5">Batch-save model: dirty chip, per-edit unsaved list with revert, validator panel, and the palette's dialogue group with two commands disabled-with-a-reason.</span>
+        </span>
+        <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);flex:none">2 states</span>
+      </a>
+
+      <a href="06 Empty state.dc.html" style="display:flex;align-items:center;gap:16px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px" style-hover="border-color:var(--border-hi);background:var(--bg-hover)">
+        <span style="font-family:var(--mono);font-size:15px;color:var(--fg-dim);width:26px;flex:none">06</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:14px;font-weight:600">Empty state — NPC with no tree</span>
+          <span style="display:block;margin-top:3px;font-size:12px;color:var(--fg-muted);line-height:1.5">Three ways in, Test disabled with a reason, and the greeting-only fallback stated as legal rather than broken.</span>
+        </span>
+      </a>
+    </div>
+
+    <div style="margin:26px 0 0;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">the other two scopes</div>
+    <div style="margin:9px 0 0;display:flex;flex-direction:column;gap:8px">
+
+      <a href="07 Quest dialogue.dc.html" style="display:flex;align-items:center;gap:16px;background:var(--bg-raised);border:1px solid color-mix(in oklch,var(--info) 55%,var(--border));border-radius:var(--radius);padding:14px 16px" style-hover="background:var(--bg-hover)">
+        <span style="font-family:var(--mono);font-size:15px;color:var(--info);width:26px;flex:none">07</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:14px;font-weight:600">Quest dialogue — cross-NPC lanes</span>
+          <span style="display:block;margin-top:3px;font-size:12px;color:var(--fg-muted);line-height:1.5">The primary surface for authoring a quest's conversation. One lane per NPC, one column per quest state, handoff edges labelled with the effect that carries them, empty cells as ＋ beat drop targets, and a coverage list that shows a missing quest state as a hole rather than an absence. Editing here edits the NPC's tree — same data, same buffer.</span>
+        </span>
+        <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info);flex:none">new</span>
+      </a>
+
+      <a href="08 Group scene.dc.html" style="display:flex;align-items:center;gap:16px;background:var(--bg-raised);border:1px solid color-mix(in oklch,var(--info) 55%,var(--border));border-radius:var(--radius);padding:14px 16px" style-hover="background:var(--bg-hover)">
+        <span style="font-family:var(--mono);font-size:15px;color:var(--info);width:26px;flex:none">08</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:14px;font-weight:600">Group scene — actors and settings</span>
+          <span style="display:block;margin-top:3px;font-size:12px;color:var(--fg-muted);line-height:1.5">A scene is its own entity, embedded by NPC and quest surfaces alike. Script view with a speaker per line, an Actors list with required/optional roles, a Settings list gating the whole scene, and presence toggles in the dock so an absent actor's skipped lines are named rather than silently vanishing.</span>
+        </span>
+        <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info);flex:none">new</span>
+      </a>
+    </div>
+
+    <div style="margin:30px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px">
+        <div style="font-family:var(--mono);font-size:12.5px;color:var(--fg)">README.md</div>
+        <div style="margin-top:4px;font-size:12px;color:var(--fg-muted);line-height:1.5">The interaction spec — every mode, state, warning and keyboard path, explicit answers to all ten design questions, plus the quest and scene surfaces.</div>
+      </div>
+      <div style="background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px">
+        <div style="font-family:var(--mono);font-size:12.5px;color:var(--fg)">PLAN.md</div>
+        <div style="margin-top:4px;font-size:12px;color:var(--fg-muted);line-height:1.5">The authoring model, the edit-op union, which canon verbs are needed, what extends DialogueGraphMode vs what's new, and a thirteen-step build order.</div>
+      </div>
+    </div>
+
+    <p style="margin:26px 0 0;font-size:11.5px;color:var(--fg-dim);line-height:1.6;max-width:660px">
+      These files are design references written in HTML, not production code. Recreate them with cradle's own components and CSS classes — the prototypes inline their styles so each screen opens standalone. The dashed pill on each screen and the titlebar switchers on 01, 04 and 05 exist only for review; they are not app chrome.
+    </p>
+  </div>
+</div>
+
+</x-dc>
+</body>
+</html>

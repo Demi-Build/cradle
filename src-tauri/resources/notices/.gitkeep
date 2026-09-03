@@ -1,0 +1,13 @@
+THIRD_PARTY_NOTICES.md is GENERATED here (row P0-11, ASSUMPTION-1).
+
+`scripts/gen-notices.sh` walks what actually ships — the vendored CPython and
+the C libraries it links, every wheel installed into that runtime, and every
+Rust crate in the binary — and writes the document into this directory, which
+`bundle.resources` ships as the app's `notices` resource.
+
+The generated file is NOT committed (it is ~2.5 MB of license text and it is
+reproducible). This file only keeps the directory alive so tauri-build's
+bundle.resources validation passes on a fresh clone — the same reason
+resources/runtime/ has one.
+
+Run `npm run gen-notices` (add `-- --dry-run` to see what it found).

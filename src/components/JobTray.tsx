@@ -2,21 +2,44 @@ import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store";
 import { api, type Job, type JobEntry } from "../lib/invoke";
 import { fmtUsd } from "../lib/cost";
+import { USER_ACTOR, parseActor } from "../lib/actor";
+import { cancelJob } from "../lib/agentActions";
+import { specialistLabel } from "../lib/agentState";
+import { showMe } from "../lib/agentShowMe";
+import { phaseLabel, usePackTemplates } from "../lib/packTemplates";
 
 /** The background-job tray: Active (queued + running) and Completed (this
  *  session's terminal jobs merged with the durable ledger). Watch generation
  *  run without the UI freezing; click a completed job to jump to its result.
- *  Mirrors CostDashboard's overlay+card+table idiom. */
+ *  Mirrors CostDashboard's overlay+card+table idiom.
+ *
+ *  Row P1-A5 (README §10 "Job tray"): editor-launched and agent-launched
+ *  jobs share this ONE tray; the attribution column (`you · editor buttons`
+ *  vs `agent:<name>/<specialist>`, read via `parseActor`) is what tells them
+ *  apart. Every active row has its own ⏹ (row A4.5's `cancel_job`: a queued
+ *  job is dropped, a running one stops at its next item boundary and keeps
+ *  what landed); finished rows get `Show me`. */
 export function JobTray() {
   const jobs = useStore((s) => s.jobs);
   const worldPath = useStore((s) => s.worldPath);
   const setJobsOpen = useStore((s) => s.setJobsOpen);
-  const select = useStore((s) => s.select);
   const [tab, setTab] = useState<"active" | "completed">("active");
   const [history, setHistory] = useState<JobEntry[]>([]);
+  // §3.0-E: phase labels are template data. The tray doesn't know which
+  // template a job belongs to, so it reads every installed map (ids are
+  // template-prefixed) and falls back to the humanized id.
+  const { templates } = usePackTemplates();
 
   // Durable history (past sessions) — refetched whenever this session's jobs
   // change (a new completion appended to the ledger). Best-effort.
+  //
+  // Row P1-A6 closed the C11 gap that made this list a lie: `jobs_list` /
+  // `jobs_record` existed only in the browser dev-mock, so on the real app
+  // every completed run vanished at quit and agent-launched runs never joined
+  // the button-launched ones. Both commands are native now, and this is the
+  // ONE durable history both doors write to. The ledger is RUN STATUS only —
+  // its `actual_usd` is informational; money reconciles on the cost dashboard,
+  // off the journal (P.8.7).
   useEffect(() => {
     let live = true;
     api
@@ -36,7 +59,13 @@ export function JobTray() {
   // session, newest first.
   const completed = useMemo<Row[]>(() => {
     const rows: Row[] = jobs
-      .filter((j) => j.status === "ok" || j.status === "no_change" || j.status === "failed")
+      .filter(
+        (j) =>
+          j.status === "ok" ||
+          j.status === "no_change" ||
+          j.status === "failed" ||
+          j.status === "cancelled",
+      )
       .map(jobToRow);
     const seen = new Set(rows.map((r) => r.id));
     for (const e of history) {
@@ -47,7 +76,7 @@ export function JobTray() {
 
   const jump = (row: Row) => {
     if (!row.target || !row.targetType) return;
-    select({ kind: "entity", typeId: row.targetType, id: row.target });
+    showMe({ kind: "entity", typeId: row.targetType, id: row.target });
     setJobsOpen(false);
   };
 
@@ -75,13 +104,50 @@ export function JobTray() {
           ) : (
             <div>
               {active.map((j) => (
-                <div key={j.id} style={rowStyle}>
+                <div key={j.id} style={rowStyle} data-testid="job-row" data-status={j.status}>
                   <span style={{ fontSize: 15 }}>{opIcon(j.op)}</span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <strong>{opLabel(j.op)}</strong>{" "}
                     <span style={{ opacity: 0.7 }}>{j.label || j.target}</span>
+                    <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+                      <Attribution actor={j.actor} />
+                      {/* Row P0-10 (§3.0-E): the running PHASE is named from
+                          the same template label map CreateProgress and the
+                          agent's run cards render — the tray used to show only
+                          the raw sub-item, which says nothing on a run whose
+                          items are ids. */}
+                      {(() => {
+                        const p = j.progress?.phases.find((x) => x.status === "running");
+                        if (!p) return null;
+                        const count =
+                          p.index != null && p.itemTotal ? ` ${p.index} / ${p.itemTotal}` : "";
+                        return (
+                          <span className="ag-attr" data-testid="job-phase">
+                            {phaseLabel(p.node, templates)}
+                            {p.item ? ` · ${p.item}` : ""}
+                            {count}
+                          </span>
+                        );
+                      })()}
+                      {j.estimate && (j.estimate.worst > 0 || j.estimate.best > 0) && (
+                        <span className="ag-attr">up to {fmtUsd(j.estimate.worst)}</span>
+                      )}
+                    </div>
                   </span>
                   <StatusBadge status={j.status} changed={j.changed} />
+                  <button
+                    className="ag-stop sm"
+                    onClick={() => void cancelJob(j.id)}
+                    title={
+                      j.status === "queued"
+                        ? "Stop — the queued job is dropped before it starts"
+                        : "Stop — finishes nothing new, keeps what landed"
+                    }
+                    aria-label={`Stop ${j.label || j.target}`}
+                    data-testid="job-stop"
+                  >
+                    ⏹
+                  </button>
                 </div>
               ))}
             </div>
@@ -91,10 +157,19 @@ export function JobTray() {
         ) : (
           <div>
             {completed.map((r) => (
-              <div key={r.id} style={rowStyle}>
+              <div key={r.id} style={rowStyle} data-testid="job-row" data-status={r.status}>
                 <span style={{ fontSize: 15 }}>{opIcon(r.op)}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <strong>{opLabel(r.op)}</strong> <span style={{ opacity: 0.7 }}>{r.target}</span>
+                  <div style={{ marginTop: 2 }}>
+                    <Attribution actor={r.actor} />
+                    {r.status === "cancelled" && r.kept != null && (
+                      <span className="ag-attr" style={{ marginLeft: 8 }}>
+                        kept {r.kept.length}
+                        {r.notStarted?.length ? ` · not started ${r.notStarted.length}` : ""}
+                      </span>
+                    )}
+                  </div>
                   {r.error && (
                     <div style={{ color: "var(--err)", fontSize: 11, marginTop: 2 }}>
                       {r.error.slice(0, 120)}
@@ -110,7 +185,7 @@ export function JobTray() {
                 <StatusBadge status={r.status} changed={r.changed} />
                 {r.target && r.targetType && (
                   <button onClick={() => jump(r)} style={{ cursor: "pointer", fontSize: 11 }}>
-                    View
+                    Show me
                   </button>
                 )}
               </div>
@@ -119,6 +194,25 @@ export function JobTray() {
         )}
       </div>
     </div>
+  );
+}
+
+/** "you · editor buttons" or "agent:<conversation>/<specialist>" — the one
+ *  fact that tells the two launchers apart. Absent actors are the editor's. */
+function Attribution({ actor }: { actor?: string }) {
+  const ref = parseActor(actor ?? USER_ACTOR);
+  if (ref.kind === "agent") {
+    return (
+      <span className="ag-attr agent" data-testid="job-attr" title={ref.actor}>
+        {ref.actor}
+        {ref.specialist ? ` · ${specialistLabel(ref.specialist)}` : ""}
+      </span>
+    );
+  }
+  return (
+    <span className="ag-attr" data-testid="job-attr">
+      you · editor buttons
+    </span>
   );
 }
 
@@ -133,9 +227,13 @@ type Row = {
   ts: number;
   durationMs?: number;
   error?: string;
+  actor?: string;
+  kept?: string[];
+  notStarted?: string[];
 };
 
 function jobToRow(j: Job): Row {
+  const r = j.result ?? {};
   return {
     id: j.id,
     op: j.op,
@@ -143,10 +241,13 @@ function jobToRow(j: Job): Row {
     targetType: j.targetType,
     status: j.status,
     changed: j.changed,
-    usd: j.cost?.usd,
+    usd: j.cost?.usd ?? (typeof r.billed_usd === "number" ? r.billed_usd : undefined),
     ts: j.ts,
     durationMs: j.endedAt && j.ts ? j.endedAt - j.ts : undefined,
     error: j.error,
+    actor: j.actor,
+    kept: Array.isArray(r.kept) ? (r.kept as string[]) : undefined,
+    notStarted: Array.isArray(r.not_started) ? (r.not_started as string[]) : undefined,
   };
 }
 
@@ -162,6 +263,11 @@ function entryToRow(e: JobEntry): Row {
     ts: e.ts ? Date.parse(e.ts) || 0 : 0,
     durationMs: e.duration_ms,
     error: e.error,
+    // Row P1-A6: the durable entry now carries `identity` (the lane fields the
+    // ledger gained), so a run from a PAST session keeps its attribution
+    // column instead of falling back to "you". The in-memory job's `actor` is
+    // the same string; `identity` is its read-time form.
+    actor: e.identity ?? (e as { actor?: string }).actor,
   };
 }
 
@@ -222,9 +328,11 @@ function StatusBadge({ status, changed }: { status: string; changed?: boolean })
         ? ["running…", "var(--accent)"]
         : status === "failed"
           ? ["failed", "var(--err)"]
-          : status === "no_change" || (status === "ok" && !changed)
-            ? ["no change", "var(--fg-dim)"]
-            : ["changed", "var(--ok)"];
+          : status === "cancelled"
+            ? ["stopped", "var(--warn)"]
+            : status === "no_change" || (status === "ok" && !changed)
+              ? ["no change", "var(--fg-dim)"]
+              : ["changed", "var(--ok)"];
   return (
     <span
       style={{

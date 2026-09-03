@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{--ui:"Inter",-apple-system,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;--radius:6px;--radius-sm:4px;--accent:oklch(72% 0.13 78);--accent-ink:oklch(28% 0.05 78);--ok:oklch(68% 0.13 150);--warn:oklch(72% 0.14 45);--err:oklch(62% 0.18 25)}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55;--stage:#08090b;--shadow-2:0 18px 48px rgba(0,0,0,.6)}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a;--stage:#e9e6dc;--shadow-2:0 18px 48px rgba(20,16,8,.18)}
+html,body{margin:0;padding:0}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button{font-family:inherit}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" style="min-height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui);padding-bottom:40px">
+
+  <header style="display:flex;align-items:center;gap:10px;height:36px;padding:0 14px;background:var(--bg-raised);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">cradle <span style="color:var(--fg-dim)">/</span> agent panel <span style="color:var(--fg-dim)">/</span> <span style="color:var(--fg)">cost and attribution</span></span>
+    <div style="flex:1"></div>
+    <button onClick="{{ toggleTheme }}" style="width:26px;height:22px;display:grid;place-items:center;color:var(--fg-muted);background:none;border:0;cursor:pointer">
+      <svg width="14" height="14" viewBox="0 0 16 16" style="stroke:currentColor;fill:none;stroke-width:1.4"><path d="M13 9.5A5.5 5.5 0 1 1 6.5 3a4.5 4.5 0 0 0 6.5 6.5z"></path></svg>
+    </button>
+  </header>
+
+  <div style="display:flex;gap:22px;padding:20px 24px;align-items:flex-start;overflow-x:auto">
+
+    <section style="width:760px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">💰 Cost</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:60ch">Every generation in the project is counted here, whatever launched it. The dashboard answers two questions in two tables: <em>what kind of work cost the money</em>, and <em>who asked for it</em> — you, or one of Wick's specialists. Conversation tokens stay a separate column from generation spend, because they fail differently.</p>
+
+      <div style="border:1px solid var(--border-hi);border-radius:var(--radius);background:var(--bg-raised);box-shadow:var(--shadow-2);overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border)">
+          <span style="font-size:13px;font-weight:600">Cost</span>
+          <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px">
+            <button style="background:none;border:0;color:var(--fg-muted);font-size:11px;padding:2px 8px;cursor:pointer">Today</button>
+            <button style="background:var(--bg-hover);border:0;color:var(--fg);font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer">This project</button>
+            <button style="background:none;border:0;color:var(--fg-muted);font-size:11px;padding:2px 8px;cursor:pointer">All time</button>
+          </div>
+          <div style="flex:1"></div>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">The Wandering Wick</span>
+          <button style="background:none;border:0;color:var(--fg-dim);font-size:13px;cursor:pointer">✕</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border)">
+          <div style="padding:11px 12px;border-right:1px solid var(--border)"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)">total</div><div style="font-size:20px;font-family:var(--mono);margin-top:3px">$13.41</div></div>
+          <div style="padding:11px 12px;border-right:1px solid var(--border)"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)">generation</div><div style="font-size:20px;font-family:var(--mono);margin-top:3px;color:var(--fg-muted)">$12.20</div></div>
+          <div style="padding:11px 12px;border-right:1px solid var(--border)"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)">conversation</div><div style="font-size:20px;font-family:var(--mono);margin-top:3px;color:var(--accent)">$1.21</div></div>
+          <div style="padding:11px 12px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)">today</div><div style="font-size:20px;font-family:var(--mono);margin-top:3px">$1.86</div></div>
+        </div>
+
+        <div style="padding:10px 12px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)">generation · who launched it</span>
+            <div style="flex:1"></div>
+            <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">you $8.63</span>
+            <span style="font-family:var(--mono);font-size:10.5px;color:var(--accent)">agent $3.57</span>
+          </div>
+          <div style="display:flex;height:8px;margin-top:7px;border-radius:2px;overflow:hidden;background:var(--bg-sunken)">
+            <div style="width:70.7%;background:var(--fg-dim)"></div>
+            <div style="width:29.3%;background:var(--accent)"></div>
+          </div>
+        </div>
+
+        <div style="padding:9px 12px 4px;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)">generation · by kind</div>
+        <div style="display:grid;grid-template-columns:1fr 150px 52px 74px 74px 74px;padding:0 12px 4px;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-dim)">
+          <span>kind</span><span>backend · model</span><span style="text-align:right">runs</span><span style="text-align:right">you</span><span style="text-align:right">agent</span><span style="text-align:right">total</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 150px 52px 74px 74px 74px;padding:6px 12px;border-top:1px solid var(--border);align-items:center">
+          <span style="font-size:11.5px">Image <span style="color:var(--fg-dim);font-family:var(--mono);font-size:10px">sprites · tiles · backdrops</span></span>
+          <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">fal · flux-pixel-v2</span>
+          <span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">38</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-muted)">$5.10</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--accent)">$3.41</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right">$8.51</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 150px 52px 74px 74px 74px;padding:6px 12px;border-top:1px solid var(--border);align-items:center">
+          <span style="font-size:11.5px">Animation <span style="color:var(--fg-dim);font-family:var(--mono);font-size:10px">frame sets</span></span>
+          <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">fal · anim-lcm</span>
+          <span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">6</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-muted)">$1.62</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--accent)">$0.16</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right">$1.78</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 150px 52px 74px 74px 74px;padding:6px 12px;border-top:1px solid var(--border);align-items:center">
+          <span style="font-size:11.5px">Video <span style="color:var(--fg-dim);font-family:var(--mono);font-size:10px">cutscene clips</span></span>
+          <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">runway · gen-4</span>
+          <span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">2</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-muted)">$1.40</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-dim)">—</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right">$1.40</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 150px 52px 74px 74px 74px;padding:6px 12px;border-top:1px solid var(--border);align-items:center">
+          <span style="font-size:11.5px">Code <span style="color:var(--fg-dim);font-family:var(--mono);font-size:10px">systems · behaviours</span></span>
+          <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">anthropic · sonnet-4.6</span>
+          <span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">9</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-muted)">$0.31</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-dim)">—</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right">$0.31</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 150px 52px 74px 74px 74px;padding:6px 12px;border-top:1px solid var(--border);align-items:center">
+          <span style="font-size:11.5px">Audio <span style="color:var(--fg-dim);font-family:var(--mono);font-size:10px">loops · stingers</span></span>
+          <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">fal · stable-audio</span>
+          <span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">4</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-muted)">$0.20</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-dim)">—</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right">$0.20</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 150px 52px 74px 74px 74px;padding:6px 12px;border-top:1px solid var(--border);align-items:center;background:var(--bg-sunken)">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim);text-transform:uppercase;letter-spacing:.08em">all generation</span>
+          <span></span>
+          <span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">59</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-muted)">$8.63</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--accent)">$3.57</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right">$12.20</span>
+        </div>
+
+        <div style="padding:10px 12px 4px;border-top:1px solid var(--border);font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)">by identity</div>
+        <div style="display:grid;grid-template-columns:1fr 90px 90px 90px 60px;gap:0;padding:0 12px 4px;font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-dim)">
+          <span>identity</span><span style="text-align:right">tokens</span><span style="text-align:right">generation</span><span style="text-align:right">total</span><span style="text-align:right">runs</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 90px 90px 90px 60px;padding:6px 12px;border-top:1px solid var(--border);align-items:center">
+          <span style="font-family:var(--mono);font-size:11.5px">you <span style="color:var(--fg-dim)">· editor buttons</span></span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-dim)">—</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-muted)">$8.63</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right">$8.63</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-dim)">45</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 90px 90px 90px 60px;padding:6px 12px;border-top:1px solid var(--border);align-items:center">
+          <span style="font-family:var(--mono);font-size:11.5px">agent:wick <span style="color:var(--fg-dim)">· all specialists</span></span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-muted)">$1.21</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-muted)">$3.57</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--accent)">$4.78</span>
+          <span style="font-family:var(--mono);font-size:11.5px;text-align:right;color:var(--fg-dim)">61</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 90px 90px 90px 60px;padding:5px 12px 5px 26px;border-top:1px solid var(--border);align-items:center;background:var(--bg)">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">/artist</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">$0.22</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">$3.41</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-muted)">$3.63</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">14</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 90px 90px 90px 60px;padding:5px 12px 5px 26px;border-top:1px solid var(--border);align-items:center;background:var(--bg)">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">/level-designer</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">$0.48</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">$0.16</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-muted)">$0.64</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">23</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 90px 90px 90px 60px;padding:5px 12px 5px 26px;border-top:1px solid var(--border);align-items:center;background:var(--bg)">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">/writer</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">$0.39</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">$0.00</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-muted)">$0.39</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">18</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 90px 90px 90px 60px;padding:5px 12px 5px 26px;border-top:1px solid var(--border);align-items:center;background:var(--bg)">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">/playtester</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">$0.12</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">$0.00</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-muted)">$0.12</span><span style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--fg-dim)">6</span>
+        </div>
+
+        <div style="padding:10px 12px 4px;border-top:1px solid var(--border);font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)">agent · by conversation</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 12px;border-top:1px solid var(--border)"><span style="font-size:11.5px;flex:1">Ember pass <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">· running</span></span><span style="font-family:var(--mono);font-size:11.5px;color:var(--accent)">$0.42</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 12px;border-top:1px solid var(--border)"><span style="font-size:11.5px;flex:1">Cold variant sprites</span><span style="font-family:var(--mono);font-size:11.5px;color:var(--fg-muted)">$3.63</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 12px;border-top:1px solid var(--border)"><span style="font-size:11.5px;flex:1">Wick's lantern vocabulary</span><span style="font-family:var(--mono);font-size:11.5px;color:var(--fg-muted)">$0.44</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 12px;border-top:1px solid var(--border);color:var(--fg-muted)"><span style="font-size:11.5px;flex:1">28 earlier conversations</span><span style="font-family:var(--mono);font-size:11.5px">$0.29</span></div>
+
+        <div style="padding:9px 12px;border-top:1px solid var(--border);background:var(--bg-sunken);display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--fg-dim);flex:1">Every row is one journal entry, so the two tables always reconcile. Estimates that were never confirmed are not counted; stopped runs are counted at what they billed.</span>
+          <button style="background:transparent;color:var(--fg);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Export CSV</button>
+        </div>
+      </div>
+    </section>
+
+    <section style="width:412px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">“Agent changed this”</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:38ch">Three sightings of the same fact: in the transcript, on the artifact, and in History. All three carry the identity.</p>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px">
+          <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:7px">in the transcript</div>
+          <a href="#" style="display:flex;gap:8px;align-items:center;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg);padding:7px 9px;color:var(--fg)">
+            <span style="font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--fg-dim);width:44px">level</span>
+            <span style="flex:1;font-size:11.5px">2-3 Lantern Stair <span style="color:var(--fg-muted)">· 6 enemies placed</span></span>
+            <span style="font-size:11px;color:var(--accent)">Show me ↗</span>
+          </a>
+          <div style="font-size:11px;color:var(--fg-dim);margin-top:6px">Opens the level, selects the six placements, and pulses the selection once.</div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px">
+          <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:7px">on the artifact</div>
+          <div style="border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg);padding:8px 9px">
+            <div style="font-size:12px;font-weight:600">Ember Hopper</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">
+              <span style="width:5px;height:5px;border-radius:99px;background:var(--accent)"></span>
+              agent:wick/artist · 2 min ago
+              <a href="#" style="margin-left:auto">History</a>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button style="background:transparent;color:var(--fg);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Undo this change</button>
+              <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Open the conversation</button>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--fg-dim);margin-top:6px">A dot in the left nav marks any artifact the agent touched this session.</div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px">
+          <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:7px">in History</div>
+          <div style="font-family:var(--mono);font-size:11px;display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;gap:8px"><span style="color:var(--fg-dim);width:44px">14:07</span><span style="flex:1">place_enemies · 2-3 <span style="color:var(--fg-dim)">×6</span></span><span style="color:var(--fg-muted)">wick/level-designer</span></div>
+            <div style="display:flex;gap:8px"><span style="color:var(--fg-dim);width:44px">14:06</span><span style="flex:1">import_grid · 2-4</span><span style="color:var(--fg-muted)">wick/level-designer</span></div>
+            <div style="display:flex;gap:8px"><span style="color:var(--fg-dim);width:44px">14:04</span><span style="flex:1">generate_sprite · ×4 <span style="color:var(--accent)">$0.51</span></span><span style="color:var(--fg-muted)">wick/artist</span></div>
+            <div style="display:flex;gap:8px"><span style="color:var(--fg-dim);width:44px">13:58</span><span style="flex:1">resize_grid · 2-3</span><span style="color:var(--fg-dim)">you</span></div>
+          </div>
+          <div style="font-size:11px;color:var(--fg-dim);margin-top:7px">One plan batch collapses to a single undoable entry; the rows above are its expansion.</div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { theme: "dark" };
+  renderVals() {
+    return { theme: this.state.theme, toggleTheme: () => this.setState(s => ({ theme: s.theme === "dark" ? "light" : "dark" })) };
+  }
+}
+</script>
+</body>
+</html>

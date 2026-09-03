@@ -3,6 +3,26 @@ import type { EntityRef, Job, ValidationReport, WorldMap, WorldSummary } from ".
 import type { WorldSel } from "./components/world/drawWorld";
 import { api } from "./lib/invoke";
 import {
+  INITIAL_SERVICE,
+  type ConversationSummary,
+  type GrantRow,
+  type ModelInfo,
+  type ServiceState,
+} from "./lib/agent";
+import { reduceEvent, type Conversation, type Event as AgentEvent } from "./lib/agentState";
+import { AGENT_W_DEFAULT, clampAgentWidth } from "./lib/agentLayout";
+import type { ShowMeTarget } from "./lib/agentShowMe";
+import type { EditDoc, EditOp } from "./components/dialogue/ops";
+import {
+  commitSave as commitDialogueBuffer,
+  emptyBuffer,
+  pushOps,
+  redo as redoBuffer,
+  revertAt,
+  undo as undoBuffer,
+  type DialogueBuffer,
+} from "./components/dialogue/useDialogueEditor";
+import {
   loadRecents,
   upsertRecent,
   removeRecent as removeRecentFn,
@@ -27,7 +47,7 @@ export type CompletedJobSignal = {
   op: string;
   target: string;
   targetType: string;
-  status: "ok" | "no_change" | "failed";
+  status: "ok" | "no_change" | "failed" | "cancelled";
   changed: boolean;
   ts: number;
 };
@@ -67,6 +87,25 @@ export type BibleBeat = {
   escalation?: number;
   boss_name?: string;
   boss_lore?: string;
+};
+
+/** View | Edit | Test — the three explicit mode positions (README Q2). Four
+ *  simultaneous indicators render from it: the segmented control's underline,
+ *  the canvas top border, the floating mode pill and the statusbar MODE word. */
+export type DialogueMode = "view" | "edit" | "test";
+
+/** NPC | quest | scene — the three scopes dialogue is authored at (README
+ *  "Overview"). Open data, not a closed set for the surfaces' sake: the
+ *  statusbar's SCOPE word and the ⌘K group label both render it verbatim. */
+export type DialogueScope = string;
+
+export type DialogueSlice = {
+  mode: DialogueMode;
+  /** Which scope is mounted — the statusbar's SCOPE slot (step 11/12). */
+  scope: DialogueScope;
+  buffers: Record<string, DialogueBuffer>;
+  activeTree: Record<string, string | null>;
+  activeKey: string | null;
 };
 
 type Store = {
@@ -123,6 +162,14 @@ type Store = {
   setNewProjectOpen: (open: boolean) => void;
   dashboardOpen: boolean;
   setDashboardOpen: (open: boolean) => void;
+  //: The Settings screen (row P0-12 / W3.5). Three panes — API keys,
+  //: Environment, and A6's Permissions pane, which lived under a temporary
+  //: overlay until this screen existed. `focusVar` is the deep link's payload:
+  //: every missing-key refusal opens Settings WITH the offending variable
+  //: named, so the link lands on the row it is complaining about.
+  settings: { open: boolean; pane: string; focusVar: string | null };
+  openSettings: (pane?: string, focusVar?: string | null) => void;
+  closeSettings: () => void;
   //: Command palette. `commands` is a REGISTRY, not a fixed list: whichever
   //: surface is mounted contributes its own actions under a scope key and
   //: withdraws them on unmount. The design puts the level editor's secondary
@@ -159,10 +206,114 @@ type Store = {
   /** Hide a card. NOT a delete — the project stays on disk and stays
    *  openable; "show" puts it straight back. */
   toggleRecentHidden: (path: string) => void;
+  //: The dialogue editor (row P0-9; `design_handoff_dialogue` PLAN "Edit
+  //: buffer and ops"). `mode` is the View | Edit | Test position the surface
+  //: renders four indicators from; `buffers` are the KEYED unsaved edit
+  //: buffers — one per `npc:<id>` / `scene:<id>` — because a quest-scope
+  //: session opens a buffer for every participating NPC and one `⌘S` flushes
+  //: them all. `activeTree` is which tree the canvas shows per buffer, and
+  //: `activeKey` is the mounted surface the statusbar MODE segment reads.
+  dialogue: DialogueSlice;
+  setDialogueMode: (mode: DialogueMode) => void;
+  /** Which scope the mounted surface is (`npc` | `quest` | `scene`). */
+  setDialogueScope: (scope: DialogueScope) => void;
+  setActiveDialogueKey: (key: string | null) => void;
+  setActiveDialogueTree: (key: string, treeId: string | null) => void;
+  /** Seed a buffer. Idempotent: a buffer that already exists keeps its
+   *  unsaved work — a re-read of the row never silently discards edits. */
+  openDialogueBuffer: (key: string, base: EditDoc) => void;
+  pushDialogueOps: (key: string, ops: EditOp[]) => void;
+  undoDialogue: (key: string) => void;
+  redoDialogue: (key: string) => void;
+  /** Drop one op out of the applied list. Returns the REASON when the replay
+   *  would break a later edit, and leaves the buffer untouched (doctrine 4). */
+  revertDialogueOp: (key: string, index: number) => string | null;
+  /** `⌘S` landed: canon's trees become the new base and the stack empties. */
+  commitDialogueSave: (key: string, base: EditDoc) => void;
+  /** Forget a buffer entirely — the "discard" branch of the leave prompt. */
+  discardDialogueBuffer: (key: string) => void;
   /** Last thing the start screen did, echoed in its statusbar. */
   startNote: string | null;
   setStartNote: (note: string | null) => void;
   enrichRecent: (path: string) => Promise<void>;
+  //: The agent panel (row P1-A5; agent-panel PLAN "Store slices"). `agentUi`
+  //: is the per-device convenience set (I8: open / width / collapsed in
+  //: localStorage); `agent` is the live slice — service state, the open
+  //: conversations (each reduced from the service's SSE by
+  //: `lib/agentState.reduceEvent`), the picker's models, the project's
+  //: grants, and the two editor sightings ("agent changed this" pill + the
+  //: Show-me pulse). Durable truth — transcripts, grants — lives in
+  //: `<pack>/.canon/agent/` behind the service (I5); this slice is a view.
+  agentUi: AgentUiPrefs;
+  setAgentUi: (patch: Partial<AgentUiPrefs>) => void;
+  agent: AgentSlice;
+  setAgent: (patch: Partial<AgentSlice> | ((s: AgentSlice) => Partial<AgentSlice>)) => void;
+  /** Fold one service event into one conversation. */
+  agentDispatch: (
+    conversationId: string,
+    ev: AgentEvent,
+    opts?: { now?: number; rate?: { input_per_1m: number; output_per_1m: number } | null },
+  ) => void;
+  setAgentConversation: (conv: Conversation) => void;
+  patchAgentConversation: (id: string, patch: Partial<Conversation>) => void;
+  removeAgentConversation: (id: string) => void;
+  setAgentPulse: (pulse: AgentPulse) => void;
+};
+
+export type AgentUiPrefs = { open: boolean; width: number; collapsed: boolean };
+export type AgentPulse = { target: ShowMeTarget; ts: number } | null;
+/** The dismissible accent pill over the canvas (README §8). */
+export type AgentPill = {
+  typeId: string;
+  id: string;
+  actor: string;
+  what: string;
+  ts: number;
+} | null;
+export type AgentSlice = {
+  service: ServiceState;
+  conversations: Record<string, Conversation>;
+  activeId: string | null;
+  models: ModelInfo[];
+  grants: GrantRow[];
+  /** ⏱ per-project history — the service's conversation list. */
+  history: ConversationSummary[];
+  pulse: AgentPulse;
+  pill: AgentPill;
+  /** The auto-collapse toast fires once per window session (README §1). */
+  collapseToastShown: boolean;
+  toast: string | null;
+  /** The conversation the header's ⏹ / Esc stop; set while a POST is in flight. */
+  stopping: string | null;
+};
+const AGENT_UI_KEY = "cradle.agent.ui.v1";
+const DEFAULT_AGENT_UI: AgentUiPrefs = { open: false, width: AGENT_W_DEFAULT, collapsed: false };
+function initialAgentUi(): AgentUiPrefs {
+  try {
+    const raw = localStorage.getItem(AGENT_UI_KEY);
+    if (raw) {
+      const v = JSON.parse(raw) as Partial<AgentUiPrefs>;
+      return {
+        ...DEFAULT_AGENT_UI,
+        ...v,
+        width: clampAgentWidth(typeof v.width === "number" ? v.width : AGENT_W_DEFAULT),
+      };
+    }
+  } catch {}
+  return DEFAULT_AGENT_UI;
+}
+export const INITIAL_AGENT: AgentSlice = {
+  service: INITIAL_SERVICE,
+  conversations: {},
+  activeId: null,
+  models: [],
+  grants: [],
+  history: [],
+  pulse: null,
+  pill: null,
+  collapseToastShown: false,
+  toast: null,
+  stopping: null,
 };
 
 const THEME_KEY = "cradle.theme.v1";
@@ -178,6 +329,9 @@ export type LayoutPrefs = {
   /** Same, for the minimap and the world map's own rail. */
   minimapPos: { x: number; y: number } | null;
   worldRailPos: { x: number; y: number } | null;
+  /** Same, for the dialogue canvas's tool rail (row P0-9). Its own key so the
+   *  level rail and the dialogue rail can sit in different places. */
+  dialogueToolRailPos: { x: number; y: number } | null;
   /** Side panels, collapsed by button or keyboard. The left one is the nav;
    *  the right one is whichever surface the current screen puts there — the
    *  level editor's dock tray, the world map's inspector. */
@@ -190,6 +344,7 @@ const DEFAULT_LAYOUT: LayoutPrefs = {
   toolRailPos: null,
   minimapPos: null,
   worldRailPos: null,
+  dialogueToolRailPos: null,
   navCollapsed: false,
   inspectorCollapsed: false,
 };
@@ -252,6 +407,7 @@ export const useStore = create<Store>((set, get) => ({
   drawerOpen: false,
   newProjectOpen: false,
   dashboardOpen: false,
+  settings: { open: false, pane: "keys", focusVar: null },
   paletteOpen: false,
   commands: {},
   jobsOpen: false,
@@ -259,6 +415,58 @@ export const useStore = create<Store>((set, get) => ({
   lastCompletedJob: null,
   ...INITIAL_AUDIO_STATE,
   loading: false,
+  agentUi: initialAgentUi(),
+  setAgentUi: (patch) =>
+    set((st) => {
+      const agentUi = { ...st.agentUi, ...patch };
+      if (patch.width != null) agentUi.width = clampAgentWidth(patch.width);
+      try {
+        localStorage.setItem(AGENT_UI_KEY, JSON.stringify(agentUi));
+      } catch {}
+      return { agentUi };
+    }),
+  agent: INITIAL_AGENT,
+  setAgent: (patch) =>
+    set((st) => ({
+      agent: { ...st.agent, ...(typeof patch === "function" ? patch(st.agent) : patch) },
+    })),
+  agentDispatch: (conversationId, ev, opts) =>
+    set((st) => {
+      const conv = st.agent.conversations[conversationId];
+      if (!conv) return {};
+      const grants = new Set(st.agent.grants.map((g) => g.tool));
+      const next = reduceEvent(conv, ev, { ...opts, grants });
+      return {
+        agent: {
+          ...st.agent,
+          conversations: { ...st.agent.conversations, [conversationId]: next },
+        },
+      };
+    }),
+  setAgentConversation: (conv) =>
+    set((st) => ({
+      agent: { ...st.agent, conversations: { ...st.agent.conversations, [conv.id]: conv } },
+    })),
+  patchAgentConversation: (id, patch) =>
+    set((st) => {
+      const conv = st.agent.conversations[id];
+      if (!conv) return {};
+      return {
+        agent: {
+          ...st.agent,
+          conversations: { ...st.agent.conversations, [id]: { ...conv, ...patch } },
+        },
+      };
+    }),
+  removeAgentConversation: (id) =>
+    set((st) => {
+      const conversations = { ...st.agent.conversations };
+      delete conversations[id];
+      const activeId =
+        st.agent.activeId === id ? (Object.keys(conversations)[0] ?? null) : st.agent.activeId;
+      return { agent: { ...st.agent, conversations, activeId } };
+    }),
+  setAgentPulse: (pulse) => set((st) => ({ agent: { ...st.agent, pulse } })),
   setWorldPath: (p) => set({ worldPath: p }),
   setWorld: (w) =>
     set({
@@ -284,6 +492,9 @@ export const useStore = create<Store>((set, get) => ({
   setError: (e) => set({ error: e }),
   setNewProjectOpen: (open) => set({ newProjectOpen: open }),
   setDashboardOpen: (open) => set({ dashboardOpen: open }),
+  openSettings: (pane = "keys", focusVar = null) =>
+    set({ settings: { open: true, pane, focusVar } }),
+  closeSettings: () => set((s) => ({ settings: { ...s.settings, open: false, focusVar: null } })),
   setPaletteOpen: (open) => set({ paletteOpen: open }),
   registerCommands: (scope, cmds) => set((s) => ({ commands: { ...s.commands, [scope]: cmds } })),
   unregisterCommands: (scope) =>
@@ -365,15 +576,112 @@ export const useStore = create<Store>((set, get) => ({
       jobs: [],
       lastCompletedJob: null,
       jobsOpen: false,
+      // Unsaved dialogue belongs to the world that's going away; the leave
+      // prompt (README "Unsaved on leave") runs BEFORE this.
+      dialogue: {
+        mode: "view" as DialogueMode,
+        scope: "npc",
+        buffers: {},
+        activeTree: {},
+        activeKey: null,
+      },
       // Every registered command closes over the world that's going away.
       paletteOpen: false,
       commands: {},
       route: "start",
+      // Conversations are per pack (their transcripts live in it); the
+      // service is stopped by the panel's lifecycle effect, which watches
+      // `worldPath`. The panel's open/width prefs are per device and stay.
+      agent: INITIAL_AGENT,
       ...INITIAL_AUDIO_STATE,
     }),
   togglePin: (path: string) => set((s) => ({ recents: togglePinFn(s.recents, path) })),
   removeRecent: (path) => set((s) => ({ recents: removeRecentFn(s.recents, path) })),
   toggleRecentHidden: (path) => set((s) => ({ recents: toggleHiddenFn(s.recents, path) })),
+  dialogue: { mode: "view", scope: "npc", buffers: {}, activeTree: {}, activeKey: null },
+  setDialogueMode: (mode) => set((s) => ({ dialogue: { ...s.dialogue, mode } })),
+  setDialogueScope: (scope) => set((s) => ({ dialogue: { ...s.dialogue, scope } })),
+  setActiveDialogueKey: (key) => set((s) => ({ dialogue: { ...s.dialogue, activeKey: key } })),
+  setActiveDialogueTree: (key, treeId) =>
+    set((s) => ({
+      dialogue: { ...s.dialogue, activeTree: { ...s.dialogue.activeTree, [key]: treeId } },
+    })),
+  openDialogueBuffer: (key, base) =>
+    set((s) => {
+      if (s.dialogue.buffers[key]) return {};
+      return {
+        dialogue: {
+          ...s.dialogue,
+          buffers: { ...s.dialogue.buffers, [key]: emptyBuffer(base) },
+        },
+      };
+    }),
+  pushDialogueOps: (key, ops) =>
+    set((s) => {
+      const buffer = s.dialogue.buffers[key];
+      if (!buffer) return {};
+      return {
+        dialogue: {
+          ...s.dialogue,
+          buffers: { ...s.dialogue.buffers, [key]: pushOps(buffer, ops) },
+        },
+      };
+    }),
+  undoDialogue: (key) =>
+    set((s) => {
+      const buffer = s.dialogue.buffers[key];
+      if (!buffer) return {};
+      return {
+        dialogue: {
+          ...s.dialogue,
+          buffers: { ...s.dialogue.buffers, [key]: undoBuffer(buffer) },
+        },
+      };
+    }),
+  redoDialogue: (key) =>
+    set((s) => {
+      const buffer = s.dialogue.buffers[key];
+      if (!buffer) return {};
+      return {
+        dialogue: {
+          ...s.dialogue,
+          buffers: { ...s.dialogue.buffers, [key]: redoBuffer(buffer) },
+        },
+      };
+    }),
+  revertDialogueOp: (key, index) => {
+    const buffer = get().dialogue.buffers[key];
+    if (!buffer) return `no unsaved edits for ${key}`;
+    const result = revertAt(buffer, index);
+    if (result.error) return result.error;
+    set((s) => ({
+      dialogue: {
+        ...s.dialogue,
+        buffers: { ...s.dialogue.buffers, [key]: result.buffer },
+      },
+    }));
+    return null;
+  },
+  commitDialogueSave: (key, base) =>
+    set((s) => {
+      const buffer = s.dialogue.buffers[key];
+      return {
+        dialogue: {
+          ...s.dialogue,
+          buffers: {
+            ...s.dialogue.buffers,
+            [key]: buffer ? commitDialogueBuffer(buffer, base) : emptyBuffer(base),
+          },
+        },
+      };
+    }),
+  discardDialogueBuffer: (key) =>
+    set((s) => {
+      if (!(key in s.dialogue.buffers)) return {};
+      const buffers = { ...s.dialogue.buffers };
+      delete buffers[key];
+      return { dialogue: { ...s.dialogue, buffers } };
+    }),
   startNote: null,
   setStartNote: (note) => set({ startNote: note }),
   enrichRecent: async (inputPath: string) => {
@@ -384,6 +692,7 @@ export const useStore = create<Store>((set, get) => ({
       const next: RecentProject = {
         path,
         name: summary.name,
+        world_kind: summary.world_kind,
         lastOpenedAt: existing?.lastOpenedAt ?? Date.now(),
         pinned: existing?.pinned,
       };
@@ -463,8 +772,10 @@ export const useStore = create<Store>((set, get) => ({
 
       // Platformer packs have no world_bible.json (manifest.json + world.json +
       // level/ instead). Open straight to the first level rather than a Bible
-      // view that would error, and prime the nav with levels + enemies.
-      const isPlatformer = summary.entity_counts.some((c) => c.type_id === "levels" && c.count > 0);
+      // view that would error, and prime the nav with levels + enemies. The
+      // kind is the pack's registry id (canon's pack_type, P0-3) — read from
+      // the summary, never sniffed from the entity counts.
+      const isPlatformer = summary.world_kind === "platformer";
       if (isPlatformer) {
         let levelRefs: EntityRef[] = [];
         let enemyRefs: EntityRef[] = [];
@@ -491,6 +802,7 @@ export const useStore = create<Store>((set, get) => ({
           recents: upsertRecent(s.recents, {
             path,
             name: summary.name,
+            world_kind: summary.world_kind,
             lastOpenedAt: Date.now(),
           }),
         }));
@@ -513,6 +825,7 @@ export const useStore = create<Store>((set, get) => ({
       const recent: RecentProject = {
         path,
         name: summary.name,
+        world_kind: summary.world_kind,
         lastOpenedAt: Date.now(),
       };
       try {

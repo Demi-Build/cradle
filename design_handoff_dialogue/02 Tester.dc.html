@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px; --radius-lg:10px;
+  --accent:oklch(72% 0.13 78); --accent-ink:oklch(28% 0.05 78);
+  --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45); --err:oklch(62% 0.18 25);
+  --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b;
+  --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55; --stage:#08090b;
+}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select{font-family:inherit}
+@keyframes fired{0%{background:oklch(68% .13 150/.35)}100%{background:oklch(68% .13 150/.09)}}
+</style>
+</helmet>
+<div data-theme="dark" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);position:relative;font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center;white-space:nowrap">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>the-chain-of-orbit</span><span style="color:var(--fg-dim)">/</span><span>whisper-tam</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">dialogue · test</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid color-mix(in oklch,var(--info) 50%,var(--border));background:oklch(70% .12 260/.12);color:var(--info);letter-spacing:.06em;text-transform:uppercase">dock expanded · ⌃↓ to collapse</span>
+  </header>
+
+  <div style="display:grid;grid-template-columns:208px 1fr;overflow:hidden;min-height:0">
+
+    <aside style="border-right:1px solid var(--border);background:var(--bg-raised);overflow-y:auto;padding:10px 0">
+      <button style="display:block;width:100%;text-align:left;background:none;color:var(--fg);border:0;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">The Chain of Orbit</button>
+      <div style="margin-top:4px">
+        <button style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:5px 14px;font-size:10.5px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)">
+          <span style="width:10px;color:var(--fg-dim);font-size:9px">▼</span><span style="flex:1">NPCs</span><span style="color:var(--fg-dim);font-size:10px">(79)</span>
+        </button>
+        <ul style="list-style:none;margin:0;padding:0 0 6px 0">
+          <li><button style="display:block;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 36px;font-size:12px;text-align:left;cursor:pointer">Vex Ironhollow</button></li>
+          <li><button style="display:block;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:4px 14px 4px 36px;font-size:12px;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)">Whisper-Tam</button></li>
+          <li><button style="display:block;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 36px;font-size:12px;text-align:left;cursor:pointer">Rust-Kell</button></li>
+        </ul>
+        <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:5px 14px;font-size:10.5px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;cursor:pointer"><span style="width:10px;color:var(--fg-dim);font-size:9px">▶</span><span style="flex:1">Quests</span><span style="color:var(--fg-dim);font-size:10px">(24)</span></button>
+        <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:5px 14px;font-size:10.5px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;cursor:pointer"><span style="width:10px;color:var(--fg-dim);font-size:9px">▶</span><span style="flex:1">Events</span><span style="color:var(--fg-dim);font-size:10px">(72)</span></button>
+      </div>
+    </aside>
+
+    <main style="display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0;min-height:0">
+      <div style="display:flex;padding:0 20px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0">
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Overview</button>
+        <button style="background:none;color:var(--fg);border:0;border-bottom:2px solid var(--accent);padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Dialogue</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Raw JSON</button>
+      </div>
+
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;padding:10px 14px 12px 20px;gap:9px;overflow:auto">
+
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px">
+            <button style="background:none;color:var(--fg-muted);border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500">View</button>
+            <button style="background:none;color:var(--fg-muted);border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500">Edit</button>
+            <button style="background:var(--bg-hover);color:var(--fg);border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500;box-shadow:inset 0 -2px 0 var(--info)">Test</button>
+          </div>
+          <span style="width:1px;height:18px;background:var(--border)"></span>
+          <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">tree</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;background:oklch(72% .13 78/.1);color:var(--accent);border:1px solid var(--accent);font-size:11px;padding:2px 10px;border-radius:99px;font-family:var(--mono)">default</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">selector picked this tree — quest is <span style="color:var(--warn)">offered</span></span>
+          <div style="flex:1"></div>
+          <button style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">
+            <svg width="12" height="12" viewBox="0 0 16 16" style="stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:square"><rect x="2" y="2" width="5" height="5"></rect><rect x="9" y="2" width="5" height="5"></rect><rect x="2" y="9" width="5" height="5"></rect><rect x="9" y="9" width="5" height="5"></rect></svg>
+            Collapse dock <span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:10px">⌃↓</span>
+          </button>
+          <button style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Restart <span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:10px">R</span></button>
+        </div>
+
+        <div style="flex:1;min-height:540px;min-width:1180px;display:grid;grid-template-columns:218px minmax(430px,1fr) 300px;gap:9px">
+
+          <aside style="background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+            <div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+              <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">trees</span>
+              <span style="margin-left:auto;display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);color:var(--fg-muted);font-family:var(--mono);font-size:9.5px">⌘P</span>
+            </div>
+            <div style="flex:1;min-height:0;overflow-y:auto;padding:6px 0 8px">
+              <div style="padding:7px 10px 3px;font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">would play now · 1</div>
+              <button style="display:flex;align-items:center;gap:7px;width:100%;text-align:left;background:var(--bg-hover);border:0;box-shadow:inset 2px 0 0 var(--info);color:var(--fg);padding:4px 10px;font-size:11.5px;cursor:pointer">
+                <span style="width:5px;height:5px;border-radius:50%;background:var(--info);flex:none"></span><span style="flex:1">default</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--info)">live</span>
+              </button>
+              <div style="padding:9px 10px 3px;font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">blocked by state · 4</div>
+              <button style="display:flex;align-items:center;gap:7px;width:100%;text-align:left;background:none;border:0;color:var(--fg-dim);padding:4px 10px;font-size:11.5px;cursor:pointer">
+                <span style="width:5px;height:5px;border-radius:50%;background:var(--ok);opacity:.45;flex:none"></span><span style="flex:1">complete</span><span style="font-family:var(--mono);font-size:9px">needs complete</span>
+              </button>
+              <button style="display:flex;align-items:center;gap:7px;width:100%;text-align:left;background:none;border:0;color:var(--fg-dim);padding:4px 10px;font-size:11.5px;cursor:pointer">
+                <span style="width:5px;height:5px;border-radius:50%;background:var(--warn);opacity:.45;flex:none"></span><span style="flex:1">incomplete</span><span style="font-family:var(--mono);font-size:9px">needs active</span>
+              </button>
+              <button style="display:flex;align-items:center;gap:7px;width:100%;text-align:left;background:none;border:0;color:var(--fg-dim);padding:4px 10px;font-size:11.5px;cursor:pointer">
+                <span style="width:5px;height:5px;border-radius:50%;background:var(--special);opacity:.45;flex:none"></span><span style="flex:1">after the transmission</span><span style="font-family:var(--mono);font-size:9px">act 2</span>
+              </button>
+              <button style="display:flex;align-items:center;gap:7px;width:100%;text-align:left;background:none;border:0;color:var(--fg-muted);padding:4px 10px;font-size:11.5px;cursor:pointer">
+                <span style="width:5px;height:5px;border-radius:50%;background:var(--warn);flex:none"></span><span style="flex:1">night vigil</span><span style="font-family:var(--mono);font-size:9px;color:var(--warn)">would match</span>
+              </button>
+              <div style="padding:2px 10px 0 22px;font-family:var(--mono);font-size:9px;color:var(--warn);line-height:1.5">clock 23:10 matches time:22-04 but the selector ranks quest state first</div>
+
+              <div style="padding:9px 10px 3px;font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">scenes · 2</div>
+              <button style="display:flex;align-items:center;gap:7px;width:100%;text-align:left;background:none;border:0;color:var(--fg-muted);padding:4px 10px;font-size:11.5px;cursor:pointer">
+                <svg width="11" height="11" viewBox="0 0 16 16" style="stroke:var(--info);fill:none;stroke-width:1.5;stroke-linecap:square;flex:none"><path d="M3 2v12M3 2.5h10l-2 3 2 3H3"></path></svg>
+                <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">The Bonefield Confession</span><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">3◍</span>
+              </button>
+            </div>
+            <div style="border-top:1px solid var(--border);background:var(--bg-sunken);padding:7px 9px;font-family:var(--mono);font-size:9px;color:var(--fg-dim);line-height:1.5">Rail shows which tree the current state selects. Click any tree to force it.</div>
+          </aside>
+
+          <div style="position:relative;display:flex;flex-direction:column;min-height:0;background:var(--stage);border:1px solid var(--border);border-top:2px solid var(--info);border-radius:var(--radius);overflow:hidden">
+
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border);background:color-mix(in oklch,var(--info) 8%,var(--bg-raised))">
+              <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--info)"><span style="width:6px;height:6px;border-radius:50%;background:var(--info)"></span>test mode · simulated state · nothing is written</span>
+              <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--fg-dim)">exchange 3 of 5 · canon dialogue test</span>
+            </div>
+
+            <div style="flex:1;min-height:0;overflow-y:auto;padding:14px 18px 18px;display:flex;flex-direction:column;gap:13px">
+
+              <div style="display:flex;gap:11px;opacity:.5">
+                <img src="assets/npc_1023.png" alt="" width="36" height="36" style="border-radius:var(--radius-sm);background:var(--bg-sunken);border:1px solid var(--border);object-fit:cover;image-rendering:pixelated;flex:none" />
+                <div style="flex:1;min-width:0">
+                  <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:3px">start</div>
+                  <div style="font-size:12.5px;line-height:1.55">The voices from above sing in frequencies beyond flesh... but their song speaks of unity, not this... this brutality.</div>
+                  <div style="margin-top:5px;font-size:11.5px;color:var(--fg-muted);border-left:2px solid var(--border-hi);padding-left:8px">you: What do the voices tell you?</div>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:11px;opacity:.72">
+                <img src="assets/npc_1023.png" alt="" width="36" height="36" style="border-radius:var(--radius-sm);background:var(--bg-sunken);border:1px solid var(--border);object-fit:cover;image-rendering:pixelated;flex:none" />
+                <div style="flex:1;min-width:0">
+                  <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:3px">voices</div>
+                  <div style="font-size:12.5px;line-height:1.55">Signal-pattern-seven-seven... harmony not hierarchy... The metal whispers truth - they seek convergence, not conquest. But the Prophet twists the frequency...</div>
+                  <div style="margin-top:5px;font-size:11.5px;color:var(--fg-muted);border-left:2px solid var(--border-hi);padding-left:8px">you: Where does the signal break?</div>
+                  <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;background:oklch(68% .13 150/.09);border:1px solid color-mix(in oklch,var(--ok) 40%,var(--border));border-radius:var(--radius-sm);padding:6px 8px;animation:fired 1.4s ease-out">
+                    <span style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--ok)">2 effects fired into the simulated state</span>
+                    <span style="font-family:var(--mono);font-size:10.5px;color:var(--ok)">+ gives_item:item_resonance_shard <span style="color:var(--fg-muted);font-family:var(--ui)">— resonance shard added</span></span>
+                    <span style="font-family:var(--mono);font-size:10.5px;color:var(--special)">+ set_flag:signal_gap_named <span style="color:var(--fg-muted);font-family:var(--ui)">— flag set true</span></span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="height:1px;background:var(--border)"></div>
+
+              <div style="display:flex;gap:11px">
+                <img src="assets/npc_1023.png" alt="Whisper-Tam" width="52" height="52" style="border-radius:var(--radius-sm);background:var(--bg-sunken);border:1px solid var(--accent);object-fit:cover;image-rendering:pixelated;flex:none;cursor:zoom-in" />
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                    <span style="font-size:13px;font-weight:600">Whisper-Tam</span>
+                    <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">node voices · 4 choices</span>
+                  </div>
+                  <div style="font-size:14px;line-height:1.6;text-wrap:pretty">Signal-pattern-seven-seven... harmony not hierarchy... The metal whispers truth - they seek convergence, not conquest. But the Prophet twists the frequency...</div>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:7px;margin-left:63px">
+
+                <button style="display:flex;align-items:flex-start;gap:10px;text-align:left;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 11px;cursor:pointer;color:var(--fg)">
+                  <span style="font-family:var(--mono);font-size:12px;color:var(--ok);flex:none;line-height:1.4">✓</span>
+                  <span style="flex:1;min-width:0">
+                    <span style="display:block;font-size:12.5px">What is the true message?</span>
+                    <span style="display:block;margin-top:3px;font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">no conditions · → end</span>
+                  </span>
+                  <span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:10px;color:var(--fg-muted);flex:none">1</span>
+                </button>
+
+                <button style="display:flex;align-items:flex-start;gap:10px;text-align:left;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 11px;cursor:pointer;color:var(--fg)">
+                  <span style="font-family:var(--mono);font-size:12px;color:var(--ok);flex:none;line-height:1.4">✓</span>
+                  <span style="flex:1;min-width:0">
+                    <span style="display:block;font-size:12.5px">How do you know this?</span>
+                    <span style="display:block;margin-top:3px;font-family:var(--mono);font-size:9.5px;color:var(--ok)">flag:signal_gap_named ✓ true · → end</span>
+                  </span>
+                  <span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:10px;color:var(--fg-muted);flex:none">2</span>
+                </button>
+
+                <div style="display:flex;align-items:flex-start;gap:10px;background:color-mix(in oklch,var(--err) 8%,var(--bg-raised));border:1px solid color-mix(in oklch,var(--err) 60%,var(--border));border-radius:var(--radius-sm);padding:9px 11px;color:var(--fg-muted);cursor:not-allowed">
+                  <span style="font-family:var(--mono);font-size:12px;color:var(--err);flex:none;line-height:1.4">✗</span>
+                  <span style="flex:1;min-width:0">
+                    <span style="display:block;font-size:12.5px">I recovered your resonance shard.</span>
+                    <span style="display:block;margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--ok)">has_item:item_resonance_shard ✓ in inventory</span>
+                    <span style="display:block;margin-top:2px;font-family:var(--mono);font-size:10px;color:var(--err)">quest:q_whisper_signal:active ✗ quest is <span style="text-decoration:underline">offered</span>, not active</span>
+                    <span style="display:block;margin-top:5px;font-size:10.5px;color:var(--fg-dim)">Blocked by 1 of 2 conditions. <span style="color:var(--info);text-decoration:underline;cursor:pointer">Set the quest active</span> to unblock, or <span style="color:var(--info);text-decoration:underline;cursor:pointer">jump to this node</span> to test what follows it.</span>
+                  </span>
+                  <span style="display:inline-block;padding:1px 5px;border:1px solid var(--border);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:10px;color:var(--fg-dim);flex:none">3</span>
+                </div>
+
+                <div style="display:flex;align-items:flex-start;gap:10px;background:color-mix(in oklch,var(--info) 7%,var(--bg-raised));border:1px dashed color-mix(in oklch,var(--info) 65%,var(--border));border-radius:var(--radius-sm);padding:9px 11px;color:var(--fg)">
+                  <span style="font-family:var(--mono);font-size:12px;color:var(--info);flex:none;line-height:1.4">?</span>
+                  <span style="flex:1;min-width:0">
+                    <span style="display:block;font-size:12.5px">Wait for the night transmission with me.</span>
+                    <span style="display:block;margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--info)">time:22-04 ? not evaluated by this engine</span>
+                    <span style="display:block;margin-top:5px;font-size:10.5px;color:var(--fg-muted);line-height:1.5">The pack's engine doesn't evaluate <span style="font-family:var(--mono)">time:</span> gates yet — the tester does, and it passes at clock <span style="font-family:var(--mono);color:var(--fg)">23:10</span>. In game this choice shows unconditionally.</span>
+                  </span>
+                  <span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:10px;color:var(--fg-muted);flex:none">4</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid var(--border);background:var(--bg-raised);padding:7px 12px;display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:10px;color:var(--fg-muted);flex-wrap:wrap">
+              <span style="color:var(--warn)">⚠ 2 nodes unreachable in this state</span>
+              <span style="color:var(--err)">⚠ 1 node unreachable in every state</span>
+              <button style="background:none;border:0;color:var(--info);font-family:inherit;font-size:10px;text-decoration:underline;cursor:pointer">show them</button>
+              <span style="margin-left:auto">1–4 pick · ⌫ step back · G graph · ⌃↓ collapse</span>
+            </div>
+          </div>
+
+          <aside style="background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+            <div style="padding:9px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:600">Simulated state</span>
+              <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">editable mid-walk</span>
+            </div>
+
+            <div style="padding:9px 11px;border-bottom:1px solid var(--border);background:var(--bg-sunken);display:flex;flex-direction:column;gap:6px">
+              <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">checkpoint</span>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+                <button style="background:oklch(72% .13 78/.1);color:var(--accent);border:1px solid var(--accent);font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--mono);cursor:pointer">fresh save</button>
+                <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--mono);cursor:pointer">mid-quest</button>
+                <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--mono);cursor:pointer">act 2 night</button>
+              </div>
+              <div style="display:flex;gap:5px">
+                <button style="flex:1;padding:3px 7px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Snapshot</button>
+                <button style="flex:1;padding:3px 7px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Reset to it</button>
+              </div>
+              <span style="font-size:10px;color:var(--fg-dim);line-height:1.45">Session-local. Never written to the pack.</span>
+            </div>
+
+            <div style="flex:1;min-height:0;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:13px">
+
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">inventory</span>
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3</span>
+                  <button style="margin-left:auto;background:none;border:1px dashed var(--border-hi);color:var(--fg-muted);font-size:9.5px;padding:1px 7px;border-radius:99px;font-family:var(--mono);cursor:pointer">＋</button>
+                </div>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <span style="display:inline-flex;align-items:center;gap:5px;background:oklch(68% .13 150/.14);color:var(--ok);border:1px solid color-mix(in oklch,var(--ok) 55%,var(--border));font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--mono)">resonance shard <span style="opacity:.7">new</span> <span style="cursor:pointer">×</span></span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border);font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--mono)">ration cube <span style="cursor:pointer">×</span></span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border);font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--mono)">scrap torch <span style="cursor:pointer">×</span></span>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">quests</span>
+                <div style="display:flex;align-items:center;gap:6px;background:var(--bg-sunken);border:1px solid color-mix(in oklch,var(--err) 45%,var(--border));border-radius:var(--radius-sm);padding:5px 7px">
+                  <span style="flex:1;min-width:0;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Signal in the Bonefield</span>
+                  <select style="background:var(--bg-raised);border:1px solid var(--border-hi);color:var(--warn);border-radius:3px;padding:1px 3px;font-size:10px;font-family:var(--mono)"><option>offered</option><option>active</option><option>complete</option><option>failed</option></select>
+                </div>
+                <div style="font-family:var(--mono);font-size:9px;color:var(--err);margin-left:2px">blocking choice 3</div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">segment</span>
+                <select style="background:var(--bg-sunken);border:1px solid var(--border);color:var(--fg);border-radius:var(--radius-sm);padding:3px 5px;font-size:11px;font-family:var(--mono)"><option>act_1 · the Bonefield</option><option>act_2 · the Sermon</option><option>act_3 · after the transmission</option></select>
+                <span style="font-size:10px;color:var(--fg-dim);line-height:1.45">Changing the act re-runs the selector — the rail above updates.</span>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">clock &amp; place</span>
+                <div style="display:grid;grid-template-columns:48px 1fr;gap:5px 7px;align-items:center;font-size:11px">
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted)">time</span>
+                  <input value="23:10" style="background:var(--bg-sunken);border:1px solid var(--border);color:var(--fg);border-radius:var(--radius-sm);padding:3px 6px;font-size:11px;font-family:var(--mono)" />
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted)">room</span>
+                  <select style="background:var(--bg-sunken);border:1px solid var(--border);color:var(--fg);border-radius:var(--radius-sm);padding:3px 4px;font-size:11px;font-family:var(--mono)"><option>room_2 · Bonefield</option><option>room_0 · Chain hall</option></select>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">player</span>
+                <div style="display:grid;grid-template-columns:48px 1fr;gap:5px 7px;align-items:center;font-size:11px">
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted)">hp</span>
+                  <input value="14" style="background:var(--bg-sunken);border:1px solid var(--border);color:var(--fg);border-radius:var(--radius-sm);padding:3px 6px;font-size:11px;font-family:var(--mono)" />
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted)">level</span>
+                  <input value="3" style="background:var(--bg-sunken);border:1px solid var(--border);color:var(--fg);border-radius:var(--radius-sm);padding:3px 6px;font-size:11px;font-family:var(--mono)" />
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted)">class</span>
+                  <select style="background:var(--bg-sunken);border:1px solid var(--border);color:var(--fg);border-radius:var(--radius-sm);padding:3px 4px;font-size:11px;font-family:var(--mono)"><option>signal-scav</option><option>chain-acolyte</option></select>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">flags</span>
+                  <button style="margin-left:auto;background:none;border:1px dashed var(--border-hi);color:var(--fg-muted);font-size:9.5px;padding:1px 7px;border-radius:99px;font-family:var(--mono);cursor:pointer">＋</button>
+                </div>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <span style="display:inline-flex;align-items:center;gap:5px;background:oklch(74% .12 300/.14);color:var(--special);border:1px solid color-mix(in oklch,var(--special) 50%,var(--border));font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--mono)">signal_gap_named <span style="opacity:.7">set</span></span>
+                  <span style="display:inline-flex;align-items:center;gap:5px;background:var(--bg-sunken);color:var(--fg-dim);border:1px solid var(--border);font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--mono)">heard_true_signal false</span>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">scenes seen</span>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <span style="display:inline-flex;align-items:center;gap:5px;background:var(--bg-sunken);color:var(--fg-dim);border:1px dashed var(--border-hi);font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--mono)">Bonefield Confession — not yet</span>
+                </div>
+                <span style="font-size:10px;color:var(--fg-dim);line-height:1.45">Scene attendance is state too — trees can select on it.</span>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid var(--border);background:var(--bg-sunken);padding:6px 11px;font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">changes here re-evaluate every gate live</div>
+          </aside>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:14px;padding:0 12px;border-top:1px solid var(--border);background:var(--bg-raised);font-size:10.5px;color:var(--fg-muted);font-family:var(--mono);white-space:nowrap;overflow:hidden">
+    <span style="color:var(--info)">MODE TEST</span>
+    <span style="color:var(--info)">DOCK EXPANDED</span>
+    <span>whisper-tam · tree <span style="color:var(--fg)">default</span> · node <span style="color:var(--fg)">voices</span></span>
+    <span>gates <span style="color:var(--ok)">2 pass</span> · <span style="color:var(--err)">1 fail</span> · <span style="color:var(--info)">1 unevaluable</span></span>
+    <span style="color:var(--fg-dim);font-style:italic">(simulated — no writes)</span>
+    <span style="margin-left:auto;display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10px">⌘K</span>
+  </footer>
+
+  <div style="position:absolute;left:12px;bottom:30px;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);border:1px dashed var(--border-hi);border-radius:99px;padding:3px 9px;background:var(--bg-sunken);z-index:9">screen 02 · tester · dock expanded full-height</div>
+</div>
+
+</x-dc>
+</body>
+</html>

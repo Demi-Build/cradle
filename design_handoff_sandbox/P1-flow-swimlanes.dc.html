@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b; --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55;
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;color:var(--fg)}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+</style>
+</helmet>
+
+<div data-screen-label="P1 · swimlanes" style="min-width:1440px;padding:26px 30px 34px;background:var(--bg)">
+
+  <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:4px">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">flow board · P1 · style 1 of 2</div>
+      <h1 style="margin:4px 0 0;font-size:21px;font-weight:600;letter-spacing:-.01em">Character creation &amp; consistency</h1>
+    </div>
+    <div style="flex:1"></div>
+    <p style="margin:0;max-width:520px;font-size:11.5px;color:var(--fg-muted);line-height:1.55;text-wrap:pretty">Three lanes, one clock. The top lane is what the person does, the middle is what cradle does without being asked, the bottom is where money and QA land. Read down a column to see who is waiting on whom.</p>
+  </div>
+
+  <div style="display:flex;gap:8px;margin:16px 0 10px">
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">entry: Actors ▸ Player ▸ New character</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">exit: locked anchor + full state set on disk</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));background:oklch(72% .14 45/.1);color:var(--warn)">total spend $0.60–$2.40</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:96px repeat(7,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+
+    <div style="background:var(--bg-sunken);padding:8px 10px"></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1</div><div style="font-size:11.5px;font-weight:600">Describe</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">2</div><div style="font-size:11.5px;font-weight:600">Anchor tier</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3</div><div style="font-size:11.5px;font-weight:600">Approve &amp; lock</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4</div><div style="font-size:11.5px;font-weight:600">Batch states</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">5</div><div style="font-size:11.5px;font-weight:600">QA gate</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">6</div><div style="font-size:11.5px;font-weight:600">Hand-tune</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">7</div><div style="font-size:11.5px;font-weight:600">Variants &amp; re-anchor</div></div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px">
+      <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)">user</span>
+      <span style="font-size:10.5px;color:var(--fg-dim);line-height:1.4">decides, approves</span>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Types the character in one field. Picks a role: <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">player · npc · enemy</span>.</p>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:6px 7px;font-size:11px;color:var(--fg-muted);line-height:1.5">“a stilt-legged marsh heron, salvage goggles, ragged blue coat”</div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Chooses how much identity to pin down before spending on states.</p>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.1);padding:5px 7px"><div style="font-size:11px;color:var(--fg)">Base image</div><div style="font-family:var(--mono);font-size:9.5px;color:var(--accent)">1 frame · $0.04–$0.12</div></div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 7px"><div style="font-size:11px;color:var(--fg-muted)">Turnaround sheet</div><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4 views · $0.16–$0.48</div></div>
+        <div style="border:1px dashed var(--border-hi);border-radius:var(--radius-sm);padding:5px 7px"><div style="font-size:11px;color:var(--fg-muted)">3D proxy ref</div><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">reference only · editing is v2</div></div>
+      </div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Picks one candidate, or re-rolls. <strong style="font-weight:600">Lock</strong> is the decision the whole flow hangs on.</p>
+      <div style="display:flex;gap:4px">
+        <div style="flex:1;height:52px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 5px,var(--bg-hover) 5px 10px);position:relative"><span style="position:absolute;left:3px;bottom:2px;font-family:var(--mono);font-size:8.5px;color:var(--accent)">picked</span></div>
+        <div style="flex:1;height:52px;border:1px solid var(--border);border-radius:var(--radius-sm);background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 5px,var(--bg-hover) 5px 10px);opacity:.55"></div>
+        <div style="flex:1;height:52px;border:1px solid var(--border);border-radius:var(--radius-sm);background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 5px,var(--bg-hover) 5px 10px);opacity:.55"></div>
+      </div>
+      <button style="padding:5px 8px;border:0;border-radius:var(--radius-sm);background:#f3efe3;color:#15171c;font-size:11.5px;font-weight:600;cursor:pointer">Lock anchor</button>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Confirms the state list and the expression enum, sees one price for the batch.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:3px">
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">idle</span>
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">run</span>
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">jump</span>
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">hurt</span>
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">death</span>
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid color-mix(in oklch,var(--special) 45%,var(--border));color:var(--special)">+ 6 moods</span>
+      </div>
+      <button style="padding:5px 8px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.12);color:var(--accent);font-size:11.5px;cursor:pointer">Generate 11 sheets · $0.40–$1.60</button>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Reads the drift report. Accepts, re-rolls the two that failed, or hand-fixes them.</p>
+      <div style="display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px">
+        <div style="display:flex;gap:6px;color:var(--ok)"><span style="flex:1">palette conformance</span><span>98%</span></div>
+        <div style="display:flex;gap:6px;color:var(--ok)"><span style="flex:1">alpha gate</span><span>pass</span></div>
+        <div style="display:flex;gap:6px;color:var(--warn)"><span style="flex:1">silhouette drift · jump</span><span>0.31</span></div>
+      </div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Opens the failing frame in the pixel editor and fixes it by hand — two frames, five minutes.</p>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:6px 7px;display:flex;align-items:center;gap:6px">
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--info)">PixEd tab</span>
+        <span style="font-size:10.5px;color:var(--fg-muted)">jump · frame 3 of 6</span>
+      </div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Recolours for a second character, or re-anchors when the design changes for real.</p>
+      <div style="display:flex;gap:4px">
+        <span style="width:14px;height:14px;border-radius:3px;background:oklch(60% .11 250)"></span>
+        <span style="width:14px;height:14px;border-radius:3px;background:oklch(66% .12 30)"></span>
+        <span style="width:14px;height:14px;border-radius:3px;background:oklch(72% .1 140)"></span>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);align-self:center">3 skins · free</span>
+      </div>
+    </div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px">
+      <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info)">cradle</span>
+      <span style="font-size:10.5px;color:var(--fg-dim);line-height:1.4">does the work</span>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Drafts a prompt from the pack's style bible and shows it — editable, never hidden. Reserves an id.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Generates 3 candidates at the chosen tier. Honest progress: <span style="font-family:var(--mono);font-size:10px;color:var(--fg)">2 of 3 · 14 s elapsed</span>. No fake spinner, no ETA it can't keep.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Writes the anchor to the content store, stamps provenance, and freezes it as the conditioning image for everything downstream. Journaled — restorable.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Runs img2img per state against the locked anchor, one sheet at a time, writing each as it lands. Frames are visible in the editor within <span style="font-family:var(--mono);font-size:10px;color:var(--fg)">100 ms</span> of hitting disk.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Free checks on every sheet: palette conformance, alpha gate, silhouette drift against the anchor. Chips warn; nothing is blocked.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Save writes one provenance version per edited frame and re-runs the same free checks. The animation frame map updates in place.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Skins are pure code — a colour remap beside the base, same id lineage. Re-anchor flags every generated sheet NEEDS REVIEW and opens the cascade plan card (P5); hand-edits survive as versions, generated sheets do not.</div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px">
+      <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn)">spend</span>
+      <span style="font-size:10.5px;color:var(--fg-dim);line-height:1.4">&amp; QA gates</span>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;align-items:center"><span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">free · no confirm</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--warn)">$0.04–$0.48</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Estimate sits on the button. Tier changes the number in place.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Lock is the approval gate. Nothing batch-generates before it.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--warn)">$0.40–$1.60</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">One confirm for the batch, with a per-state breakdown on hover. Cancel keeps what already landed.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Re-roll of one state is priced separately — <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">$0.04–$0.15</span>.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Hand-editing costs nothing and always beats a re-roll for small fixes. Say so in the QA copy.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">skins free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Re-anchor's cost rollup is the blast radius, not one sheet: <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">11 sheets · $0.40–$1.60</span>.</span></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px">
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--err);margin-bottom:5px">failure · generation leg down</div>
+      <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Step 4 keeps every sheet that landed and stops. Copy: “6 of 11 sheets generated. The image service stopped responding. Retry the remaining 5 · $0.20–$0.75.” The anchor stays locked.</p>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);margin-bottom:5px">decision to make</div>
+      <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Does the expression sheet generate with the states in step 4, or only when dialogue asks for it (P6)? Boarded here as one batch; the alternative saves money on characters that never speak.</p>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info);margin-bottom:5px">what re-anchoring survives</div>
+      <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Survives: id, lineage, skins, hand-edited frames (as versions), state list, mood enum. Flagged NR: every sheet generated against the old anchor. Nothing is deleted and nothing stops working — flagged sheets stay in the game until you replace them.</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}"></script>
+</body>
+</html>

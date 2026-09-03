@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55;--stage:#08090b;--cta-bg:#f3efe3;--cta-fg:#15171c}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a;--stage:#e6e3d9;--cta-bg:#1a1916;--cta-fg:#f7f6f2}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+
+<div style="min-width:1440px;height:100vh;overflow:hidden">
+<div data-theme="{{ theme }}" data-screen-label="S2 · Deformation review and fix loop" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center;white-space:nowrap">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>mazeworld-5-room-demo</span><span style="color:var(--fg-dim)">/</span><span>heron-salvager</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">3d · deformation</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));background:oklch(70% .12 260/.1);color:var(--info)">nobody paints weights · describe the problem, judge the fix</span>
+    <button onClick="{{ toggleTheme }}" style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);background:transparent;color:var(--fg-dim);cursor:pointer">theme</button>
+  </header>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) 400px;overflow:hidden;min-height:0">
+
+    <main style="display:flex;flex-direction:column;overflow:hidden;min-width:0">
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 16px;border-bottom:1px solid var(--border)">
+        <span style="font-size:12.5px;font-weight:600">Test poses</span>
+        <span style="font-size:11px;color:var(--fg-muted)">Live deformation, side by side. This strip is the judge — it decides whether the rig is good enough.</span>
+        <div style="flex:1"></div>
+        <button style="padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">+ add from pose library</button>
+      </div>
+
+      <div style="flex:none;background:var(--stage);border-bottom:1px solid var(--border);padding:12px 16px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
+        <div>
+          <div style="position:relative;height:200px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);overflow:hidden">
+            <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:66px;height:150px">
+              <div style="position:absolute;left:18px;top:0;width:30px;height:26px;border:1px solid color-mix(in oklch,var(--special) 60%,transparent);background:oklch(74% .12 300/.18);border-radius:13px 13px 4px 4px"></div>
+              <div style="position:absolute;left:14px;top:28px;width:38px;height:56px;border:1.5px solid var(--special);background:oklch(74% .12 300/.2);border-radius:7px"></div>
+              <div style="position:absolute;left:22px;top:86px;width:9px;height:60px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px"></div>
+              <div style="position:absolute;left:36px;top:86px;width:9px;height:60px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px"></div>
+            </div>
+            <span style="position:absolute;left:6px;top:6px;font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--ok);color:var(--ok);background:var(--bg-raised)">clean</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted);flex:1">bend</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">0.02 diff</span></div>
+        </div>
+        <div>
+          <div style="position:relative;height:200px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);overflow:hidden">
+            <div style="position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);width:70px;height:120px">
+              <div style="position:absolute;left:20px;top:0;width:30px;height:26px;border:1px solid color-mix(in oklch,var(--special) 60%,transparent);background:oklch(74% .12 300/.18);border-radius:13px 13px 4px 4px"></div>
+              <div style="position:absolute;left:14px;top:28px;width:40px;height:44px;border:1.5px solid var(--special);background:oklch(74% .12 300/.2);border-radius:7px"></div>
+              <div style="position:absolute;left:10px;top:70px;width:24px;height:9px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px;transform:rotate(18deg)"></div>
+              <div style="position:absolute;left:34px;top:70px;width:24px;height:9px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px;transform:rotate(-18deg)"></div>
+              <div style="position:absolute;left:14px;top:84px;width:10px;height:34px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px"></div>
+              <div style="position:absolute;left:44px;top:84px;width:10px;height:34px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px"></div>
+            </div>
+            <span style="position:absolute;left:6px;top:6px;font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--ok);color:var(--ok);background:var(--bg-raised)">clean</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted);flex:1">crouch</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">0.04 diff</span></div>
+        </div>
+        <div>
+          <div style="position:relative;height:200px;border:1.5px solid var(--warn);border-radius:var(--radius-sm);background:oklch(72% .14 45/.06);overflow:hidden;box-shadow:0 0 0 1px oklch(72% .14 45/.2)">
+            <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:90px;height:150px">
+              <div style="position:absolute;left:30px;top:0;width:30px;height:26px;border:1px solid color-mix(in oklch,var(--special) 60%,transparent);background:oklch(74% .12 300/.18);border-radius:13px 13px 4px 4px"></div>
+              <div style="position:absolute;left:26px;top:28px;width:38px;height:56px;border:1.5px solid var(--special);background:oklch(74% .12 300/.2);border-radius:7px"></div>
+              <div style="position:absolute;left:4px;top:34px;width:26px;height:9px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px;transform:rotate(-46deg)"></div>
+              <div style="position:absolute;left:60px;top:34px;width:26px;height:9px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px;transform:rotate(46deg)"></div>
+              <div style="position:absolute;left:16px;top:30px;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--err);background:oklch(62% .18 25/.18)"></div>
+              <div style="position:absolute;left:34px;top:86px;width:9px;height:60px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px"></div>
+              <div style="position:absolute;left:48px;top:86px;width:9px;height:60px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px"></div>
+            </div>
+            <span style="position:absolute;left:6px;top:6px;font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--err);color:var(--err);background:var(--bg-raised)">problem</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--fg);flex:1">stretch</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--err)">0.31 diff</span></div>
+        </div>
+        <div>
+          <div style="position:relative;height:200px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);overflow:hidden">
+            <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-8deg);width:70px;height:150px">
+              <div style="position:absolute;left:20px;top:0;width:30px;height:26px;border:1px solid color-mix(in oklch,var(--special) 60%,transparent);background:oklch(74% .12 300/.18);border-radius:13px 13px 4px 4px"></div>
+              <div style="position:absolute;left:16px;top:28px;width:38px;height:56px;border:1.5px solid var(--special);background:oklch(74% .12 300/.2);border-radius:7px"></div>
+              <div style="position:absolute;left:22px;top:86px;width:9px;height:58px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px;transform:rotate(12deg)"></div>
+              <div style="position:absolute;left:40px;top:86px;width:9px;height:58px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px;transform:rotate(-10deg)"></div>
+            </div>
+            <span style="position:absolute;left:6px;top:6px;font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--warn);color:var(--warn);background:var(--bg-raised)">watch</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted);flex:1">apex · from library</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">0.14 diff</span></div>
+        </div>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:11px">
+        <div style="border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid var(--border);background:oklch(70% .12 260/.06)">
+            <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:99px;border:1px solid var(--info);color:var(--info)">mesh_smith</span>
+            <span style="font-size:12px;font-weight:600">Fix · the elbow collapses on stretch</span>
+            <span style="font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:99px;border:1px solid var(--ok);color:var(--ok)">free</span>
+            <div style="flex:1"></div>
+            <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">run 2 of 2 · 11s · headless</span>
+          </div>
+          <div style="padding:11px;display:grid;grid-template-columns:minmax(0,1fr) 236px;gap:14px">
+            <div style="min-width:0">
+              <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">same test pose · before / after</div>
+              <div style="display:flex;gap:8px;align-items:stretch">
+                <div style="flex:1"><div style="position:relative;height:126px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);overflow:hidden"><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:70px;height:96px"><div style="position:absolute;left:22px;top:14px;width:28px;height:44px;border:1.5px solid var(--special);background:oklch(74% .12 300/.2);border-radius:6px"></div><div style="position:absolute;left:2px;top:18px;width:22px;height:8px;border:1px solid color-mix(in oklch,var(--special) 50%,transparent);background:oklch(74% .12 300/.14);border-radius:4px;transform:rotate(-46deg)"></div><div style="position:absolute;left:12px;top:14px;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--err);background:oklch(62% .18 25/.18)"></div><div style="position:absolute;left:28px;top:60px;width:8px;height:34px;border:1px solid color-mix(in oklch,var(--special) 45%,transparent);background:oklch(74% .12 300/.12);border-radius:4px"></div></div><span style="position:absolute;left:6px;bottom:6px;font-family:var(--mono);font-size:9px;color:var(--err)">before</span></div></div>
+                <div style="display:flex;align-items:center;font-family:var(--mono);font-size:12px;color:var(--fg-dim)">→</div>
+                <div style="flex:1"><div style="position:relative;height:126px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));border-radius:var(--radius-sm);background:oklch(68% .13 150/.05);overflow:hidden"><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:70px;height:96px"><div style="position:absolute;left:22px;top:14px;width:28px;height:44px;border:1.5px solid var(--special);background:oklch(74% .12 300/.2);border-radius:6px"></div><div style="position:absolute;left:4px;top:20px;width:24px;height:8px;border:1px solid color-mix(in oklch,var(--special) 55%,transparent);background:oklch(74% .12 300/.16);border-radius:4px;transform:rotate(-42deg)"></div><div style="position:absolute;left:28px;top:60px;width:8px;height:34px;border:1px solid color-mix(in oklch,var(--special) 45%,transparent);background:oklch(74% .12 300/.12);border-radius:4px"></div></div><span style="position:absolute;left:6px;bottom:6px;font-family:var(--mono);font-size:9px;color:var(--ok)">after</span></div></div>
+              </div>
+              <div style="display:flex;gap:5px;margin-top:8px;align-items:center">
+                <button style="padding:3px 9px;border:1px solid var(--border-hi);border-radius:3px;background:var(--bg-sunken);color:var(--fg-muted);font-family:var(--mono);font-size:10px;cursor:pointer">play both</button>
+                <button style="padding:3px 9px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-family:var(--mono);font-size:10px;cursor:pointer">wipe</button>
+                <button style="padding:3px 9px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-family:var(--mono);font-size:10px;cursor:pointer">show the script</button>
+                <span style="font-size:10.5px;color:var(--fg-dim)">bpy: weight smoothing on arm.L chain, falloff 0.35, 2 iterations</span>
+              </div>
+            </div>
+            <div style="border-left:1px solid var(--border);padding-left:12px">
+              <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">mesh gate ladder</div>
+              <div style="display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10.5px">
+                <div style="display:flex;gap:8px;color:var(--fg-muted)"><span style="flex:1">weight coverage</span><span style="color:var(--ok)">100%</span></div>
+                <div style="display:flex;gap:8px;color:var(--fg-muted)"><span style="flex:1">unweighted verts</span><span style="color:var(--ok)">0</span></div>
+                <div style="display:flex;gap:8px;color:var(--fg-muted)"><span style="flex:1">bones in limbs</span><span style="color:var(--ok)">14 / 14</span></div>
+                <div style="display:flex;gap:8px;color:var(--fg-muted)"><span style="flex:1">silhouette diff</span><span style="color:var(--ok)">0.31 → 0.05</span></div>
+                <div style="display:flex;gap:8px;color:var(--fg-muted)"><span style="flex:1">vertex count</span><span style="color:var(--fg)">unchanged</span></div>
+                <div style="display:flex;gap:8px;color:var(--fg-muted)"><span style="flex:1">other test poses</span><span style="color:var(--warn)">apex 0.14</span></div>
+              </div>
+              <p style="margin:7px 0 0;font-size:10.5px;color:var(--fg-muted);line-height:1.45">One warning: apex moved slightly. Not a regression by the gate's threshold, but it is named rather than hidden.</p>
+              <div style="display:flex;flex-direction:column;gap:5px;margin-top:9px">
+                <button style="padding:6px 10px;border:0;border-radius:var(--radius-sm);background:var(--cta-bg);color:var(--cta-fg);font-size:12px;font-weight:600;cursor:pointer">Accept · new mesh version</button>
+                <div style="display:flex;gap:5px">
+                  <button style="flex:1;padding:5px 8px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">Tell it more</button>
+                  <button style="flex:1;padding:5px 8px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">Reject</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px;opacity:.75">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:99px;border:1px solid var(--border-hi);color:var(--fg-dim)">mesh_smith</span>
+            <span style="font-size:12px;color:var(--fg-muted)">Fix · the shoulder tears when the arm lifts</span>
+            <div style="flex:1"></div>
+            <span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">accepted · v3 → v4</span>
+            <button style="padding:2px 7px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">History</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside style="border-left:1px solid var(--border);background:var(--bg-raised);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+      <div style="padding:9px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+        <span style="font-size:12.5px;font-weight:600">Describe the problem</span>
+        <div style="flex:1"></div>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">stretch · selected</span>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:11px 12px;display:flex;flex-direction:column;gap:12px">
+
+        <div>
+          <textarea placeholder="the elbow collapses when the arm straightens" style="width:100%;height:64px;resize:none;background:var(--bg-sunken);border:1px solid var(--border-hi);border-radius:var(--radius-sm);color:var(--fg);font-size:11.5px;padding:7px 8px;line-height:1.5">the elbow collapses when the arm straightens</textarea>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin:9px 0 5px">or pick a common failure</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            <button style="padding:3px 8px;border:1.5px solid var(--accent);border-radius:99px;background:oklch(72% .13 78/.1);color:var(--accent);font-size:10.5px;cursor:pointer">elbow collapses</button>
+            <button style="padding:3px 8px;border:1px solid var(--border-hi);border-radius:99px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10.5px;cursor:pointer">shoulder tears</button>
+            <button style="padding:3px 8px;border:1px solid var(--border-hi);border-radius:99px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10.5px;cursor:pointer">knee inverts</button>
+            <button style="padding:3px 8px;border:1px solid var(--border-hi);border-radius:99px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10.5px;cursor:pointer">hips pinch</button>
+            <button style="padding:3px 8px;border:1px solid var(--border-hi);border-radius:99px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10.5px;cursor:pointer">coat clips the leg</button>
+            <button style="padding:3px 8px;border:1px solid var(--border-hi);border-radius:99px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10.5px;cursor:pointer">wrist twists</button>
+            <button style="padding:3px 8px;border:1px solid var(--border-hi);border-radius:99px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10.5px;cursor:pointer">head detaches</button>
+            <button style="padding:3px 8px;border:1px solid var(--border-hi);border-radius:99px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10.5px;cursor:pointer">stray verts follow</button>
+          </div>
+          <p style="margin:7px 0 0;font-size:10.5px;color:var(--fg-muted);line-height:1.45">Chips are shorthand for the same sentence. Either way the agent chooses the operation — weight smoothing, transfer, or a falloff change — and names it on the card.</p>
+          <button style="width:100%;margin-top:9px;padding:7px 12px;border:0;border-radius:var(--radius-sm);background:var(--cta-bg);color:var(--cta-fg);font-size:12px;font-weight:600;cursor:pointer">Send to mesh_smith · free</button>
+        </div>
+
+        <div style="height:1px;background:var(--border)"></div>
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">what this screen does not have</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <button disabled="" style="text-align:left;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:11px;cursor:not-allowed" title="A homegrown weight brush would top out as a bad Blender. Describe the problem instead — the agent has the real tool.">Weight brush</button>
+            <button disabled="" style="text-align:left;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:11px;cursor:not-allowed" title="Per-vertex weight tables are the wrong unit of judgment. The gate reports coverage and unweighted counts instead.">Per-vertex weight table</button>
+            <button disabled="" style="text-align:left;padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:11px;cursor:not-allowed" title="Envelope tuning is armature mechanics. Mark intent on S1; the agent derives the mechanics.">Bone envelope tuning</button>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">when the loop cannot fix it</div>
+          <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:8px 9px">
+            <p style="margin:0 0 7px;font-size:11px;color:var(--fg-muted);line-height:1.5">Some geometry is simply wrong for the pose — a shoulder built as a solid block will never bend well, whatever the weights say. That is artistry, and it belongs in Blender.</p>
+            <button style="width:100%;padding:5px 8px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg);font-size:11px;cursor:pointer">Open in Blender · tier 3</button>
+            <p style="margin:6px 0 0;font-size:10.5px;color:var(--fg-dim);line-height:1.45">Exports the current GLB, watches the file, and offers a re-import diff when you save. <a href="#">S3 →</a></p>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">fix history · this rig</div>
+          <div style="display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;color:var(--fg-muted)">
+            <div style="display:flex;gap:8px"><span style="color:var(--ok)">accept</span><span style="flex:1">shoulder tear · weight transfer</span><span style="color:var(--fg-dim)">v4</span></div>
+            <div style="display:flex;gap:8px"><span style="color:var(--err)">reject</span><span style="flex:1">hip pinch · smoothing too broad</span><span style="color:var(--fg-dim)">—</span></div>
+            <div style="display:flex;gap:8px"><span style="color:var(--ok)">accept</span><span style="flex:1">rig from intent · auto weights</span><span style="color:var(--fg-dim)">v3</span></div>
+          </div>
+          <p style="margin:6px 0 0;font-size:10.5px;color:var(--fg-dim);line-height:1.45">Rejected runs stay in the journal with their script. A rejection is data about what does not work on this mesh.</p>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);background:var(--bg-sunken);padding:8px 12px;display:flex;align-items:center;gap:7px">
+        <span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));background:oklch(68% .13 150/.12);color:var(--ok)">free · conversation tokens only</span>
+        <div style="flex:1"></div>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1 fix awaiting judgment</span>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">
+    <span>heron-salvager · 3d · deformation</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span>4 test poses · 1 problem</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span style="color:var(--ok)">gate green · 1 warning</span>
+    <div style="flex:1"></div>
+    <span style="color:var(--fg-dim)">the agent does operations, not art</span>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme: "light" };
+  renderVals() {
+    return {
+      theme: this.state.theme,
+      toggleTheme: () => this.setState((p) => ({ theme: p.theme === "dark" ? "light" : "dark" })),
+    };
+  }
+}
+</script>
+</body>
+</html>

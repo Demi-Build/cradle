@@ -42,7 +42,6 @@ export function Minimap({
     // Nothing to draw while collapsed — and the element isn't mounted.
     if (!canvas || collapsed) return;
     drawLevel(canvas, bundle, { scale, mode: "blocks" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bundle, scale, collapsed]);
 
   /** Centre the main camera on the clicked point. */

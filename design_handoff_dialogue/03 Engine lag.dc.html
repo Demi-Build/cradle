@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px; --radius-lg:10px;
+  --accent:oklch(72% 0.13 78); --accent-ink:oklch(28% 0.05 78);
+  --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45); --err:oklch(62% 0.18 25);
+  --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b;
+  --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55; --stage:#08090b;
+  --shadow-2:0 30px 80px rgba(0,0,0,.7);
+}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div data-theme="dark" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);position:relative;font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>the-chain-of-orbit</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">whisper-tam · dialogue</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid color-mix(in oklch,var(--warn) 50%,var(--border));background:oklch(72% .14 45/.12);color:var(--warn);letter-spacing:.06em;text-transform:uppercase">engine: mazeworld-py 0.3 · 3 of 5 namespaces</span>
+  </header>
+
+  <div style="display:grid;grid-template-columns:1fr 308px;overflow:hidden;min-height:0;gap:10px;padding:12px 14px">
+
+    <div style="display:flex;flex-direction:column;min-height:0;gap:10px">
+
+      <div style="display:flex;align-items:flex-start;gap:10px;background:oklch(72% .14 45/.1);border:1px solid color-mix(in oklch,var(--warn) 60%,var(--border));border-radius:var(--radius);padding:10px 12px">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--warn);flex:none;line-height:1.4">⚠</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12.5px;font-weight:600;color:var(--fg)">This tree uses 2 gates the pack's engine can't evaluate yet.</div>
+          <div style="margin-top:3px;font-size:11.5px;color:var(--fg-muted);line-height:1.5">
+            <span style="font-family:var(--mono);color:var(--warn)">time:</span> and <span style="font-family:var(--mono);color:var(--warn)">player:</span> are registered in the pack, so authoring them is legal and they will be validated and journaled. The tester evaluates them; <span style="color:var(--fg)">mazeworld-py 0.3 ignores them and shows the choice unconditionally</span>. Nothing here blocks saving.
+          </div>
+          <div style="margin-top:7px;display:flex;gap:6px;flex-wrap:wrap">
+            <button style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">Show the 2 choices</button>
+            <button style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">Engine capabilities…</button>
+            <button style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:11px;cursor:pointer;text-decoration:underline">Mute for this tree</button>
+          </div>
+        </div>
+        <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);flex:none">tree level</span>
+      </div>
+
+      <div style="flex:1;min-height:0;position:relative;overflow:hidden;background:var(--stage);border:1px solid var(--border);border-top:2px solid var(--accent);border-radius:var(--radius);background-image:radial-gradient(var(--border-hi) 1px,transparent 1px);background-size:20px 20px">
+        <div style="position:absolute;left:50%;top:36px;transform:translateX(-50%) scale(.86);transform-origin:top center;width:300px">
+
+          <div style="width:300px;background:var(--bg-raised);border:1px solid var(--accent);border-radius:var(--radius);padding:12px 14px;font-size:12px;box-shadow:0 0 0 2px oklch(72% .13 78/.28),0 8px 24px rgba(0,0,0,.5)">
+            <header style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border-radius:8px;font-family:var(--mono);font-weight:600;background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border)">tree</span>
+              <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">voices</span>
+              <span style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;color:var(--warn)"><span style="width:5px;height:5px;border-radius:50%;background:var(--warn)"></span>2 engine-lag</span>
+            </header>
+            <div style="line-height:1.5;font-size:12.5px">Signal-pattern-seven-seven... harmony not hierarchy... The metal whispers truth - they seek convergence, not conquest. But the Prophet twists the frequency...</div>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;gap:8px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;font-size:11px"><span style="flex:1">What is the true message?</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">→ end</span></div>
+              <div style="display:flex;align-items:center;gap:8px;background:oklch(72% .13 78/.1);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:5px 8px;font-size:11px">
+                <span style="display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9.5px;color:var(--ok)">⊳2<span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span></span>
+                <span style="flex:1">I recovered your resonance shard.</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--accent)">→ reward</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;background:oklch(72% .14 45/.1);border:1px dashed color-mix(in oklch,var(--warn) 70%,var(--border));border-radius:var(--radius-sm);padding:5px 8px;font-size:11px">
+                <span style="display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9.5px;color:var(--warn)">⊳1<span style="width:5px;height:5px;border-radius:50%;background:var(--warn)"></span></span>
+                <span style="flex:1">Wait for the night transmission with me.</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">→ vigil</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;background:oklch(72% .14 45/.1);border:1px dashed color-mix(in oklch,var(--warn) 70%,var(--border));border-radius:var(--radius-sm);padding:5px 8px;font-size:11px">
+                <span style="display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9.5px;color:var(--warn)">⊳1<span style="width:5px;height:5px;border-radius:50%;background:var(--warn)"></span></span>
+                <span style="flex:1">You look like you're dying.</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">→ frail</span>
+              </div>
+            </div>
+            <div style="margin-top:9px;display:flex;align-items:flex-start;gap:7px;background:oklch(72% .14 45/.1);border:1px solid color-mix(in oklch,var(--warn) 55%,var(--border));border-radius:var(--radius-sm);padding:6px 8px">
+              <span style="font-family:var(--mono);font-size:10px;color:var(--warn);flex:none">⚠</span>
+              <span style="font-size:10.5px;color:var(--fg-muted);line-height:1.45">2 choices gate on namespaces this engine ignores. Dashed border + amber dot = <span style="color:var(--fg)">authored, validated, not enforced in game</span>.</span>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;width:300px;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">
+            <span style="flex:1;height:1px;background:var(--border)"></span>choice level<span style="flex:1;height:1px;background:var(--border)"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside style="background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+      <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+        <span style="font-family:var(--mono);font-size:13px;color:var(--fg);font-weight:500">voices</span>
+        <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">choice 3 of 4</span>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px">
+        <input value="Wait for the night transmission with me." style="background:var(--bg-sunken);border:1px solid var(--border-hi);color:var(--fg);border-radius:var(--radius-sm);padding:5px 8px;font-size:11.5px" />
+
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">conditions</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;color:var(--warn)"><span style="width:5px;height:5px;border-radius:50%;background:var(--warn)"></span>1 not enforced</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:4px;background:var(--bg-sunken);border:1px dashed color-mix(in oklch,var(--warn) 70%,var(--border));border-radius:var(--radius-sm);padding:5px 6px">
+            <span style="width:5px;height:5px;border-radius:50%;background:var(--warn);flex:none"></span>
+            <select style="background:var(--bg-raised);border:1px solid var(--border);color:var(--warn);border-radius:3px;padding:2px 4px;font-size:10.5px;font-family:var(--mono)"><option>time</option><option>has_item</option><option>quest</option><option>player</option><option>flag</option></select>
+            <input value="22" style="width:34px;background:var(--bg-raised);border:1px solid var(--border);color:var(--fg);border-radius:3px;padding:2px 4px;font-size:10.5px;font-family:var(--mono)" />
+            <span style="color:var(--fg-dim);font-family:var(--mono);font-size:10.5px">–</span>
+            <input value="04" style="width:34px;background:var(--bg-raised);border:1px solid var(--border);color:var(--fg);border-radius:3px;padding:2px 4px;font-size:10.5px;font-family:var(--mono)" />
+            <button style="margin-left:auto;background:none;border:0;color:var(--fg-dim);cursor:pointer;font-size:11px">×</button>
+          </div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin:-4px 0 0 14px">time:22-04</div>
+
+          <div style="display:flex;flex-direction:column;gap:5px;background:oklch(72% .14 45/.1);border:1px solid color-mix(in oklch,var(--warn) 60%,var(--border));border-radius:var(--radius-sm);padding:8px 9px">
+            <span style="font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--warn)">the engine doesn't evaluate time: gates yet</span>
+            <span style="font-size:11px;color:var(--fg-muted);line-height:1.5">The pack declares <span style="font-family:var(--mono);color:var(--fg)">mazeworld-py 0.3</span>, which evaluates <span style="font-family:var(--mono);color:var(--ok)">has_item</span>, <span style="font-family:var(--mono);color:var(--ok)">quest</span> and <span style="font-family:var(--mono);color:var(--ok)">flag</span>. In game this choice always shows. <span style="color:var(--fg)">The tester does evaluate it</span>, so you can still author and verify the intended behaviour now.</span>
+            <div style="display:flex;gap:6px;margin-top:2px">
+              <button style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">Test it now</button>
+              <button style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border:0;background:none;color:var(--fg-dim);font-size:11px;cursor:pointer;text-decoration:underline">Why is this allowed?</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:1px;background:var(--border)"></div>
+
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">engine capabilities</span>
+          <div style="display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10.5px">
+            <div style="display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:3px;background:var(--bg-sunken)"><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span><span style="flex:1;color:var(--fg)">has_item</span><span style="color:var(--ok)">evaluated</span></div>
+            <div style="display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:3px;background:var(--bg-sunken)"><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span><span style="flex:1;color:var(--fg)">quest</span><span style="color:var(--ok)">evaluated</span></div>
+            <div style="display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:3px;background:var(--bg-sunken)"><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span><span style="flex:1;color:var(--fg)">flag</span><span style="color:var(--ok)">evaluated</span></div>
+            <div style="display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:3px;background:oklch(72% .14 45/.1)"><span style="width:5px;height:5px;border-radius:50%;background:var(--warn)"></span><span style="flex:1;color:var(--fg)">time</span><span style="color:var(--warn)">tester only</span></div>
+            <div style="display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:3px;background:oklch(72% .14 45/.1)"><span style="width:5px;height:5px;border-radius:50%;background:var(--warn)"></span><span style="flex:1;color:var(--fg)">player</span><span style="color:var(--warn)">tester only</span></div>
+          </div>
+          <span style="font-size:10.5px;color:var(--fg-dim);line-height:1.5">Read from the pack registry, not hard-coded. When the engine catches up, these rows go green and every warning in the tree clears on its own.</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:16px;padding:0 12px;border-top:1px solid var(--border);background:var(--bg-raised);font-size:10.5px;color:var(--fg-muted);font-family:var(--mono)">
+    <span style="color:var(--accent)">MODE EDIT</span>
+    <span>whisper-tam · variant <span style="color:var(--fg)">default</span></span>
+    <span style="color:var(--warn)">2 engine-lag warnings · 0 errors</span>
+    <span style="color:var(--fg-dim);font-style:italic">(warnings never block a write)</span>
+    <span style="margin-left:auto;display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10px">⌘K</span>
+  </footer>
+
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:flex-start;justify-content:center;padding-top:11vh;z-index:1100">
+    <div role="dialog" style="width:492px;max-width:92vw;background:var(--bg-raised);border:1px solid var(--border-hi);border-radius:12px;box-shadow:var(--shadow-2);overflow:hidden">
+      <div style="padding:16px 18px 12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:17px;font-weight:600">Save 4 changes to whisper-tam?</span>
+          <span style="margin-left:auto;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">save moment</span>
+        </div>
+        <div style="margin-top:4px;font-size:12px;color:var(--fg-muted);line-height:1.55">One <span style="font-family:var(--mono);color:var(--fg)">canon dialogue update</span> — each edit is journaled separately, with provenance.</div>
+      </div>
+
+      <div style="padding:0 18px 12px;display:flex;flex-direction:column;gap:5px;font-family:var(--mono);font-size:11px">
+        <div style="display:flex;gap:8px;padding:5px 8px;background:var(--bg-sunken);border-radius:var(--radius-sm)"><span style="color:var(--ok);width:62px">edit</span><span style="flex:1;color:var(--fg-muted)">node <span style="color:var(--fg)">voices</span> · prompt</span></div>
+        <div style="display:flex;gap:8px;padding:5px 8px;background:var(--bg-sunken);border-radius:var(--radius-sm)"><span style="color:var(--special);width:62px">add</span><span style="flex:1;color:var(--fg-muted)">node <span style="color:var(--fg)">vigil</span></span></div>
+        <div style="display:flex;gap:8px;padding:5px 8px;background:var(--bg-sunken);border-radius:var(--radius-sm)"><span style="color:var(--ok);width:62px">edit</span><span style="flex:1;color:var(--fg-muted)">choice <span style="color:var(--fg)">voices[3]</span> · conditions, target</span></div>
+        <div style="display:flex;gap:8px;padding:5px 8px;background:var(--bg-sunken);border-radius:var(--radius-sm)"><span style="color:var(--ok);width:62px">edit</span><span style="flex:1;color:var(--fg-muted)">choice <span style="color:var(--fg)">voices[4]</span> · conditions</span></div>
+      </div>
+
+      <div style="margin:0 18px 14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:flex-start;gap:9px;background:oklch(72% .14 45/.1);border:1px solid color-mix(in oklch,var(--warn) 60%,var(--border));border-radius:var(--radius-sm);padding:9px 10px">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--warn);flex:none">⚠</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;color:var(--fg);font-weight:600">2 warnings — these save fine and are journaled as warnings.</div>
+            <div style="margin-top:4px;font-family:var(--mono);font-size:10.5px;color:var(--warn);line-height:1.6">
+              <div>time:22-04 on voices[3] — engine ignores it (tester enforces)</div>
+              <div>player:hp:lt:10 on voices[4] — engine ignores it (tester enforces)</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:9px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 10px">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim);flex:none">✓</span>
+          <div style="flex:1;font-size:11.5px;color:var(--fg-muted);line-height:1.5">Entry node exists · no orphaned targets · every item and quest id resolves in the pack · all 6 conditions parse.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;padding:11px 18px;border-top:1px solid var(--border);background:var(--bg-sunken)">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">warnings are loud, never blocking</span>
+        <div style="flex:1"></div>
+        <button style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Cancel</button>
+        <button style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border:1px solid transparent;border-radius:var(--radius-sm);background:var(--accent);color:var(--accent-ink);font-size:11.5px;font-weight:500;cursor:pointer">Save all 4 <span style="display:inline-block;padding:1px 5px;border:1px solid oklch(28% .05 78/.35);border-bottom-width:2px;border-radius:3px;font-family:var(--mono);font-size:10px">⏎</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:12px;bottom:32px;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);border:1px dashed var(--border-hi);border-radius:99px;padding:3px 9px;background:var(--bg-sunken);z-index:1200">screen 03 · engine lag at the tree, the choice and the save moment</div>
+</div>
+
+</x-dc>
+</body>
+</html>

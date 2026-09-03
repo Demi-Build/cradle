@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px; --radius-lg:10px;
+  --accent:oklch(72% 0.13 78); --accent-ink:oklch(28% 0.05 78);
+  --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45); --err:oklch(62% 0.18 25);
+  --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b;
+  --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55; --stage:#08090b;
+}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button{font-family:inherit}
+</style>
+</helmet>
+<div data-theme="dark" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);position:relative;font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>the-chain-of-orbit</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">rust-kell · dialogue</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:var(--bg-sunken);color:var(--fg-muted);letter-spacing:.06em;text-transform:uppercase">mazeworld · canon 0.4.1</span>
+  </header>
+
+  <div style="display:grid;grid-template-columns:208px 1fr;overflow:hidden;min-height:0">
+
+    <aside style="border-right:1px solid var(--border);background:var(--bg-raised);overflow-y:auto;padding:10px 0">
+      <button style="display:block;width:100%;text-align:left;background:none;color:var(--fg);border:0;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">The Chain of Orbit</button>
+      <div style="margin-top:4px">
+        <button style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:5px 14px;font-size:10.5px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)">
+          <span style="width:10px;color:var(--fg-dim);font-size:9px">▼</span><span style="flex:1">NPCs</span><span style="color:var(--fg-dim);font-size:10px">(79)</span>
+        </button>
+        <ul style="list-style:none;margin:0;padding:0 0 6px 0">
+          <li><button style="display:block;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 36px;font-size:12px;text-align:left;cursor:pointer">Whisper-Tam</button></li>
+          <li><button style="display:block;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:4px 14px 4px 36px;font-size:12px;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)">Rust-Kell</button></li>
+          <li><button style="display:block;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 36px;font-size:12px;text-align:left;cursor:pointer">Kess Ironwhisper</button></li>
+        </ul>
+      </div>
+    </aside>
+
+    <main style="display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0;min-height:0">
+      <div style="display:flex;padding:0 28px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0">
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Overview</button>
+        <button style="background:none;color:var(--fg);border:0;border-bottom:2px solid var(--accent);padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Dialogue</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Raw JSON</button>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:22px 28px 32px;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px">
+            <button style="background:var(--bg-hover);color:var(--fg);border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500;box-shadow:inset 0 -2px 0 var(--accent)">View</button>
+            <button style="background:none;color:var(--fg-muted);border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500">Edit</button>
+            <button disabled="" title="nothing to test yet — this NPC has no dialogue tree" style="background:none;color:var(--fg-dim);border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:default;font-weight:500;opacity:.45">Test</button>
+          </div>
+          <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-dim)">0 nodes · greeting only</span>
+        </div>
+
+        <div style="flex:1;min-height:0;display:flex;align-items:flex-start;justify-content:center;padding-top:26px;background:var(--stage);border:1px dashed var(--border-hi);border-radius:var(--radius);background-image:radial-gradient(var(--border-hi) 1px,transparent 1px);background-size:20px 20px">
+          <div style="width:560px;max-width:92%;display:flex;flex-direction:column;gap:16px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px 20px;box-shadow:0 22px 60px rgba(0,0,0,.5)">
+
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              <div style="width:52px;height:52px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-sunken);display:grid;place-items:center;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-dim);flex:none">no art</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:16px;font-weight:600;letter-spacing:-.01em">Rust-Kell has no dialogue tree yet</div>
+                <div style="margin-top:4px;font-size:12.5px;color:var(--fg-muted);line-height:1.55;text-wrap:pretty">canon generated an opening greeting for this NPC but no conversation. An empty tree is legal — the engine falls back to the greeting and then the exhausted line.</div>
+              </div>
+            </div>
+
+            <div style="background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;display:flex;flex-direction:column;gap:5px">
+              <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">what exists today</span>
+              <div style="font-size:12.5px;line-height:1.55">“Every bolt I set holds a prayer the Chain never asked for. Mind the third gantry — it sings when it's about to give.”</div>
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);margin-top:2px">opening_greeting · exhausted_dialogue · quest_id: null</span>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">three ways to start</span>
+
+              <button style="display:flex;align-items:center;gap:11px;text-align:left;background:var(--bg-sunken);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;color:var(--fg)">
+                <span style="width:26px;height:26px;border-radius:var(--radius-sm);background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;flex:none">
+                  <svg width="14" height="14" viewBox="0 0 16 16" style="stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:square"><path d="M8 3v10M3 8h10"></path></svg>
+                </span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:12.5px;font-weight:500">Start a tree from the greeting</span>
+                  <span style="display:block;margin-top:2px;font-size:11px;color:var(--fg-muted);line-height:1.45">Creates one node — <span style="font-family:var(--mono)">start</span>, seeded with the greeting text — and opens Edit mode with it selected.</span>
+                </span>
+                <span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-raised);font-family:var(--mono);font-size:10px;color:var(--fg-muted);flex:none">E</span>
+              </button>
+
+              <button style="display:flex;align-items:center;gap:11px;text-align:left;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;color:var(--fg)">
+                <span style="width:26px;height:26px;border-radius:var(--radius-sm);background:var(--bg-raised);border:1px solid var(--border-hi);color:var(--fg-muted);display:grid;place-items:center;flex:none;font-size:12px">✨</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:12.5px;font-weight:500">Draft one with ✨ Improve</span>
+                  <span style="display:block;margin-top:2px;font-size:11px;color:var(--fg-muted);line-height:1.45">Writes a first tree from the NPC's job, personality and backstory. You accept it row by row before anything is saved.</span>
+                </span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn);flex:none">paid</span>
+              </button>
+
+              <button style="display:flex;align-items:center;gap:11px;text-align:left;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;cursor:pointer;color:var(--fg)">
+                <span style="width:26px;height:26px;border-radius:var(--radius-sm);background:var(--bg-raised);border:1px solid var(--border-hi);color:var(--fg-muted);display:grid;place-items:center;flex:none">
+                  <svg width="14" height="14" viewBox="0 0 16 16" style="stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:square"><path d="M3 1.5h6l3.5 3.5v9h-9.5z"></path><path d="M9 1.5V5h3.5"></path></svg>
+                </span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:12.5px;font-weight:500">Copy a tree from another NPC</span>
+                  <span style="display:block;margin-top:2px;font-size:11px;color:var(--fg-muted);line-height:1.45">Duplicates structure and gates, blanks the prose, keeps the ids. Useful for the 12 gantry-crew NPCs that share a shape.</span>
+                </span>
+              </button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);padding-top:11px;font-family:var(--mono);font-size:10px;color:var(--fg-dim)">
+              <span>Test is disabled until there's a tree to walk</span>
+              <span style="margin-left:auto">⌘K lists all dialogue actions</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:16px;padding:0 12px;border-top:1px solid var(--border);background:var(--bg-raised);font-size:10.5px;color:var(--fg-muted);font-family:var(--mono)">
+    <span style="color:var(--fg-dim)">MODE VIEW</span>
+    <span>rust-kell · 0 nodes · no variants</span>
+    <span style="color:var(--fg-dim);font-style:italic">(an empty tree is legal — nothing is broken here)</span>
+    <span style="margin-left:auto;display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10px">⌘K</span>
+  </footer>
+
+  <div style="position:absolute;left:12px;bottom:32px;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);border:1px dashed var(--border-hi);border-radius:99px;padding:3px 9px;background:var(--bg-sunken)">screen 06 · empty state · npc with no tree</div>
+</div>
+
+</x-dc>
+</body>
+</html>

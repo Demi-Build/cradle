@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{--ui:"Inter",-apple-system,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;--radius:6px;--radius-sm:4px;--accent:oklch(72% 0.13 78);--accent-ink:oklch(28% 0.05 78);--ok:oklch(68% 0.13 150);--warn:oklch(72% 0.14 45);--err:oklch(62% 0.18 25)}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55;--stage:#08090b;--shadow-2:0 12px 32px rgba(0,0,0,.55)}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a;--stage:#e9e6dc;--shadow-2:0 12px 32px rgba(20,16,8,.12)}
+html,body{margin:0;padding:0}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button{font-family:inherit}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" style="min-height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui);padding-bottom:40px">
+
+  <header style="display:flex;align-items:center;gap:10px;height:36px;padding:0 14px;background:var(--bg-raised);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">cradle <span style="color:var(--fg-dim)">/</span> agent panel <span style="color:var(--fg-dim)">/</span> <span style="color:var(--fg)">sessions, errors, stop</span></span>
+    <div style="flex:1"></div>
+    <button onClick="{{ toggleTheme }}" style="width:26px;height:22px;display:grid;place-items:center;color:var(--fg-muted);background:none;border:0;cursor:pointer">
+      <svg width="14" height="14" viewBox="0 0 16 16" style="stroke:currentColor;fill:none;stroke-width:1.4"><path d="M13 9.5A5.5 5.5 0 1 1 6.5 3a4.5 4.5 0 0 0 6.5 6.5z"></path></svg>
+    </button>
+  </header>
+
+  <div style="display:flex;gap:22px;padding:20px 24px;align-items:flex-start;overflow-x:auto">
+
+    <section style="width:412px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">Conversation tabs</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:38ch">Status lives in the dot: accent pulsing = running, amber = waiting on you, none = idle. Waiting tabs sort ahead of idle ones.</p>
+
+      <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+        <div style="display:flex;background:var(--bg-sunken);border-bottom:1px solid var(--border)">
+          <button style="display:flex;align-items:center;gap:6px;padding:0 10px;height:30px;background:var(--bg-raised);border:0;border-right:1px solid var(--border);color:var(--fg);font-size:11.5px;cursor:pointer;box-shadow:inset 0 -2px 0 var(--accent)"><span style="width:6px;height:6px;border-radius:99px;background:var(--accent)"></span>Ember pass</button>
+          <button style="display:flex;align-items:center;gap:6px;padding:0 10px;height:30px;background:none;border:0;border-right:1px solid var(--border);color:var(--fg-muted);font-size:11.5px;cursor:pointer"><span style="width:6px;height:6px;border-radius:99px;background:var(--warn)"></span>Boss dialogue</button>
+          <button style="display:flex;align-items:center;gap:6px;padding:0 10px;height:30px;background:none;border:0;border-right:1px solid var(--border);color:var(--fg-dim);font-size:11.5px;cursor:pointer">Sprite audit</button>
+          <button style="padding:0 8px;height:30px;background:none;border:0;border-right:1px solid var(--border);color:var(--fg-dim);font-family:var(--mono);font-size:10.5px;cursor:pointer">+2</button>
+          <div style="flex:1"></div>
+          <button style="width:28px;height:30px;background:none;border:0;border-left:1px solid var(--border);color:var(--fg-muted);font-size:14px;cursor:pointer">+</button>
+          <button style="width:28px;height:30px;background:var(--bg-hover);border:0;color:var(--fg);font-size:12px;cursor:pointer">⏱</button>
+        </div>
+        <div style="padding:8px;background:var(--bg)">
+          <div style="border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-raised);box-shadow:var(--shadow-2);overflow:hidden">
+            <div style="padding:6px 9px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)">history · this project</div>
+            <div style="display:flex;flex-direction:column">
+              <div style="display:flex;gap:8px;padding:6px 9px;font-size:11.5px;align-items:baseline"><span style="flex:1">Checkpoint spacing in 1-4</span><span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">yesterday · $0.08</span></div>
+              <div style="display:flex;gap:8px;padding:6px 9px;font-size:11.5px;align-items:baseline;background:var(--bg-hover)"><span style="flex:1">Wick's lantern vocabulary</span><span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">Tue · $0.44</span></div>
+              <div style="display:flex;gap:8px;padding:6px 9px;font-size:11.5px;align-items:baseline"><span style="flex:1">Why does 3-2 fail validation</span><span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">Tue · $0.02</span></div>
+            </div>
+            <div style="padding:6px 9px;border-top:1px solid var(--border);font-size:11px;color:var(--fg-dim)">Sessions are kept per project. <a href="#">Show all 31</a></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin:20px 0 4px">First run · no session</div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:18px 14px;text-align:center">
+        <div style="font-size:13px;font-weight:600">Wick can work on this world with you.</div>
+        <p style="margin:6px auto 12px;font-size:11.5px;color:var(--fg-muted);max-width:34ch">It reads everything in the project, and asks before it changes or spends anything.</p>
+        <div style="display:flex;flex-direction:column;gap:5px;text-align:left">
+          <button style="background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 9px;font-size:11.5px;color:var(--fg);cursor:pointer;text-align:left">Why does 2-3 feel empty?</button>
+          <button style="background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 9px;font-size:11.5px;color:var(--fg);cursor:pointer;text-align:left">Give the lantern-keeper a refusal line</button>
+          <button style="background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 9px;font-size:11.5px;color:var(--fg);cursor:pointer;text-align:left">Check every level for unreachable exits</button>
+        </div>
+      </div>
+    </section>
+
+    <section style="width:412px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">Header · mode and model</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:38ch">Mode is always visible, never a menu. Unavailable models stay in the list with the reason attached — hiding them makes the app look broken.</p>
+
+      <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:8px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px">
+            <button style="background:none;border:0;color:var(--fg-muted);font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer">Ask</button>
+            <button style="background:var(--accent);border:0;color:var(--accent-ink);font-size:11px;font-weight:600;padding:2px 8px;border-radius:3px;cursor:pointer">Plan</button>
+            <button style="background:none;border:0;color:var(--fg-muted);font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer">Allow</button>
+          </div>
+          <button style="display:inline-flex;align-items:center;gap:5px;background:var(--bg-hover);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:3px 8px;color:var(--fg);font-size:11px;cursor:pointer;font-family:var(--mono)">claude-sonnet-4.6 <span style="color:var(--fg-dim)">▾</span></button>
+          <div style="flex:1"></div>
+          <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">$0.42</span>
+        </div>
+
+        <div style="margin-top:6px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-raised);box-shadow:var(--shadow-2);overflow:hidden">
+          <div style="display:flex;padding:5px 9px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)"><span style="flex:1">model</span><span>in / out per 1M</span></div>
+
+          <div style="padding:4px 9px 2px;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-dim)">Anthropic</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 9px;background:var(--bg-hover);box-shadow:inset 2px 0 0 var(--accent)">
+            <span style="font-family:var(--mono);font-size:11.5px;flex:1">claude-sonnet-4.6</span><span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">$3.00 / $15.00</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 9px">
+            <span style="font-family:var(--mono);font-size:11.5px;flex:1;color:var(--fg-muted)">claude-haiku-4.5</span><span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">$1.00 / $5.00</span>
+          </div>
+
+          <div style="padding:6px 9px 2px;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-dim)">OpenAI</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 9px">
+            <span style="font-family:var(--mono);font-size:11.5px;flex:1;color:var(--fg-muted)">gpt-5.1</span><span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">$1.25 / $10.00</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 9px;opacity:.55">
+            <span style="font-family:var(--mono);font-size:11.5px;flex:1">gpt-5.1-mini</span><span style="font-family:var(--mono);font-size:10.5px">$0.25 / $2.00</span>
+          </div>
+
+          <div style="padding:6px 9px 2px;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-dim)">Moonshot</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 9px;opacity:.5;cursor:not-allowed">
+            <span style="font-family:var(--mono);font-size:11.5px;flex:1">kimi-k2.5</span><span style="font-family:var(--mono);font-size:10.5px">$0.60 / $2.50</span>
+          </div>
+          <div style="padding:0 9px 7px 9px;display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--warn)">
+            <span>⚠ No MOONSHOT_API_KEY in ~/.cradle/keys.toml</span><a href="#" style="margin-left:auto">Add key</a>
+          </div>
+          <div style="padding:6px 9px;border-top:1px solid var(--border);font-size:10.5px;color:var(--fg-dim)">Model applies to this conversation. Generation backends are priced separately on each paid card.</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 10px;margin-top:14px;font-size:11.5px;color:var(--fg-muted)">
+        <span style="font-family:var(--mono);color:var(--fg)">Ask</span><span>Reads freely. Every write and spend asks. No standing grants offered.</span>
+        <span style="font-family:var(--mono);color:var(--fg)">Plan</span><span>Answers with a numbered plan first. One approval runs the batch.</span>
+        <span style="font-family:var(--mono);color:var(--fg)">Allow</span><span>Honours standing grants for this project. Paid still always asks.</span>
+      </div>
+    </section>
+
+    <section style="width:412px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">Failure states</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:38ch">Every error names what broke, where the app looked, and the one action that fixes it. Raw stderr is behind a disclosure.</p>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px;display:flex;gap:8px;align-items:center">
+          <span style="width:6px;height:6px;border-radius:99px;background:var(--fg-dim)"></span>
+          <span style="font-size:11.5px;color:var(--fg-muted);flex:1">Starting the agent service…</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">0:03</span>
+        </div>
+
+        <div style="border:1px solid var(--err);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:7px;padding:8px 9px;border-bottom:1px solid var(--border)">
+            <span style="color:var(--err)">✕</span><span style="font-size:12px;font-weight:600">The agent service didn't start</span>
+          </div>
+          <div style="padding:9px">
+            <div style="font-size:11.5px;color:var(--fg-muted)">Cradle launches <span style="font-family:var(--mono);font-size:11px">canon-ai serve</span> on port 8787. Nothing answered after 10 seconds.</div>
+            <div style="display:flex;gap:6px;margin-top:9px">
+              <button style="background:var(--accent);color:var(--accent-ink);border:0;border-radius:var(--radius-sm);padding:4px 10px;font-size:11.5px;font-weight:600;cursor:pointer">Retry</button>
+              <button style="background:transparent;color:var(--fg);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:4px 10px;font-size:11.5px;cursor:pointer">Open logs</button>
+            </div>
+            <div style="font-family:var(--mono);font-size:10.5px;color:var(--fg-dim);margin-top:8px">▸ show stderr (14 lines)</div>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--warn);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:7px;padding:8px 9px;border-bottom:1px solid var(--border)">
+            <span style="color:var(--warn)">⚠</span><span style="font-size:12px;font-weight:600">No key for Anthropic</span>
+          </div>
+          <div style="padding:9px">
+            <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">missing ANTHROPIC_API_KEY<br /><span style="color:var(--fg-dim)">looked in ~/.cradle/keys.toml, then the environment</span></div>
+            <div style="font-size:11.5px;color:var(--fg-muted);margin-top:8px">Add the key, or switch this conversation to a provider you have one for.</div>
+            <div style="display:flex;gap:6px;margin-top:9px">
+              <button style="background:var(--accent);color:var(--accent-ink);border:0;border-radius:var(--radius-sm);padding:4px 10px;font-size:11.5px;font-weight:600;cursor:pointer">Add key in Settings</button>
+              <button style="background:transparent;color:var(--fg);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:4px 10px;font-size:11.5px;cursor:pointer">Use gpt-5.1 instead</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px">
+          <div style="font-size:12.5px;color:var(--fg)">The east columns should read colder as the player climbs, so I'll shift the</div>
+          <div style="border-top:1px dashed var(--border-hi);margin-top:8px;padding-top:8px;display:flex;gap:8px;align-items:flex-start">
+            <span style="color:var(--err)">✕</span>
+            <div style="flex:1">
+              <div style="font-size:11.5px"><span style="font-weight:600">Reply cut off.</span> <span style="color:var(--fg-muted)">Anthropic returned 529 — overloaded.</span></div>
+              <div style="font-size:11px;color:var(--fg-dim);margin-top:4px">Nothing was written. The partial text above is kept for reference.</div>
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <button style="background:transparent;color:var(--fg);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Retry</button>
+                <button style="background:transparent;color:var(--fg-muted);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Retry on haiku-4.5</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section style="width:412px;flex-shrink:0">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">Stop · three places</div>
+      <p style="margin:0 0 10px;font-size:11.5px;color:var(--fg-muted);max-width:38ch">Stop is always the same verb: finish nothing new, keep what landed, say what it cost.</p>
+
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px">
+          <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:7px">1 · the conversation</div>
+          <div style="display:flex;align-items:center;gap:6px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+            <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px"><button style="background:none;border:0;color:var(--fg-dim);font-size:11px;padding:2px 8px;cursor:pointer">Ask</button><button style="background:none;border:0;color:var(--fg-dim);font-size:11px;padding:2px 8px;cursor:pointer">Plan</button><button style="background:var(--accent);border:0;color:var(--accent-ink);font-size:11px;font-weight:600;padding:2px 8px;border-radius:3px;cursor:pointer">Allow</button></div>
+            <div style="flex:1"></div>
+            <button style="display:inline-flex;align-items:center;gap:4px;border:1px solid var(--err);background:oklch(62% .18 25/.12);color:var(--err);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;font-weight:500;cursor:pointer">⏹ Stop <span style="font-family:var(--mono);font-size:10px;opacity:.7">esc</span></button>
+          </div>
+          <div style="padding-top:8px;font-size:11.5px;color:var(--fg-muted)">Stops the streaming reply and every run beneath it. Esc works from the composer.</div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px">
+          <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:7px">2 · one run card</div>
+          <div style="border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg);overflow:hidden">
+            <div style="display:flex;align-items:center;gap:7px;padding:7px 8px;background:var(--bg-hover);border-bottom:1px solid var(--border)">
+              <span style="color:var(--fg-muted)">⏹</span>
+              <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase">Playtester</span>
+              <span style="font-size:11.5px;color:var(--fg-muted);flex:1">Reachability sweep</span>
+              <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">stopped 1:04</span>
+            </div>
+            <div style="padding:8px;font-family:var(--mono);font-size:11px;color:var(--fg-muted)">
+              <div><span style="color:var(--ok)">✓</span> 2-1, 2-2, 2-3 simulated — all reachable</div>
+              <div style="color:var(--fg-dim)">— 2-4 and 2-5 not simulated</div>
+              <div style="color:var(--fg-dim);margin-top:5px">No writes. $0.01 in tokens.</div>
+            </div>
+            <div style="padding:0 8px 8px"><button style="background:transparent;color:var(--fg);border:1px solid var(--border-hi);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;cursor:pointer">Resume from 2-4</button></div>
+          </div>
+          <div style="font-size:11.5px;color:var(--fg-muted);margin-top:7px">The rest of the conversation keeps running.</div>
+        </div>
+
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px">
+          <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:7px">3 · the job tray</div>
+          <div style="border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg);overflow:hidden">
+            <div style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)">jobs<span style="margin-left:auto;color:var(--accent)">2 running</span></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-bottom:1px solid var(--border)">
+              <span style="width:6px;height:6px;border-radius:99px;background:var(--accent)"></span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:11.5px">Regenerate layout · 2-5 Coldhearth</div>
+                <div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">from the editor · 0:22 · $0.00</div>
+              </div>
+              <button style="background:none;border:1px solid var(--border-hi);color:var(--fg-muted);border-radius:3px;padding:1px 6px;font-size:10.5px;cursor:pointer">⏹</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-bottom:1px solid var(--border)">
+              <span style="width:6px;height:6px;border-radius:99px;background:var(--accent)"></span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:11.5px">Generate sprites ×4 · ember_hopper</div>
+                <div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">agent:wick/artist · 0:47 · <span style="color:var(--accent)">$0.36 of $0.64</span></div>
+              </div>
+              <button style="background:none;border:1px solid var(--border-hi);color:var(--fg-muted);border-radius:3px;padding:1px 6px;font-size:10.5px;cursor:pointer">⏹</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;color:var(--fg-muted)">
+              <span style="color:var(--ok)">✓</span>
+              <div style="flex:1;min-width:0"><div style="font-size:11.5px">Improve · 2-2 Ashfall Walk</div><div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">changed 12 tiles · 1:31 · $0.09</div></div>
+              <a href="#" style="font-size:11px">Show me</a>
+            </div>
+          </div>
+          <div style="font-size:11.5px;color:var(--fg-muted);margin-top:7px">Editor-launched jobs and agent-launched jobs share one tray; the attribution column is what tells them apart.</div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { theme: "dark" };
+  renderVals() {
+    return { theme: this.state.theme, toggleTheme: () => this.setState(s => ({ theme: s.theme === "dark" ? "light" : "dark" })) };
+  }
+}
+</script>
+</body>
+</html>

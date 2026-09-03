@@ -23,6 +23,13 @@ tauri = { version = "2", features = ["protocol-asset"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-dialog = "2.7.0"
+# Row P0-12 / W3.4 — provider keys in the OS keychain. The CRATE, not a Tauri
+# plugin, matching this file's existing raw `std::process::Command` precedent.
+# The default `v1` feature picks the platform store per target: macOS Keychain
+# Services, Windows Credential Manager, Secret Service on *nix — and reports a
+# missing Secret Service as a status rather than a panic, which is what
+# `keys.rs` turns into the loud unencrypted fallback.
+keyring = "4"
 
 [dev-dependencies]
 tempfile = "3"

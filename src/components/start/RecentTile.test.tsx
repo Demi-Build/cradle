@@ -30,6 +30,20 @@ describe("RecentTile meta line", () => {
     expect(sub()).toBe("24 rooms · 9 NPCs");
   });
 
+  it("labels by world_kind when the entry carries one (P0-3), never by which fields exist", () => {
+    // A dungeon that happens to carry level/enemy counts still reads as rooms/NPCs…
+    draw({ world_kind: "dungeon", levels: 13, enemies: 7, rooms: 24, npcs: 9 });
+    expect(sub()).toBe("24 rooms · 9 NPCs");
+    document.body.innerHTML = "";
+    // …and a platformer with room/NPC counts still reads as levels/enemies.
+    draw({ world_kind: "platformer", levels: 13, enemies: 7, rooms: 24, npcs: 9 });
+    expect(sub()).toBe("13 levels · 7 enemies");
+    document.body.innerHTML = "";
+    // Ids are data: an unknown kind is not an error, it just isn't a platformer.
+    draw({ world_kind: "shooter", rooms: 3, npcs: 2, levels: 9 });
+    expect(sub()).toBe("3 rooms · 2 NPCs");
+  });
+
   it("singularises — a real world can genuinely have one of something", () => {
     draw({ rooms: 3, npcs: 1 });
     expect(sub()).toBe("3 rooms · 1 NPC");

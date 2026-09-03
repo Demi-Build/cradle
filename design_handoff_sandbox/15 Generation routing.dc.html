@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b; --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55;
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;color:var(--fg)}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+</style>
+</helmet>
+
+<div data-screen-label="M · generation routing" style="min-width:1440px;padding:26px 30px 36px;background:var(--bg)">
+
+  <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:16px">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">screen M · the rule, not a screen</div>
+      <h1 style="margin:4px 0 0;font-size:21px;font-weight:600;letter-spacing:-.01em">Generation routing</h1>
+    </div>
+    <div style="flex:1"></div>
+    <p style="margin:0;max-width:560px;font-size:11.5px;color:var(--fg-muted);line-height:1.55;text-wrap:pretty">Many doors is the goal — you should be able to make art, animation, audio or layout wherever you can see the thing it belongs to. What must not multiply is <strong style="color:var(--fg);font-weight:600">destinations</strong>: each kind of generation has exactly one place it happens, and every door routes there.</p>
+  </div>
+
+  <div style="border:1px solid color-mix(in oklch,var(--accent) 40%,var(--border));border-radius:var(--radius);background:oklch(72% .13 78/.05);padding:11px 13px;margin-bottom:18px">
+    <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin-bottom:5px">the rule</div>
+    <p style="margin:0;font-size:12.5px;color:var(--fg);line-height:1.6">Generation is offered <strong style="font-weight:600">wherever the base thing is visible</strong> — a character, an enemy, an item, a tile, a level, a scene. The door is local; the work happens in that kind's one destination, and the estimate is on the door before you walk through it.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:150px repeat(4,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:18px">
+
+    <div style="background:var(--bg-sunken);padding:9px 11px"><div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">door ↓ / kind →</div></div>
+    <div style="background:var(--bg-sunken);padding:9px 11px"><div style="font-size:12px;font-weight:600">Image</div><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">portrait · sprite · tile · item</div></div>
+    <div style="background:var(--bg-sunken);padding:9px 11px"><div style="font-size:12px;font-weight:600">Animation</div><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">a state's frames</div></div>
+    <div style="background:var(--bg-sunken);padding:9px 11px"><div style="font-size:12px;font-weight:600">Audio</div><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">music · sfx</div></div>
+    <div style="background:var(--bg-sunken);padding:9px 11px"><div style="font-size:12px;font-weight:600">Level</div><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">layout · zones</div></div>
+
+    <div style="background:var(--bg-sunken);padding:9px 11px;display:flex;flex-direction:column;justify-content:center"><span style="font-size:11.5px;font-weight:600">Composer</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.4">on the thing itself</span></div>
+    <div style="background:var(--bg-raised);padding:9px 11px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--ok);margin-bottom:3px">runs here</div><div style="font-size:11px;color:var(--fg-muted);line-height:1.5">Images are the composer's own job: anchor, missing sheets, redos. One estimate, inline job panel.</div></div>
+    <div style="background:var(--bg-raised);padding:9px 11px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--info);margin-bottom:3px">routes → Animate</div><div style="font-size:11px;color:var(--fg-muted);line-height:1.5">Ticking a state opens Animate with that state and the composer's brief carried in.</div></div>
+    <div style="background:var(--bg-raised);padding:9px 11px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--info);margin-bottom:3px">routes → Audio</div><div style="font-size:11px;color:var(--fg-muted);line-height:1.5">A character's SFX per state (footstep, hurt, death) opens the Audio destination scoped to that state.</div></div>
+    <div style="background:var(--bg-raised);padding:9px 11px;color:var(--fg-dim);font-size:11px;line-height:1.5">Not offered — a character composer has no level to make.</div>
+
+    <div style="background:var(--bg-sunken);padding:9px 11px;display:flex;flex-direction:column;justify-content:center"><span style="font-size:11.5px;font-weight:600">In-context button</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.4">state card · zone · slot · minimap</span></div>
+    <div style="background:var(--bg-raised);padding:9px 11px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--ok);margin-bottom:3px">runs here</div><div style="font-size:11px;color:var(--fg-muted);line-height:1.5">A tileset slot, an item row, an enemy card each generate their own image in place — same composer, scoped to one thing.</div></div>
+    <div style="background:var(--bg-raised);padding:9px 11px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--info);margin-bottom:3px">routes → Animate</div><div style="font-size:11px;color:var(--fg-muted);line-height:1.5"><span style="font-family:var(--mono);font-size:10.5px">Animate…</span> on a state card, in the Animation tab, or on an enemy.</div></div>
+    <div style="background:var(--bg-raised);padding:9px 11px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--info);margin-bottom:3px">routes → Audio</div><div style="font-size:11px;color:var(--fg-muted);line-height:1.5">A music zone in the level editor, a dialogue line, a breakable tile — each opens Audio scoped to itself.</div></div>
+    <div style="background:var(--bg-raised);padding:9px 11px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--info);margin-bottom:3px">routes → Layout</div><div style="font-size:11px;color:var(--fg-muted);line-height:1.5">Improve / regenerate layout from the level canvas or the world map's planned node.</div></div>
+
+    <div style="background:var(--bg-sunken);padding:9px 11px;display:flex;flex-direction:column;justify-content:center"><span style="font-size:11.5px;font-weight:600">Command palette</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.4">⌘K</span></div>
+    <div style="background:var(--bg-raised);padding:9px 11px;font-size:11px;color:var(--fg-muted);line-height:1.5">Opens the composer on the current thing, focused on the ticked item. Never a second form.</div>
+    <div style="background:var(--bg-raised);padding:9px 11px;font-size:11px;color:var(--fg-muted);line-height:1.5">Opens Animate, pre-filled with the state you typed. <span style="font-family:var(--mono);font-size:10px;color:var(--warn)">$0.16–$0.60</span> shows in the row.</div>
+    <div style="background:var(--bg-raised);padding:9px 11px;font-size:11px;color:var(--fg-muted);line-height:1.5">Opens Audio scoped to the level or state you were in.</div>
+    <div style="background:var(--bg-raised);padding:9px 11px;font-size:11px;color:var(--fg-muted);line-height:1.5">Opens Layout for the current level.</div>
+
+    <div style="background:var(--bg-sunken);padding:9px 11px;display:flex;flex-direction:column;justify-content:center"><span style="font-size:11.5px;font-weight:600">Agent panel</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.4">asked in chat</span></div>
+    <div style="background:var(--bg-raised);padding:9px 11px;font-size:11px;color:var(--fg-muted);line-height:1.5">The agent does not run a private pipeline. It <strong style="color:var(--fg);font-weight:600">drives the same destination</strong>: opens it, fills it in, and either waits for your confirm or runs it while you watch the progress there.</div>
+    <div style="background:var(--bg-raised);padding:9px 11px;font-size:11px;color:var(--fg-muted);line-height:1.5">Opens Animate, staged. Its card in chat links to it.</div>
+    <div style="background:var(--bg-raised);padding:9px 11px;font-size:11px;color:var(--fg-muted);line-height:1.5">Opens Audio, staged, with the brief it inferred.</div>
+    <div style="background:var(--bg-raised);padding:9px 11px;font-size:11px;color:var(--fg-muted);line-height:1.5">Opens Layout with its plan visible before running.</div>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:10px">the four destinations</div>
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:18px">
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:11px 12px">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span style="font-size:12.5px;font-weight:600">Composer</span><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--border);color:var(--fg-dim)">inline</span></div>
+      <p style="margin:0 0 7px;font-size:11px;color:var(--fg-muted);line-height:1.55">Lives on the thing's own page. Focused on one entity, offers only its gaps and redos, one estimate, job panel in place.</p>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim);line-height:1.7">
+        <div>character · enemy · item</div>
+        <div>tileset slot · portrait</div>
+      </div>
+      <a href="./09 Character editor.dc.html" style="display:inline-block;margin-top:7px;font-size:11px;color:var(--info)">See board G →</a>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:11px 12px">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span style="font-size:12.5px;font-weight:600">Animate</span><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--border);color:var(--fg-dim)">modal</span></div>
+      <p style="margin:0 0 7px;font-size:11px;color:var(--fg-muted);line-height:1.55">One state, guidance that stacks, candidates compared at real fps. Always the destination for frames, from any door.</p>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim);line-height:1.7">
+        <div>player · enemy · npc states</div>
+        <div>tile animation · vfx</div>
+      </div>
+      <a href="./11 AnimateModal.dc.html" style="display:inline-block;margin-top:7px;font-size:11px;color:var(--info)">See board I →</a>
+    </div>
+
+    <div style="border:1px solid color-mix(in oklch,var(--special) 45%,var(--border));border-radius:var(--radius);background:oklch(74% .12 300/.05);padding:11px 12px">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span style="font-size:12.5px;font-weight:600">Audio</span><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--border);color:var(--fg-dim)">dock</span></div>
+      <p style="margin:0 0 7px;font-size:11px;color:var(--fg-muted);line-height:1.55">Two homes. The <strong style="color:var(--fg);font-weight:600">Music editor</strong> authors a track as an asset — sections, variants, generation. The <strong style="color:var(--fg);font-weight:600">Audio dock</strong> binds sound to the game: music along the level's cells, SFX to a frame, an event or a place.</p>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim);line-height:1.7">
+        <div>track asset · sections · variants</div>
+        <div>sfx bound by frame · event · place</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:7px"><a href="./17 Audio.dc.html" style="font-size:11px;color:var(--info)">Board O · dock →</a><a href="./18 Music editor.dc.html" style="font-size:11px;color:var(--info)">Board P · tracks →</a></div>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:11px 12px">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span style="font-size:12.5px;font-weight:600">Layout</span><span style="font-family:var(--mono);font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid var(--border);color:var(--fg-dim)">exists</span></div>
+      <p style="margin:0 0 7px;font-size:11px;color:var(--fg-muted);line-height:1.55">Today's Improve / Regenerate layout modals. Phase 2 adds nothing except the routing and zone awareness.</p>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--fg-dim);line-height:1.7">
+        <div>level layout · planned node</div>
+        <div>zone suggestions</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px">
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:11px 12px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ok);margin-bottom:5px">what this buys</div>
+      <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Flexibility without confusion. You can ask for a song while standing in a level, or an SFX while auditioning an animation, and still only ever learn four screens. A door you have never used behaves like the one you have.</p>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:11px 12px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);margin-bottom:5px">the invariants</div>
+      <div style="font-size:11px;color:var(--fg-muted);line-height:1.6">
+        <div>1 · the estimate is on the door, not only in the destination</div>
+        <div>2 · a door never runs a paid job silently; it opens the destination staged</div>
+        <div>3 · results land where the thing lives, never in a downloads tray</div>
+        <div>4 · the agent uses the same destination you would</div>
+      </div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:11px 12px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info);margin-bottom:5px">to confirm</div>
+      <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Settled: tracks are authored in their own editor (board P) and bound on the level; SFX bind three ways — frame, event, place (board O). Open question: does the SFX pane also own dialogue-line sounds, or does the dialogue tester keep its own?</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}"></script>
+</body>
+</html>

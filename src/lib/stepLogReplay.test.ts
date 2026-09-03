@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 // already inlines the file for us.
 import logText from "../test/fixtures/canon-step-log.jsonl?raw";
 import { handleJobProgress } from "./jobs";
-import { phaseLabel } from "../components/start/CreateProgress";
+import { phaseLabel } from "../components/start/createProgressCopy";
 import { useStore } from "../store";
 import type { Job, JobProgressEvent } from "./invoke";
 

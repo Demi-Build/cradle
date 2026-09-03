@@ -1963,6 +1963,32 @@
   color: var(--err);
   white-space: pre-wrap;
 }
+.np-err .btn {
+  margin-left: 6px;
+  font-size: 11px;
+}
+
+/* Row P0-10's Advanced disclosure (seed, model, per-type extra counts,
+   location). Board 06 doesn't design it — this is the existing disclosure
+   convention on the modal's own tokens, nothing new invented. */
+.np-adv {
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.np-adv > summary {
+  list-style: none;
+}
+.np-adv > summary::marker,
+.np-adv > summary::-webkit-details-marker {
+  display: none;
+}
+.np-adv > summary::before {
+  content: "▸ ";
+  color: var(--fg-dim);
+}
+.np-adv[open] > summary::before {
+  content: "▾ ";
+}
 
 /* Create-progress tracker. A generation run is minutes of nothing without it,
    so the loud elements are the CURRENT phase, the item under it, and a clock
@@ -2304,5 +2330,52 @@
   }
   .start-app .last-world-meta code {
     font-size: 13px;
+  }
+}
+
+/* Row P1-A9 — the LIVE project card: a project being created by the start-page
+   conversation, leading the recents rail with the same step counter the panel's
+   run card shows (agent-panel README §11). It is a `recent-tile`, because the
+   project is already real. */
+.start-app .recent-tile.live {
+  grid-template-rows: 1fr;
+  display: grid;
+  place-items: center;
+  min-height: 170px;
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 8%, transparent);
+}
+.start-app .recent-tile.live:disabled {
+  cursor: default;
+}
+.start-app .recent-tile.live .live-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+.start-app .recent-tile.live .live-state {
+  color: var(--fg-muted);
+}
+.start-app .recent-tile.live .live-step {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+}
+/* The status bar's running dot, beside the existing idle `.ok-dot`. */
+.start-app .statusbar .run-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: var(--accent);
+  animation: start-run-pulse 1.4s ease-in-out infinite;
+}
+@keyframes start-run-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
   }
 }

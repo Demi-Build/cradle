@@ -86,7 +86,7 @@ describe("WorldBibleView", () => {
   it("renders 'Loading World Bible…' before the fetch resolves", () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     invokeMock.mockImplementation(() => new Promise(() => {})); // never resolves
     render(<WorldBibleView />);
@@ -96,7 +96,7 @@ describe("WorldBibleView", () => {
   it("renders 'Error: …' when get_world_bible rejects", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({ bibleReject: new Error("boom") });
     render(<WorldBibleView />);
@@ -108,7 +108,7 @@ describe("WorldBibleView", () => {
   it("renders title and synopsis when bible loads", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({
       bible: { story: { title: "Saga", synopsis: "A short tale." } },
@@ -123,7 +123,7 @@ describe("WorldBibleView", () => {
   it("renders '(untitled)' when story.title is missing", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({ bible: { story: {} }, manifest: null, stats: null });
     render(<WorldBibleView />);
@@ -136,6 +136,7 @@ describe("WorldBibleView", () => {
       world: {
         path: "/w",
         name: "w",
+        world_kind: "dungeon",
         entity_counts: [
           { type_id: "rooms", count: 5 },
           { type_id: "npcs", count: 3 },
@@ -159,7 +160,7 @@ describe("WorldBibleView", () => {
   it("renders the faction section when story.faction.name is set", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({
       bible: {
@@ -179,7 +180,7 @@ describe("WorldBibleView", () => {
   it("omits the faction section when story.faction.name is absent", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({ bible: { story: {} }, manifest: null, stats: null });
     render(<WorldBibleView />);
@@ -190,7 +191,7 @@ describe("WorldBibleView", () => {
   it("renders escalation_arc as an ordered list with each step", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({
       bible: { story: { escalation_arc: ["one", "two", "three"] } },
@@ -206,7 +207,7 @@ describe("WorldBibleView", () => {
   it("renders beats; clicking a beat-room button selects that room entity", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({
       bible: {
@@ -230,7 +231,7 @@ describe("WorldBibleView", () => {
   it("omits the Beats heading when there are no beats", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({
       bible: { story: { title: "X" } },
@@ -245,7 +246,7 @@ describe("WorldBibleView", () => {
   it("renders climax + final-boss-name when present", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({
       bible: {
@@ -265,7 +266,7 @@ describe("WorldBibleView", () => {
   it("renders Generation stats with USD formatted to 4 decimals", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({
       bible: { story: {} },
@@ -281,7 +282,7 @@ describe("WorldBibleView", () => {
   it("omits Generation section when generation_stats fetch fails", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({ bible: { story: {} }, manifest: null, stats: null });
     render(<WorldBibleView />);
@@ -292,7 +293,7 @@ describe("WorldBibleView", () => {
   it("hides the hero image when resolve_asset returns null", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({
       bible: { story: { title: "X" } },
@@ -308,7 +309,7 @@ describe("WorldBibleView", () => {
   it("renders the hero image when resolve_asset returns a path", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({
       bible: { story: { title: "X" } },
@@ -326,7 +327,7 @@ describe("WorldBibleView", () => {
   it("clicking the hero image opens the lightbox", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({
       bible: { story: { title: "X" } },
@@ -348,7 +349,7 @@ describe("WorldBibleView", () => {
   it("renders key NPC chips when present", async () => {
     useStore.setState({
       worldPath: "/w",
-      world: { path: "/w", name: "w", entity_counts: [] },
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
     });
     setupInvoke({
       bible: {

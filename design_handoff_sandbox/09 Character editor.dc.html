@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55;--stage:#08090b;--cta-bg:#f3efe3;--cta-fg:#15171c}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a;--stage:#e6e3d9;--cta-bg:#1a1916;--cta-fg:#f7f6f2}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select{font-family:inherit}
+@keyframes pulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+</style>
+</helmet>
+
+<div style="min-width:1440px;height:100vh;overflow:hidden">
+<div data-theme="{{ theme }}" data-screen-label="G · character editor" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center;white-space:nowrap">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>mazeworld-5-room-demo</span><span style="color:var(--fg-dim)">/</span><span>heron-salvager</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">character</span>
+    </div>
+    <div style="flex:1"></div>
+    <button onClick="{{ toggleTheme }}" style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);background:transparent;color:var(--fg-dim);cursor:pointer">theme</button>
+  </header>
+
+  <div style="display:grid;grid-template-columns:208px minmax(0,1fr) 412px;overflow:hidden;min-height:0">
+
+    <aside style="border-right:1px solid var(--border);background:var(--bg-raised);padding:10px 0;overflow:hidden">
+      <button style="display:block;width:100%;text-align:left;background:none;color:var(--fg);border:0;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">Mazeworld · 5-room demo</button>
+      <div style="padding:11px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Actors</div>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)"><span style="width:12px;height:12px;background:var(--accent);opacity:.5;border-radius:2px"></span>Heron salvager</button>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer">Enemies (7)</button>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer">Items (12)</button>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-dim);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer">+ New character</button>
+      <div style="padding:11px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Jobs (1)</div>
+      <button style="display:flex;align-items:center;gap:7px;width:100%;background:none;color:var(--info);border:0;padding:4px 14px 4px 26px;font-size:11.5px;text-align:left;cursor:pointer"><span style="width:5px;height:5px;border-radius:50%;background:var(--info);animation:pulse 1.2s ease-in-out infinite"></span><span style="font-family:var(--mono);font-size:11px">moods · 3 of 6</span></button>
+      <div style="padding:11px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Sessions (1)</div>
+      <button style="display:flex;align-items:center;gap:7px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:11.5px;text-align:left;cursor:pointer"><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span><span style="font-family:var(--mono);font-size:11px">pygame · l1r2</span></button>
+    </aside>
+
+    <main style="display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0">
+      <div style="display:flex;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <button style="background:none;color:var(--fg);border:0;border-bottom:2px solid var(--accent);padding:8px 13px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Character</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">Animation</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">PixEd</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">3D</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">History</button>
+        <div style="flex:1"></div>
+        <button style="align-self:center;padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Publish…</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 20px;border-bottom:1px solid var(--border);background:var(--bg-raised)">
+        <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);flex:none">character editor</span>
+        <span style="font-size:11.5px;color:var(--fg-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Design and generate here — anchor, states, expressions, skins.</span>
+        <div style="flex:1;min-width:8px"></div>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);white-space:nowrap">physics and feel are a different job</span>
+        <a href="./01 Character mode - flat.dc.html" style="flex:none;padding:3px 9px;border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));border-radius:var(--radius-sm);background:oklch(70% .12 260/.1);color:var(--info);font-size:11.5px;white-space:nowrap">Tune in sandbox →</a>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:14px 20px 22px">
+
+        <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px">
+          <div style="width:88px;height:88px;flex:none;border:1px solid var(--border-hi);border-radius:var(--radius);background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 6px,var(--bg-hover) 6px 12px)"></div>
+          <div style="min-width:0;flex:1">
+            <div style="display:flex;align-items:baseline;gap:9px">
+              <h1 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em">Heron salvager</h1>
+              <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">ent_8f21c4</span>
+              <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">player</span>
+            </div>
+            <p style="margin:5px 0 0;font-size:12px;color:var(--fg-muted);line-height:1.55;max-width:600px">A stilt-legged marsh heron in salvage goggles and a ragged blue coat. Wades the cistern, jumps badly, hoards scrap.</p>
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+              <span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));background:oklch(68% .13 150/.12);color:var(--ok)">anchor locked · v3</span>
+              <span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">32×32</span>
+              <span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">5 states · 28 frames</span>
+              <span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--special) 45%,var(--border));color:var(--special)">3 skins</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));background:oklch(72% .14 45/.12);color:var(--warn)" title="Needs review — 2 sheets were generated before the current anchor. They still work in game; replace them when you are ready."><svg width="10" height="10" viewBox="0 0 16 16" style="stroke:currentColor;fill:none;stroke-width:1.6"><path d="M1 8s2.5-4.5 7-4.5S15 8 15 8s-2.5 4.5-7 4.5S1 8 1 8z"></path><circle cx="8" cy="8" r="1.8"></circle></svg>2 need review</span>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;flex-direction:column;gap:5px;width:160px">
+            <button style="padding:6px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:12px;cursor:pointer">Open in PixEd</button>
+            <button style="padding:6px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--warn);font-size:12px;cursor:pointer" title="Re-anchoring flags every generated sheet as needing review. You see the plan and the rollup before anything runs.">Re-anchor…</button>
+          </div>
+        </div>
+
+        <div style="border:1px solid color-mix(in oklch,var(--accent) 40%,var(--border));border-radius:var(--radius);background:var(--bg-raised);margin-bottom:18px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);background:oklch(72% .13 78/.05)">
+            <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)">generate</span>
+            <span style="font-size:11.5px;color:var(--fg-muted)">on the page — the modal is only for one state's detailed guidance</span>
+            <div style="flex:1"></div>
+            <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">conditioned on anchor v3</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 296px">
+            <div style="padding:11px 12px;display:flex;flex-direction:column;gap:10px;border-right:1px solid var(--border)">
+              <div>
+                <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">brief</div>
+                <div style="border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:7px 8px;font-size:11.5px;color:var(--fg);line-height:1.5">heron salvager, ragged blue coat, salvage goggles<span style="color:var(--accent)">|</span></div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:5px">
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">+ style bible · mazeworld · 4-colour ramps</span>
+                  <div style="flex:1"></div>
+                  <a href="#" style="font-size:10.5px;color:var(--info)">Show full prompt</a>
+                </div>
+              </div>
+
+              <div>
+                <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:5px">what to generate</div>
+                <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px">
+                  <label style="display:flex;align-items:center;gap:7px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.08);padding:5px 7px;cursor:pointer"><span style="width:11px;height:11px;border:1px solid var(--accent);border-radius:2px;background:var(--accent);flex:none"></span><span style="font-size:11px;flex:1">swim state</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--accent)">6 fr</span></label>
+                  <label style="display:flex;align-items:center;gap:7px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.08);padding:5px 7px;cursor:pointer"><span style="width:11px;height:11px;border:1px solid var(--accent);border-radius:2px;background:var(--accent);flex:none"></span><span style="font-size:11px;flex:1">3 missing moods</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--accent)">3 img</span></label>
+                  <label style="display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 7px;cursor:pointer"><span style="width:11px;height:11px;border:1px solid var(--border-hi);border-radius:2px;flex:none"></span><span style="font-size:11px;flex:1;color:var(--fg-muted)">redo jump</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">6 fr</span></label>
+                  <label style="display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 7px;cursor:pointer"><span style="width:11px;height:11px;border:1px solid var(--border-hi);border-radius:2px;flex:none"></span><span style="font-size:11px;flex:1;color:var(--fg-muted)">3D proxy from turnaround</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1 mesh</span></label>
+                </div>
+                <p style="margin:6px 0 0;font-size:10.5px;color:var(--fg-dim);line-height:1.45">Only gaps and explicit redos are offered, and nothing that already exists is ticked — so the estimate never quietly includes work you have.</p>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted)">2 items · 9 images</span>
+                <div style="flex:1"></div>
+                <button style="padding:4px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Guidance…</button>
+                <button style="padding:5px 12px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.14);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer">Generate · $0.23–$0.90</button>
+              </div>
+            </div>
+
+            <div style="padding:11px 12px;display:flex;flex-direction:column;gap:8px;background:var(--bg-sunken)">
+              <div style="display:flex;align-items:center;gap:7px">
+                <span style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--info)">running</span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">moods · 3 of 6 · 41 s</span>
+                <div style="flex:1"></div>
+                <button style="padding:2px 7px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Stop</button>
+              </div>
+              <div style="height:3px;border-radius:2px;background:var(--bg);overflow:hidden"><div style="width:50%;height:100%;background:var(--info)"></div></div>
+              <div style="display:flex;gap:4px">
+                <div style="flex:1;height:38px;border:1px solid var(--ok);border-radius:2px;background:oklch(52% .07 300/.4)"></div>
+                <div style="flex:1;height:38px;border:1px solid var(--ok);border-radius:2px;background:oklch(52% .07 300/.4)"></div>
+                <div style="flex:1;height:38px;border:1px solid var(--ok);border-radius:2px;background:oklch(52% .07 300/.4)"></div>
+                <div style="flex:1;height:38px;border:1px solid var(--info);border-radius:2px;background:var(--bg);animation:pulse 1.4s ease-in-out infinite"></div>
+                <div style="flex:1;height:38px;border:1px dashed var(--border-hi);border-radius:2px"></div>
+                <div style="flex:1;height:38px;border:1px dashed var(--border-hi);border-radius:2px"></div>
+              </div>
+              <p style="margin:0;font-size:10.5px;color:var(--fg-dim);line-height:1.45">Elapsed and count, never an ETA. Each portrait is openable the moment it lands; stopping keeps what finished and re-prices the rest.</p>
+              <div style="height:1px;background:var(--border)"></div>
+              <div style="display:flex;align-items:center;gap:7px">
+                <span style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">spent on this character</span>
+                <div style="flex:1"></div>
+                <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">$1.12</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+          <span style="font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted)">anchor</span>
+          <span style="font-size:11.5px;color:var(--fg-dim)">everything below was generated against this and nothing else</span>
+          <div style="flex:1"></div>
+          <button style="padding:3px 8px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">Compare v1–v3</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:18px">
+          <div style="width:96px;border:1px solid var(--accent);border-radius:var(--radius);background:var(--bg-raised);padding:6px"><div style="height:76px;border-radius:3px;background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 5px,var(--bg-hover) 5px 10px)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:4px;text-align:center">front</div></div>
+          <div style="width:96px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:6px"><div style="height:76px;border-radius:3px;background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 5px,var(--bg-hover) 5px 10px)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:4px;text-align:center">side</div></div>
+          <div style="width:96px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:6px"><div style="height:76px;border-radius:3px;background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 5px,var(--bg-hover) 5px 10px)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:4px;text-align:center">back</div></div>
+          <div style="width:96px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:6px"><div style="height:76px;border-radius:3px;background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 5px,var(--bg-hover) 5px 10px)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:4px;text-align:center">3/4</div></div>
+          <div style="width:136px;border:1px solid color-mix(in oklch,var(--special) 45%,var(--border));border-radius:var(--radius);background:oklch(74% .12 300/.06);padding:6px">
+            <div style="height:76px;border-radius:3px;background:var(--bg-sunken);position:relative;overflow:hidden">
+              <div style="position:absolute;left:50%;top:50%;width:30px;height:40px;margin:-20px 0 0 -15px;border:1px solid color-mix(in oklch,var(--special) 60%,transparent);border-radius:2px;background:oklch(74% .12 300/.12)"></div>
+              <span style="position:absolute;left:5px;bottom:3px;font-family:var(--mono);font-size:8.5px;color:var(--special)">proxy · orbit</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;margin-top:4px"><span style="font-family:var(--mono);font-size:9px;color:var(--special)">3D</span><div style="flex:1"></div><a href="./12 3D anchor.dc.html" style="font-size:10px;color:var(--special)">Open →</a></div>
+          </div>
+          <div style="flex:1;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px 10px;min-width:0">
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:5px">why the lock matters</div>
+            <p style="margin:0;font-size:11.5px;color:var(--fg-muted);line-height:1.55">Every state and mood on this page was generated conditioned on this anchor. Changing it is the one edit that stales the whole character — so it is a named action with a plan card and a cost rollup, never a side effect of something else.</p>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+          <span style="font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted)">animation states</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">5 · 28 frames · 12 fps</span>
+          <div style="flex:1"></div>
+          <a href="./10 Animation tab.dc.html" style="padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);color:var(--fg-muted);font-size:11.5px">Animation tab →</a>
+          <button style="padding:3px 9px;border:1px dashed var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">+ Custom state</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:18px">
+
+          <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px 10px">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:11.5px">idle</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4 frames</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));color:var(--ok)">ok</span></div>
+            <div style="display:flex;gap:3px;margin-bottom:7px"><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div></div>
+            <div style="display:flex;gap:5px"><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">▶ Play</button><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">PixEd</button><button style="flex:1;padding:3px 6px;border:1px solid color-mix(in oklch,var(--accent) 45%,var(--border));border-radius:3px;background:oklch(72% .13 78/.1);color:var(--accent);font-size:10.5px;cursor:pointer">Animate…</button></div>
+          </div>
+
+          <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px 10px">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:11.5px">run</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">6 frames</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));color:var(--ok)">ok</span></div>
+            <div style="display:flex;gap:3px;margin-bottom:7px"><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div></div>
+            <div style="display:flex;gap:5px"><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">▶ Play</button><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">PixEd</button><button style="flex:1;padding:3px 6px;border:1px solid color-mix(in oklch,var(--accent) 45%,var(--border));border-radius:3px;background:oklch(72% .13 78/.1);color:var(--accent);font-size:10.5px;cursor:pointer">Animate…</button></div>
+          </div>
+
+          <div style="border:1px solid var(--warn);border-radius:var(--radius);background:oklch(72% .14 45/.05);padding:9px 10px">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:11.5px">jump</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">6 frames</span><div style="flex:1"></div><span style="display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));background:oklch(72% .14 45/.12);color:var(--warn)" title="Needs review — generated before the current anchor. It still works in game; replace it when you are ready."><svg width="9" height="9" viewBox="0 0 16 16" style="stroke:currentColor;fill:none;stroke-width:1.6"><path d="M1 8s2.5-4.5 7-4.5S15 8 15 8s-2.5 4.5-7 4.5S1 8 1 8z"></path><circle cx="8" cy="8" r="1.8"></circle></svg>NR</span></div>
+            <div style="display:flex;gap:3px;margin-bottom:7px"><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1.5px solid var(--warn);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1.5px solid var(--warn);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div></div>
+            <div style="display:flex;gap:5px"><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">▶ Play</button><button style="flex:1;padding:3px 6px;border:1px solid var(--info);border-radius:3px;background:oklch(70% .12 260/.12);color:var(--info);font-size:10.5px;cursor:pointer">Fix 2 in PixEd</button><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Animate…</button></div>
+          </div>
+
+          <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px 10px">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:11.5px">hurt</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3 frames</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));color:var(--ok)">ok</span></div>
+            <div style="display:flex;gap:3px;margin-bottom:7px"><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div></div>
+            <div style="display:flex;gap:5px"><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">▶ Play</button><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">PixEd</button><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Animate…</button></div>
+          </div>
+
+          <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px 10px">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span style="font-family:var(--mono);font-size:11.5px">death</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">9 frames</span><div style="flex:1"></div><span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));color:var(--ok)">ok</span></div>
+            <div style="display:flex;gap:3px;margin-bottom:7px"><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div><div style="flex:1;height:42px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div></div>
+            <div style="display:flex;gap:5px"><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">▶ Play</button><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">PixEd</button><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Animate…</button></div>
+          </div>
+
+          <div style="border:1px dashed var(--accent);border-radius:var(--radius);background:oklch(72% .13 78/.05);padding:9px 10px;display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;align-items:center;gap:7px"><span style="font-family:var(--mono);font-size:11.5px">swim</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--accent)">queued</span></div>
+            <p style="margin:0;font-size:10.5px;color:var(--fg-muted);line-height:1.45">The cistern has water zones and this character has no swim state — the engine falls back to jump. Ticked in the composer above.</p>
+            <div style="flex:1"></div>
+            <div style="display:flex;gap:3px">
+              <div style="flex:1;height:24px;border:1px dashed var(--border-hi);border-radius:2px"></div>
+              <div style="flex:1;height:24px;border:1px dashed var(--border-hi);border-radius:2px"></div>
+              <div style="flex:1;height:24px;border:1px dashed var(--border-hi);border-radius:2px"></div>
+              <div style="flex:1;height:24px;border:1px dashed var(--border-hi);border-radius:2px"></div>
+              <div style="flex:1;height:24px;border:1px dashed var(--border-hi);border-radius:2px"></div>
+              <div style="flex:1;height:24px;border:1px dashed var(--border-hi);border-radius:2px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px">
+          <div>
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+              <span style="font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted)">expressions</span>
+              <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">3 of 6 moods</span>
+              <div style="flex:1"></div>
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--info)">generating…</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <div style="width:74px"><div style="height:74px;border:1px solid var(--border);border-radius:var(--radius-sm);background:oklch(52% .07 300/.4)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-muted);margin-top:3px;text-align:center">neutral</div></div>
+              <div style="width:74px"><div style="height:74px;border:1px solid var(--border);border-radius:var(--radius-sm);background:oklch(52% .07 300/.4)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-muted);margin-top:3px;text-align:center">wary</div></div>
+              <div style="width:74px"><div style="height:74px;border:1px solid var(--border);border-radius:var(--radius-sm);background:oklch(52% .07 300/.4)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-muted);margin-top:3px;text-align:center">pleased</div></div>
+              <div style="width:74px"><div style="height:74px;border:1px solid var(--info);border-radius:var(--radius-sm);background:var(--bg-sunken);animation:pulse 1.4s ease-in-out infinite"></div><div style="font-family:var(--mono);font-size:9px;color:var(--info);margin-top:3px;text-align:center">angry</div></div>
+              <div style="width:74px"><div style="height:74px;border:1px dashed var(--border-hi);border-radius:var(--radius-sm)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px;text-align:center">afraid</div></div>
+              <div style="width:74px"><div style="height:74px;border:1px dashed var(--border-hi);border-radius:var(--radius-sm)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px;text-align:center">grieving</div></div>
+            </div>
+            <p style="margin:8px 0 0;font-size:11px;color:var(--fg-dim);line-height:1.5">Moods are a closed enum from the pack registry. Dialogue can be written before any portrait exists; the picker greys unfilled moods with the reason.</p>
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+              <span style="font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted)">skins</span>
+              <span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free · pure recolour</span>
+              <div style="flex:1"></div>
+              <button style="padding:3px 8px;border:1px dashed var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">+ Skin in PixEd</button>
+            </div>
+            <div style="display:flex;gap:6px">
+              <div style="flex:1;border:1px solid var(--accent);border-radius:var(--radius-sm);padding:5px;text-align:center"><div style="height:54px;border-radius:2px;background:oklch(60% .11 250/.5)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:3px">base</div></div>
+              <div style="flex:1;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px;text-align:center"><div style="height:54px;border-radius:2px;background:oklch(58% .1 30/.5)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px">rust</div></div>
+              <div style="flex:1;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px;text-align:center"><div style="height:54px;border-radius:2px;background:oklch(72% .1 140/.5)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px">moss</div></div>
+              <div style="flex:1;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px;text-align:center"><div style="height:54px;border-radius:2px;background:oklch(64% .09 200/.5)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px">tidal</div></div>
+            </div>
+            <p style="margin:8px 0 0;font-size:11px;color:var(--fg-dim);line-height:1.5">A skin is a colour map, not a copy — later pixel edits to the base flow into all four.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside style="border-left:1px solid var(--border);background:var(--bg-raised);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border)">
+        <span style="font-size:12.5px;font-weight:600">Agent</span>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">art_director</span>
+        <div style="flex:1"></div>
+        <button style="width:20px;height:20px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10px;cursor:pointer">⇥</button>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="align-self:flex-end;max-width:88%;background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius);padding:7px 9px;font-size:12px">He needs to swim — the cistern is half water now.</div>
+        <div style="font-size:12px;color:var(--fg-muted);line-height:1.55">Added <span style="font-family:var(--mono);font-size:11px;color:var(--fg)">swim</span> to the composer with six frames, conditioned on the locked anchor and guided by <span style="font-family:var(--mono);font-size:11px;color:var(--fg)">run</span>'s motion spec so the stride reads as the same body. Three missing moods were already queued, so one run covers both.</div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-sunken);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-bottom:1px solid var(--border)">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--info)">◐</span>
+            <span style="font-family:var(--mono);font-size:10.5px">art.generate</span>
+            <span style="font-size:11px;color:var(--fg-muted)">2 items</span>
+            <div style="flex:1"></div>
+            <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">$0.23–$0.90</span>
+          </div>
+          <div style="padding:6px 9px;display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">
+            <div>swim · 6 frames · guided by run</div>
+            <div>moods · angry, afraid, grieving</div>
+          </div>
+          <div style="padding:6px 9px;border-top:1px solid var(--border);display:flex;align-items:center;gap:7px">
+            <span style="font-size:11px;color:var(--fg-muted);flex:1">Staged in the composer — press Generate when you are ready.</span>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--fg-muted);line-height:1.55">One thing to know: a swim state does nothing until the cistern's water zone exists, and it does. Physics for swimming are separate — that is <a href="./01 Character mode - flat.dc.html">the sandbox</a>, not here.</div>
+        <div style="border:1px dashed var(--border-hi);border-radius:var(--radius);padding:8px 9px;display:flex;align-items:center;gap:8px">
+          <div style="flex:1"><div style="font-size:11.5px">Derive a 3D proxy from the turnaround</div><div style="font-size:10.5px;color:var(--fg-dim)">reference for future states · editing is in the 3D tab</div></div>
+          <button style="flex:none;padding:4px 9px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.12);color:var(--accent);font-size:11.5px;cursor:pointer">Generate · $0.20–$0.60</button>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;gap:8px">
+        <input placeholder="Describe what this character needs…" style="flex:1;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:12px;padding:6px 8px" />
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">$1.12 here</span>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">
+    <span>heron-salvager · character editor</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span style="color:var(--info)">◐ moods 3 of 6 · 41 s</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span style="color:var(--ok)">anchor locked v3</span>
+    <div style="flex:1"></div>
+    <span style="color:var(--warn)">NR = needs review, never broken</span><span style="color:var(--fg-dim)">&nbsp;|&nbsp; generation is authoring · the sandbox is for feel</span>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme: "dark" };
+  renderVals() {
+    return {
+      theme: this.state.theme,
+      toggleTheme: () => this.setState((p) => ({ theme: p.theme === "dark" ? "light" : "dark" })),
+    };
+  }
+}
+</script>
+</body>
+</html>

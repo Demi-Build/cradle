@@ -1,0 +1,1513 @@
+/* The agent panel (row P1-A5) — built to design_handoff_agent_panel.
+   Geometry and copy per its README; every colour is a tokens.css token
+   (App.css/tokens.css win over the prototype's styles, doctrine 9). */
+
+.agent {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  background: var(--bg-raised);
+  border-left: 1px solid var(--border);
+  font-family: var(--ui);
+  font-size: 12.5px;
+  color: var(--fg);
+  overflow: hidden;
+}
+.agent[data-dimmed="1"] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* The 4px drag handle on the column's left edge. */
+.agent-handle {
+  position: relative;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.12s;
+  z-index: 3;
+}
+.agent-handle:hover,
+.agent-handle[data-dragging="1"] {
+  background: var(--accent);
+}
+.agent-handle-readout {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--accent-ink);
+  background: var(--accent);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Collapsed: the 40px rail. */
+.agent-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 40px;
+  height: 100%;
+  padding: 6px 0;
+  background: var(--bg-raised);
+  border-left: 1px solid var(--border);
+}
+.agent-rail .icon-btn {
+  width: 28px;
+}
+.agent-rail-glyph {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-sunken);
+  color: var(--fg-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.agent-rail-glyph:hover {
+  color: var(--fg);
+  background: var(--bg-hover);
+}
+.agent-rail-glyph .ag-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+}
+.agent-rail-cost {
+  margin-top: auto;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+  padding-bottom: 6px;
+}
+
+/* Status dots (README §2). */
+.ag-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+.ag-dot[data-dot="streaming"] {
+  background: var(--accent);
+  animation: ag-pulse 1.1s ease-in-out infinite;
+}
+.ag-dot[data-dot="waiting"] {
+  background: var(--warn);
+}
+.ag-dot[data-dot="error"] {
+  background: var(--err);
+}
+@keyframes ag-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Tabs. */
+.ag-tabs {
+  display: flex;
+  align-items: stretch;
+  height: 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex: none;
+}
+.ag-tabs-scroll {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+.ag-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--fg-muted);
+  font-family: var(--ui);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  max-width: 160px;
+}
+/* A folded tab (`+N`): `display: flex` above would beat the UA's
+   `[hidden] { display: none }`, so say it here. */
+.ag-tab[hidden] {
+  display: none;
+}
+.ag-tab span.lbl {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ag-tab:hover {
+  color: var(--fg);
+  background: var(--bg-hover);
+}
+.ag-tab[data-active="1"] {
+  color: var(--fg);
+  background: var(--bg-raised);
+  border-bottom-color: var(--accent);
+}
+.ag-tab-x {
+  opacity: 0;
+  font-size: 10px;
+  color: var(--fg-dim);
+  border: 0;
+  background: none;
+  padding: 0 2px;
+  cursor: pointer;
+}
+.ag-tab:hover .ag-tab-x {
+  opacity: 1;
+}
+.ag-tabs-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  border-left: 1px solid var(--border);
+}
+.ag-tabs-actions .icon-btn,
+.ag-head .icon-btn {
+  width: 24px;
+  height: 22px;
+}
+/* The overflow fold (README §2): `+N` opens the folded tabs in the same
+   menu chassis the ⏱ history uses. Wider than an icon button — it carries
+   a count, not a glyph. */
+.ag-tabs-actions .ag-tabs-more {
+  width: auto;
+  min-width: 24px;
+  padding: 0 5px;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.ag-menu {
+  position: absolute;
+  top: 34px;
+  right: 6px;
+  z-index: 8;
+  min-width: 260px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+  padding: 6px;
+  font-size: 12px;
+}
+.ag-menu-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  padding: 4px 8px;
+}
+.ag-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 12px;
+}
+.ag-menu-row:hover {
+  background: var(--bg-hover);
+}
+.ag-menu-row[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+.ag-menu-row .meta {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.ag-menu-foot {
+  padding: 6px 8px 2px;
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
+/* Header: mode · model · cost · stop. */
+.ag-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+  position: relative;
+}
+.ag-seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.ag-seg button {
+  border: 0;
+  background: transparent;
+  color: var(--fg-muted);
+  font-family: var(--ui);
+  font-size: 11.5px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+.ag-seg button[data-on="1"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.ag-seg button[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+.ag-model {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  cursor: pointer;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ag-model-menu {
+  position: absolute;
+  top: 34px;
+  left: 10px;
+  right: 10px;
+  z-index: 9;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+  padding: 6px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.ag-model-head {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  padding: 4px 8px;
+}
+.ag-model-prov {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  padding: 6px 8px 2px;
+}
+.ag-model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+.ag-model-row:hover {
+  background: var(--bg-hover);
+}
+.ag-model-row[data-on="1"] {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.ag-model-row[data-unavailable="1"] {
+  opacity: 0.5;
+  cursor: default;
+}
+.ag-model-row .price {
+  margin-left: auto;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.ag-model-reason {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 6px 20px;
+  font-size: 11px;
+  color: var(--warn);
+}
+.ag-model-reason .btn-link {
+  margin-left: auto;
+}
+.ag-model-foot {
+  padding: 8px 8px 4px;
+  font-size: 11px;
+  color: var(--fg-dim);
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+.ag-cost {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.ag-stop {
+  border: 1px solid var(--err);
+  color: var(--err);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--ui);
+  font-size: 11.5px;
+  padding: 2px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ag-stop:hover {
+  background: color-mix(in srgb, var(--err) 14%, transparent);
+}
+.ag-stop.sm {
+  padding: 0 6px;
+  font-size: 11px;
+}
+.ag-head-strip {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-sunken);
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+/* Buttons shared across cards. */
+.ag-btn {
+  border: 1px solid var(--border-hi);
+  background: var(--bg-sunken);
+  color: var(--fg);
+  border-radius: var(--radius-sm);
+  font-family: var(--ui);
+  font-size: 11.5px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ag-btn:hover {
+  background: var(--bg-hover);
+}
+.ag-btn.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.ag-btn.danger {
+  border-color: var(--err);
+  color: var(--err);
+}
+.ag-btn[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+.ag-btn.dashed {
+  border-style: dashed;
+}
+.btn-link {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.btn-link:hover {
+  color: var(--fg);
+}
+.ag-foot {
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  line-height: 1.4;
+}
+.ag-foot code {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-muted);
+}
+
+/* Transcript. */
+.ag-transcript {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* The transcript is a flex COLUMN, so its items shrink by default — and with
+   `.ag-card { overflow: hidden }` a tall card (a plan, a stopped paid card)
+   silently lost its own buttons instead of making the column scroll. Items
+   keep their height; the column scrolls. (Found on the start page, where the
+   first plan already overflows; the same clip was reachable in the editor.) */
+.ag-transcript > * {
+  flex: 0 0 auto;
+}
+.ag-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  margin: 4px 0;
+}
+.ag-rule::before,
+.ag-rule::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--border);
+}
+.ag-user {
+  align-self: flex-end;
+  max-width: 88%;
+  position: relative;
+}
+.ag-user-bubble {
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius) var(--radius) 0 var(--radius);
+  background: var(--bg);
+  padding: 7px 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.ag-user-ctx {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.ag-ctx-chip {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.ag-user-tools {
+  position: absolute;
+  left: -70px;
+  top: 4px;
+  display: none;
+  gap: 2px;
+}
+.ag-user:hover .ag-user-tools,
+.ag-user:focus-within .ag-user-tools {
+  display: flex;
+}
+.ag-user-tools button {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  background: none;
+  color: var(--fg-dim);
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+}
+.ag-user-tools button:hover {
+  color: var(--fg);
+  background: var(--bg-hover);
+}
+.ag-user-edit textarea {
+  width: 100%;
+  min-height: 60px;
+  font-family: var(--ui);
+  font-size: 12.5px;
+  background: var(--bg-sunken);
+  color: var(--fg);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  resize: vertical;
+}
+.ag-agent {
+  align-self: stretch;
+}
+.ag-agent-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 3px;
+}
+.ag-agent-body {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--fg);
+  word-break: break-word;
+}
+.ag-agent-body p {
+  margin: 0 0 8px;
+}
+.ag-agent-body p:last-child {
+  margin-bottom: 0;
+}
+.ag-agent-body pre {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  overflow-x: auto;
+}
+.ag-agent-body code {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.ag-agent-body blockquote {
+  margin: 6px 0;
+  padding: 4px 10px;
+  border-left: 2px solid var(--border-hi);
+  color: var(--fg-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.ag-caret {
+  display: inline-block;
+  width: 7px;
+  height: 13px;
+  vertical-align: -2px;
+  margin-left: 2px;
+  background: var(--accent);
+  animation: ag-blink 0.9s steps(2) infinite;
+}
+@keyframes ag-blink {
+  to {
+    visibility: hidden;
+  }
+}
+.ag-thinking {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  margin-bottom: 4px;
+}
+.ag-thinking summary {
+  cursor: pointer;
+}
+.ag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ag-chip {
+  border: 1px solid var(--border-hi);
+  background: transparent;
+  color: var(--fg-muted);
+  border-radius: 999px;
+  font-family: var(--ui);
+  font-size: 11.5px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.ag-chip:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+.ag-note {
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  padding: 4px 0;
+  border-left: 2px solid var(--border);
+  padding-left: 8px;
+}
+
+/* Read lines (README §5). */
+.ag-read {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  line-height: 1.5;
+}
+.ag-read summary {
+  cursor: pointer;
+  list-style: none;
+}
+.ag-read summary::-webkit-details-marker {
+  display: none;
+}
+.ag-read summary .tri {
+  display: inline-block;
+  width: 10px;
+}
+.ag-read[open] summary .tri {
+  transform: rotate(90deg);
+}
+.ag-read[data-error="1"] summary {
+  color: var(--err);
+}
+.ag-read pre {
+  margin: 4px 0 0 12px;
+  padding: 6px 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow: auto;
+  color: var(--fg-muted);
+}
+.ag-read .meta {
+  color: var(--fg-dim);
+  margin-left: 6px;
+}
+
+/* Cards (write · paid). */
+.ag-card {
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  background: var(--bg);
+  padding: 8px 10px;
+  font-size: 12px;
+  overflow: hidden;
+}
+.ag-card.paid {
+  border-color: var(--accent);
+  border-top-width: 2px;
+}
+.ag-card.paid.result {
+  border-color: var(--ok);
+}
+.ag-card.paid.stopped {
+  border-color: var(--border-hi);
+}
+.ag-card.halted,
+.ag-card.error {
+  border-color: var(--err);
+}
+.ag-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ag-card-head .title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.ag-badge {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  flex: none;
+}
+.ag-badge.write {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.ag-badge.paid {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+.ag-badge.read {
+  border: 1px solid var(--border-hi);
+  color: var(--fg-dim);
+}
+.ag-badge.plan {
+  border: 1px solid var(--border-hi);
+  color: var(--fg-muted);
+}
+.ag-showme {
+  margin-left: auto;
+}
+.ag-card-body {
+  margin-top: 8px;
+}
+.ag-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ag-card-mono {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-muted);
+  margin-top: 6px;
+}
+.ag-card.undone {
+  opacity: 0.6;
+}
+
+/* Diffs. */
+.ag-diff-spatial {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 6px;
+  align-items: center;
+}
+.ag-diff-spatial .side {
+  min-width: 0;
+  overflow: hidden;
+}
+.ag-diff-spatial .side .lbl {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  margin-bottom: 3px;
+}
+.ag-diff-spatial .side .lbl b {
+  color: var(--ok);
+}
+.ag-diff-spatial canvas {
+  display: block;
+  max-width: 100%;
+  image-rendering: pixelated;
+  border: 1px solid var(--border);
+  background: var(--bg-sunken);
+}
+.ag-diff-spatial .arrow {
+  color: var(--fg-dim);
+}
+.ag-diff-fields {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  gap: 2px 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  align-items: baseline;
+}
+.ag-diff-fields .k {
+  color: var(--fg-muted);
+}
+.ag-diff-fields .old {
+  color: var(--err);
+  text-decoration: line-through;
+  word-break: break-word;
+}
+.ag-diff-fields .arr {
+  color: var(--fg-dim);
+}
+.ag-diff-fields .new {
+  color: var(--ok);
+  word-break: break-word;
+}
+.ag-diff-code {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  margin: 0;
+  padding: 6px 0;
+  line-height: 1.45;
+}
+.ag-diff-code .ln {
+  padding: 0 10px;
+  white-space: pre;
+}
+.ag-diff-code .ln.hunk {
+  color: var(--info);
+}
+.ag-diff-code .ln.add {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--ok);
+}
+.ag-diff-code .ln.del {
+  background: color-mix(in srgb, var(--err) 14%, transparent);
+  color: var(--err);
+}
+.ag-diff-code.folded {
+  max-height: 160px;
+  overflow-y: hidden;
+}
+
+/* Permission chips (README §6). */
+.ag-perm {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.ag-perm .copy {
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.ag-perm .copy code {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.ag-perm-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ag-perm-reason {
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  margin-top: 4px;
+}
+.ag-granted {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ok);
+  border-left: 2px solid var(--ok);
+  padding-left: 8px;
+}
+.ag-rejected {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.ag-rejected b {
+  color: var(--fg);
+}
+
+/* Paid card states. */
+.ag-paid-est {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 10px;
+  font-size: 11.5px;
+  margin: 6px 0;
+}
+.ag-paid-est .k {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+}
+.ag-paid-est .v.price {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.ag-paid-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+.ag-paid-bar > div {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s;
+}
+.ag-paid-bar.indeterminate > div {
+  width: 30%;
+  animation: ag-sweep 1.4s ease-in-out infinite;
+}
+@keyframes ag-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}
+.ag-paid-line {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+.ag-paid-line .now {
+  color: var(--fg);
+}
+.ag-paid-line .count {
+  margin-left: auto;
+}
+.ag-thumbs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.ag-thumbs img {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+}
+.ag-kept {
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+.ag-kept .ok {
+  color: var(--ok);
+}
+.ag-kept .no {
+  color: var(--fg-dim);
+}
+
+/* Run cards (README §4). */
+.ag-run {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+.ag-run-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  min-width: 0;
+}
+.ag-run-head .caret {
+  width: 10px;
+  font-size: 9px;
+  color: var(--fg-dim);
+}
+.ag-run-head .who {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg);
+}
+.ag-run-head .task {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg-muted);
+  font-size: 11.5px;
+}
+.ag-run-head .status {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.ag-run-head .status.running {
+  color: var(--accent);
+}
+.ag-run-head .status.ok {
+  color: var(--ok);
+}
+.ag-run-head .status.failed {
+  color: var(--err);
+}
+.ag-run-body {
+  padding: 4px 8px 8px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+}
+.ag-run-routing {
+  font-size: 11px;
+  color: var(--fg-dim);
+  font-style: italic;
+}
+
+/* Plan cards (README §7). */
+.ag-plan-steps {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ag-plan-step {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 12px;
+}
+.ag-plan-step .n {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+}
+.ag-plan-step .n.done {
+  color: var(--ok);
+}
+.ag-plan-step .n.failed {
+  color: var(--err);
+}
+.ag-plan-step .n.running {
+  color: var(--accent);
+}
+.ag-plan-step .t.done {
+  color: var(--fg-muted);
+}
+.ag-plan-step .meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.ag-plan-step .err {
+  grid-column: 2 / 4;
+  color: var(--err);
+  font-size: 11px;
+}
+.ag-plan-step .hint {
+  grid-column: 2 / 4;
+  color: var(--fg-dim);
+  font-size: 11px;
+}
+.ag-plan-edit textarea {
+  width: 100%;
+  min-height: 90px;
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--bg-sunken);
+  color: var(--fg);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+}
+
+/* Change feed (README §8). */
+.ag-feed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  border-top: 1px solid var(--border);
+}
+.ag-feed-row:first-child {
+  border-top: 0;
+}
+.ag-feed-row .kind {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  min-width: 46px;
+}
+.ag-feed-row .btn-link {
+  margin-left: auto;
+  text-decoration: none;
+}
+.ag-feed-foot {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+/* Errors (README §3). */
+.ag-error {
+  border: 1px solid var(--err);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 12px;
+  background: var(--bg);
+}
+.ag-error.starting {
+  border-color: var(--border-hi);
+}
+.ag-error.nokey {
+  border-color: var(--warn);
+}
+.ag-error .h {
+  font-weight: 600;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.ag-error .h .elapsed {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+}
+.ag-error .d {
+  color: var(--fg-muted);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.ag-error .d code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg);
+}
+.ag-error .cut {
+  border-top: 1px dashed var(--err);
+  margin: 6px 0;
+}
+.ag-error details {
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+}
+.ag-error details pre {
+  white-space: pre-wrap;
+  max-height: 160px;
+  overflow: auto;
+  background: var(--bg-sunken);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+}
+.ag-cancelled {
+  border-left: 2px solid var(--warn);
+  padding-left: 8px;
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  line-height: 1.5;
+}
+
+/* Composer. */
+.ag-composer {
+  flex: none;
+  border-top: 1px solid var(--border);
+  padding: 8px 10px 8px;
+  background: var(--bg-raised);
+  position: relative;
+}
+.ag-composer textarea {
+  width: 100%;
+  min-height: 44px;
+  max-height: 160px;
+  resize: none;
+  font-family: var(--ui);
+  font-size: 12.5px;
+  line-height: 1.45;
+  background: var(--bg-sunken);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 9px;
+  outline: none;
+}
+.ag-composer textarea:focus {
+  border-color: var(--border-hi);
+}
+.ag-composer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  min-height: 22px;
+}
+.ag-composer-row .mode {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.ag-send {
+  border: 1px solid var(--border-hi);
+  background: var(--bg-sunken);
+  color: var(--fg);
+  border-radius: var(--radius-sm);
+  font-family: var(--ui);
+  font-size: 11.5px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+.ag-send:hover {
+  background: var(--bg-hover);
+}
+.ag-send[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+.ag-ctx-picker {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 100%;
+  margin-bottom: 4px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+  padding: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 9;
+}
+.ag-ctx-picker .ag-menu-row .kind {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+  min-width: 42px;
+}
+
+/* First run. */
+.ag-firstrun {
+  padding: 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ag-firstrun h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.ag-firstrun p {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.ag-firstrun .seeds {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+.ag-firstrun .seeds button {
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  font-family: var(--ui);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.ag-firstrun .seeds button:hover {
+  border-color: var(--accent);
+}
+
+/* Toast + editor pill. */
+.ag-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  z-index: 40;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--fg);
+  white-space: nowrap;
+}
+.ag-pill {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-radius: 999px;
+  padding: 4px 6px 4px 12px;
+  font-size: 12px;
+  box-shadow: var(--shadow-2);
+  white-space: nowrap;
+}
+.ag-pill .btn-link {
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.ag-pill .x {
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 4px;
+}
+.ag-nav-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* Pulse the selection once (README §8). */
+@keyframes ag-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+}
+.ag-pulsing {
+  animation: ag-pulse-ring 0.9s ease-out 1;
+}
+
+/* Confirm gate (the paid card as a modal, replacing window.confirm). */
+.ag-gate-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1150;
+  background: rgba(8, 6, 12, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ag-gate {
+  width: 440px;
+  max-width: 92vw;
+}
+.ag-gate .ag-card {
+  background: var(--bg-raised);
+  padding: 12px 14px;
+}
+.ag-gate .ag-card .body {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  margin-top: 6px;
+  white-space: pre-wrap;
+}
+
+/* Job tray attribution (README §10). */
+.ag-attr {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  white-space: nowrap;
+}
+.ag-attr.agent {
+  color: var(--accent);
+}
+
+/* Row P1-A6: an inline link inside a footnote (the chip's "Settings →
+   Permissions" deep link). A button for the semantics, a link for the look. */
+.ag-linkish {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ag-linkish:hover {
+  color: var(--fg);
+}
+
+/* ---------------------------------------------------------------------------
+   Row P1-A9 — the START-PAGE surface (agent-panel README §11, board 05).
+
+   "Same column, same width, over the hero." The start page's shell is a
+   three-row grid with no third column, so the panel is placed OVER it rather
+   than by restructuring that grid (which P0-10 owns): absolutely positioned
+   between the title bar and the status bar, at the same `--agent-w` the editor
+   persists. Everything inside it is the editor's own panel CSS, unchanged.
+   --------------------------------------------------------------------------- */
+.start-app .start-agent {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  bottom: 24px;
+  display: flex;
+  z-index: 6;
+}
+/* The persisted width, but never more than 46% of a narrow window: the start
+   page has no second column to give up (the editor's canvas absorbs the loss),
+   so on a small screen the hero would otherwise be squeezed to nothing. */
+.start-app[data-agent="open"] .start-agent {
+  width: min(calc(var(--agent-w, 412px) + 4px), 46vw);
+}
+.start-app[data-agent="rail"] .start-agent {
+  width: 40px;
+}
+.start-app .start-agent .agent {
+  flex: 1 1 auto;
+  min-width: 0;
+  backdrop-filter: blur(8px);
+  background: color-mix(in oklch, var(--bg-raised) 94%, transparent);
+}
+/* The hero and the rail keep clear of the column rather than sliding under it. */
+.start-app[data-agent="open"] .atmo {
+  padding-right: calc(min(calc(var(--agent-w, 412px) + 4px), 46vw) + 8px);
+}
+.start-app[data-agent="rail"] .atmo {
+  padding-right: 52px;
+}
+
+/* The hero's own degradation ladder (`styles/start.css`) shows the "World at a
+   glance" card only above 1250px of WINDOW width. The column takes its width
+   out of the hero, so with the panel open the glance's real threshold is that
+   1250 plus the column — below it, the ladder's default (hidden) applies again
+   and the hero keeps its title instead of running under the card. Collapsing
+   to the rail brings the glance straight back. */
+@media (max-width: 1670px) {
+  .start-app[data-agent="open"] .glance {
+    display: none;
+  }
+}

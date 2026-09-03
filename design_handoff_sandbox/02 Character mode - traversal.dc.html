@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px; --radius-lg:10px;
+  --accent:oklch(72% 0.13 78); --accent-ink:oklch(28% 0.05 78);
+  --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45); --err:oklch(62% 0.18 25);
+  --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b;
+  --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55; --stage:#08090b;
+  --cta-bg:#f3efe3; --cta-fg:#15171c;
+}
+[data-theme="light"]{
+  --bg:#f7f6f2; --bg-raised:#ffffff; --bg-sunken:#efede6; --bg-hover:#edebe2;
+  --border:#e0dccf; --border-hi:#c9c2af;
+  --fg:#1a1916; --fg-muted:#6a6860; --fg-dim:#95928a; --stage:#e6e3d9;
+  --cta-bg:#1a1916; --cta-fg:#f7f6f2;
+}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+
+<div style="min-width:1440px;height:100vh;overflow:hidden">
+<div data-theme="{{ theme }}" data-screen-label="A2 · character mode (traversal-grouped)" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center;white-space:nowrap">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>mazeworld-5-room-demo</span><span style="color:var(--fg-dim)">/</span><span>l1r3</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">level · character</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);color:var(--fg-dim)">concept board B · light theme · agent panel railed</span>
+    <button onClick="{{ toggleTheme }}" style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);background:transparent;color:var(--fg-dim);cursor:pointer">theme</button>
+  </header>
+
+  <div style="display:grid;grid-template-columns:208px minmax(0,1fr) 40px;overflow:hidden;min-height:0">
+
+    <aside style="border-right:1px solid var(--border);background:var(--bg-raised);overflow:hidden;padding:10px 0">
+      <button style="display:block;width:100%;text-align:left;background:none;color:var(--fg);border:0;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">Mazeworld · 5-room demo</button>
+      <div style="padding:11px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Levels (5)</div>
+      <button style="display:flex;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer"><span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim)">l1r2</span><span>The Long Gap</span></button>
+      <button style="display:flex;gap:8px;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)"><span style="font-family:var(--mono);font-size:11px;color:var(--accent)">l1r3</span><span>Cistern</span></button>
+      <button style="display:flex;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer"><span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim)">l1r4</span><span>Spillway</span></button>
+      <div style="padding:11px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Actors</div>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)"><span style="width:12px;height:12px;background:var(--accent);opacity:.5;border-radius:2px"></span>Player</button>
+    </aside>
+
+    <main style="display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0">
+      <div style="display:flex;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">Overview</button>
+        <button style="background:none;color:var(--fg);border:0;border-bottom:2px solid var(--accent);padding:8px 13px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Level</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">Animation</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">History</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:9px;padding:7px 14px;border-bottom:1px solid var(--border);background:var(--bg-raised)">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:var(--radius-sm);border:1px solid color-mix(in oklch,var(--accent) 45%,var(--border));background:oklch(72% .13 78/.1);color:var(--accent)">pygame<span style="color:var(--fg-dim);font-size:9px;letter-spacing:.08em;text-transform:uppercase">primary</span></span>
+        <span style="width:1px;height:18px;background:var(--border)"></span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ok)"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok)"></span><strong style="font-weight:600">live</strong></span>
+        <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">spawn 41,9 · in the water</span>
+        <div style="flex:1"></div>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">swap <span style="color:var(--ok)">160 ms</span></span>
+        <button style="padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">⟳ Restart</button>
+        <button style="padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">⏹ Stop</button>
+      </div>
+
+      <div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 372px">
+
+        <div style="position:relative;background:var(--stage);overflow:hidden;border-right:1px solid var(--border)">
+          <div style="position:absolute;inset:0;background-image:linear-gradient(to right,color-mix(in oklch,var(--border) 70%,transparent) 1px,transparent 1px),linear-gradient(to bottom,color-mix(in oklch,var(--border) 70%,transparent) 1px,transparent 1px);background-size:20px 20px;opacity:.6"></div>
+          <div style="position:absolute;left:0;right:0;bottom:40px;height:20px;background:color-mix(in oklch,var(--accent) 20%,var(--stage));border-top:2px solid color-mix(in oklch,var(--accent) 50%,var(--stage))"></div>
+          <div style="position:absolute;left:22%;right:18%;bottom:60px;height:110px;background:oklch(70% .12 260/.16);border:1px solid color-mix(in oklch,var(--info) 55%,transparent)"></div>
+          <div style="position:absolute;left:22%;bottom:176px;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;color:var(--info);white-space:nowrap"><span style="width:8px;height:8px;background:var(--info);border-radius:2px"></span>zone · water · cistern_pool</div>
+          <div style="position:absolute;left:44%;bottom:104px;width:14px;height:20px;background:var(--fg);border-radius:2px;box-shadow:0 0 0 2px oklch(70% .12 260/.5)"></div>
+          <div style="position:absolute;left:41%;bottom:130px;font-family:var(--mono);font-size:9px;color:var(--info);white-space:nowrap">context: water</div>
+
+          <div style="position:absolute;left:12px;top:12px;display:flex;flex-direction:column;gap:2px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:4px;box-shadow:var(--shadow-1,0 1px 2px rgba(0,0,0,.2))">
+            <button style="width:30px;height:30px;border:0;border-radius:var(--radius-sm);background:none;color:var(--fg-muted);font-size:13px;cursor:pointer">▶</button>
+            <button style="width:30px;height:30px;border:0;border-radius:var(--radius-sm);background:var(--bg-hover);color:var(--accent);font-size:13px;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)">✛</button>
+            <button style="width:30px;height:30px;border:0;border-radius:var(--radius-sm);background:none;color:var(--fg-muted);font-size:13px;cursor:pointer">▦</button>
+          </div>
+
+          <div style="position:absolute;left:52px;top:12px;max-width:250px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:7px 9px">
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:3px">what this board tests</div>
+            <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.5">The panel follows the player's <strong style="color:var(--fg);font-weight:600">locomotion context</strong> instead of listing every key at once. Standing in the pool switches it to Water.</p>
+          </div>
+
+          <div style="position:absolute;right:10px;bottom:10px;width:150px;height:66px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+            <div style="position:absolute;left:6px;right:6px;bottom:12px;height:3px;background:color-mix(in oklch,var(--accent) 45%,var(--bg-sunken))"></div>
+            <div style="position:absolute;left:34px;right:26px;bottom:15px;height:20px;background:oklch(70% .12 260/.3)"></div>
+            <div style="position:absolute;left:6px;top:4px;font-family:var(--mono);font-size:8.5px;color:var(--fg-dim);letter-spacing:.07em">l1r3 · 64×32</div>
+          </div>
+        </div>
+
+        <aside style="background:var(--bg-raised);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+          <div style="padding:9px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+            <span style="font-size:12.5px;font-weight:600">Character</span>
+            <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">player · feel</span>
+            <div style="flex:1"></div>
+            <button style="padding:2px 7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-family:var(--mono);font-size:9.5px;cursor:pointer">⋯</button>
+          </div>
+
+          <div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:4px">
+              <button style="flex:1;padding:4px 0;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">Ground</button>
+              <button style="flex:1;padding:4px 0;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">Air</button>
+              <button style="flex:1;padding:4px 0;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.12);color:var(--accent);font-size:11px;font-weight:600;cursor:pointer">Water</button>
+              <button style="flex:1;padding:4px 0;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:11px;cursor:not-allowed" title="No climbable surfaces in this pack — the engine copy has no climb state.">Climb</button>
+              <button style="flex:1;padding:4px 0;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:11px;cursor:not-allowed" title="No glide ability in this pack. Add one from the abilities table to enable these knobs.">Glide</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));background:oklch(70% .12 260/.1);color:var(--info)">following the player</span>
+              <span style="font-size:10.5px;color:var(--fg-dim)">Climb and Glide are off in this pack — hover for why.</span>
+            </div>
+          </div>
+
+          <div style="flex:1;min-height:0;overflow-y:auto">
+            <div style="padding:9px 12px 6px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+              <span style="font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted)">water</span>
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--info)">zone cistern_pool</span>
+              <div style="flex:1"></div>
+              <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.5px">
+                <button style="background:var(--bg-hover);color:var(--fg);border:0;padding:2px 8px;font-size:10.5px;border-radius:3px;cursor:pointer;font-weight:500">This zone</button>
+                <button style="background:none;color:var(--fg-muted);border:0;padding:2px 8px;font-size:10.5px;border-radius:3px;cursor:pointer">Whole game</button>
+              </div>
+            </div>
+
+            <div style="padding:8px 12px 9px;border-bottom:1px solid var(--border)">
+              <div style="display:flex;align-items:baseline;gap:7px">
+                <span style="font-family:var(--mono);font-size:11.5px">speed_factor</span>
+                <div style="flex:1"></div>
+                <input value="0.55" style="width:52px;text-align:right;background:var(--bg-sunken);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11.5px;padding:1px 5px" />
+              </div>
+              <div style="position:relative;height:14px;margin-top:6px">
+                <div style="position:absolute;left:0;right:0;top:6px;height:3px;border-radius:2px;background:var(--bg-sunken);border:1px solid var(--border)"></div>
+                <div style="position:absolute;left:0;width:47%;top:6px;height:3px;border-radius:2px;background:var(--accent)"></div>
+                <div style="position:absolute;left:47%;top:0;width:10px;height:14px;margin-left:-5px;border-radius:3px;background:var(--cta-bg);border:1px solid var(--border-hi)"></div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:4px;font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)"><span>0.20</span><div style="flex:1"></div><span>1.00</span></div>
+            </div>
+            <div style="padding:8px 12px 9px;border-bottom:1px solid var(--border)">
+              <div style="display:flex;align-items:baseline;gap:7px">
+                <span style="font-family:var(--mono);font-size:11.5px">gravity</span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--info);letter-spacing:.06em;text-transform:uppercase">water value</span>
+                <div style="flex:1"></div>
+                <input value="9.00" style="width:52px;text-align:right;background:var(--bg-sunken);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11.5px;padding:1px 5px" />
+              </div>
+              <div style="position:relative;height:14px;margin-top:6px">
+                <div style="position:absolute;left:0;right:0;top:6px;height:3px;border-radius:2px;background:var(--bg-sunken);border:1px solid var(--border)"></div>
+                <div style="position:absolute;left:0;width:20%;top:6px;height:3px;border-radius:2px;background:var(--accent)"></div>
+                <div style="position:absolute;left:38%;top:2px;width:2px;height:10px;background:var(--fg-dim)" title="ground gravity 32.0"></div>
+                <div style="position:absolute;left:20%;top:0;width:10px;height:14px;margin-left:-5px;border-radius:3px;background:var(--cta-bg);border:1px solid var(--border-hi)"></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px;font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)"><span>15</span><span style="color:var(--fg-muted)">ground 32.0 — same key, other context</span><div style="flex:1"></div><span>60</span></div>
+            </div>
+            <div style="padding:8px 12px 9px;border-bottom:1px solid var(--border)">
+              <div style="display:flex;align-items:baseline;gap:7px">
+                <span style="font-family:var(--mono);font-size:11.5px">impulse</span>
+                <div style="flex:1"></div>
+                <input value="12.0" style="width:52px;text-align:right;background:var(--bg-sunken);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11.5px;padding:1px 5px" />
+              </div>
+              <div style="position:relative;height:14px;margin-top:6px">
+                <div style="position:absolute;left:0;right:0;top:6px;height:3px;border-radius:2px;background:var(--bg-sunken);border:1px solid var(--border)"></div>
+                <div style="position:absolute;left:0;width:60%;top:6px;height:3px;border-radius:2px;background:var(--accent)"></div>
+                <div style="position:absolute;left:60%;top:0;width:10px;height:14px;margin-left:-5px;border-radius:3px;background:var(--cta-bg);border:1px solid var(--border-hi)"></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px;font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)"><span>4.0</span><div style="flex:1"></div><span>20.0</span><button style="padding:1px 5px;border:1px dashed var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-dim);font-family:var(--mono);font-size:9.5px;cursor:pointer">⤢ band</button></div>
+            </div>
+
+            <div style="margin:10px 12px;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-sunken)">
+              <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">derived · in water</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">
+                <div><div style="font-family:var(--mono);font-size:14px">8.7</div><div style="font-size:10.5px;color:var(--fg-muted)">stroke velocity</div></div>
+                <div><div style="font-family:var(--mono);font-size:14px">0.61 s</div><div style="font-size:10.5px;color:var(--fg-muted)">time to surface from floor</div></div>
+              </div>
+            </div>
+
+            <div style="padding:9px 12px 5px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">other contexts</div>
+            <button style="width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--border);padding:8px 12px;cursor:pointer;color:var(--fg);display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;color:var(--fg-dim)">▶</span><span style="font-size:12px;flex:1">Ground <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">5 keys</span></span><span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">1 override</span>
+            </button>
+            <button style="width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--border);padding:8px 12px;cursor:pointer;color:var(--fg);display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;color:var(--fg-dim)">▶</span><span style="font-size:12px;flex:1">Air <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">4 keys</span></span><span style="font-family:var(--mono);font-size:9.5px;color:var(--info)">1 advisory</span>
+            </button>
+            <button style="width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--border);padding:8px 12px;cursor:pointer;color:var(--fg);display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;color:var(--fg-dim)">▶</span><span style="font-size:12px;flex:1">Shared <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">combat · rules · 9 keys</span></span>
+            </button>
+
+            <div style="margin:10px 12px 14px;padding:9px 10px;border:1px solid color-mix(in oklch,var(--special) 40%,var(--border));border-radius:var(--radius);background:oklch(74% .12 300/.07)">
+              <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ok);margin-bottom:5px">verdict · settled</div>
+              <p style="margin:0 0 6px;font-size:11.5px;color:var(--fg);line-height:1.55">Decided: <strong style="font-weight:600">ship the flat list; traversal is a filter, not a hierarchy.</strong></p>
+              <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Grouping earns its keep only where a key genuinely has more than one value — <span style="font-family:var(--mono);font-size:10.5px">gravity</span> in water vs on ground. That is three keys today. Making it the panel's spine hides eleven movement keys behind tabs and invents a taxonomy the pack schema does not have. A context chip on the keys that vary, plus the "following the player" auto-scroll from this board, gets the win without the tree.</p>
+            </div>
+          </div>
+
+          <div style="border-top:1px solid var(--border);background:var(--bg-sunken);padding:8px 12px;display:flex;align-items:center;gap:7px">
+            <span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));background:oklch(68% .13 150/.12);color:var(--ok)">valid ✓</span>
+            <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);flex:1">no unapplied edits</span>
+            <button disabled="" style="padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:12px;cursor:not-allowed" title="Nothing staged — drag a slider or type a value first.">Apply</button>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <aside style="border-left:1px solid var(--border);background:var(--bg-raised);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:10px">
+      <button style="width:24px;height:24px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer" title="Expand agent panel">⇤</button>
+      <div style="writing-mode:vertical-rl;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-dim)">agent</div>
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">
+    <span style="color:var(--ok)">● live</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span>l1r3 · character · water</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span style="color:var(--ok)">valid ✓ 0 errors</span>
+    <div style="flex:1"></div>
+    <span style="color:var(--fg-dim)">agent panel railed · 40px</span>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme: "light" };
+  renderVals() {
+    return {
+      theme: this.state.theme,
+      toggleTheme: () => this.setState((p) => ({ theme: p.theme === "dark" ? "light" : "dark" })),
+    };
+  }
+}
+</script>
+</body>
+</html>

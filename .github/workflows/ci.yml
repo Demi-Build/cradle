@@ -10,6 +10,12 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Which canon-ai ref the vendored runtime installs is NOT here: it is the
+# `canon_ref` line in scripts/runtime-manifest.txt, read by the "Read the canon
+# pin" step below (row P0-11). One file is the pin — the same file the runtime
+# cache key hashes — so a ref bump busts the cache the way a checksum bump
+# does. release.yml reads the same line.
+
 jobs:
   frontend:
     name: Frontend (lint / typecheck / test / build)
@@ -29,6 +35,81 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  # Row P0-11: the runtime payload is fetched, never committed, so the thing
+  # CI can check on EVERY run is the fetch machinery itself — the scripts parse,
+  # the manifest is well formed, and every pinned checksum still matches what
+  # python-build-standalone publishes for that release. A silently rotten pin
+  # would otherwise only surface during a release build.
+  runtime-payload:
+    name: Runtime payload (scripts / manifest / checksums)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shell syntax
+        run: |
+          bash -n scripts/fetch-runtime.sh
+          bash -n scripts/gen-notices.sh
+          bash -n scripts/sign-runtime.sh
+          bash -n scripts/fetch-demo.sh
+          python3 -m py_compile scripts/gen_notices.py
+
+      - name: Manifest is well formed
+        run: |
+          set -euo pipefail
+          m=scripts/runtime-manifest.txt
+          for key in release python canon_source canon_ref canon_extras; do
+            grep -qE "^${key}[[:space:]]" "$m" || { echo "manifest has no ${key} line"; exit 1; }
+          done
+          # Every sha256 row: a known triple and a 64-hex digest.
+          awk '$1 == "sha256" {
+                 if ($2 !~ /^(aarch64|x86_64)-(apple-darwin|unknown-linux-gnu|pc-windows-msvc)$/) {
+                   print "bad triple: " $2; bad = 1
+                 }
+                 if ($3 !~ /^[0-9a-f]{64}$/) { print "bad sha256 for " $2; bad = 1 }
+                 n++
+               }
+               END { if (n < 3) { print "expected at least the three CI platforms"; bad = 1 }
+                     exit bad ? 1 : 0 }' "$m"
+          # The license set for the pinned release must be committed — the
+          # notices generator refuses to ship without it.
+          release=$(awk '$1 == "release" { print $2 }' "$m")
+          test -d "scripts/runtime-licenses/${release}" \
+            || { echo "no scripts/runtime-licenses/${release} — see that directory's README"; exit 1; }
+
+      # A MISMATCH is a hard failure — that is a rotten pin. A failure to REACH
+      # github.com is not: an upstream outage, an anonymous rate limit, or a
+      # DNS blip is not a defect in the change under review, and turning CI red
+      # for it trains people to ignore red. So the network leg warns and stops;
+      # every offline check above still fails.
+      - name: Pinned checksums still match upstream
+        run: |
+          set -euo pipefail
+          m=scripts/runtime-manifest.txt
+          release=$(awk '$1 == "release" { print $2 }' "$m")
+          python=$(awk '$1 == "python" { print $2 }' "$m")
+          if ! curl --fail --location --silent --show-error \
+            --retry 3 --retry-delay 5 --retry-all-errors \
+            -o /tmp/SHA256SUMS \
+            "https://github.com/astral-sh/python-build-standalone/releases/download/${release}/SHA256SUMS"; then
+            echo "::warning::could not reach python-build-standalone's ${release} SHA256SUMS after 3 tries."
+            echo "::warning::The pins were NOT compared on this run — upstream reachability, not a bad pin."
+            exit 0
+          fi
+          fail=0
+          while read -r _ triple sha; do
+            asset="cpython-${python}+${release}-${triple}-install_only.tar.gz"
+            upstream=$(awk -v a="$asset" '$2 == a { print $1 }' /tmp/SHA256SUMS)
+            if [ -z "$upstream" ]; then
+              echo "::error::${asset} is not in the ${release} release"; fail=1
+            elif [ "$upstream" != "$sha" ]; then
+              echo "::error::${triple}: pinned ${sha}, upstream ${upstream}"; fail=1
+            else
+              echo "ok  ${triple}"
+            fi
+          done < <(awk '$1 == "sha256"' "$m")
+          exit $fail
 
   rust:
     name: Rust (fmt / clippy / test)
@@ -61,12 +142,14 @@ jobs:
       # tauri-build's build.rs validates `bundle.resources` paths in
       # tauri.conf.json on every cargo invocation. The rust job doesn't
       # bundle anything, but clippy/test/build all trigger build.rs — so
-      # the resource path needs to exist as at least an empty dir.
+      # the resource paths need to exist as at least empty dirs.
       # Real demo content is fetched only by the `tauri-build` job and
-      # the release workflow.
-      - name: Stub demo resource path
+      # the release workflow; the runtime (row P0-11) likewise. Its
+      # directories are tracked via .gitkeep, so these mkdirs are belt to
+      # that suspender — they cost nothing and survive a .gitignore edit.
+      - name: Stub resource paths
         working-directory: ${{ github.workspace }}
-        run: mkdir -p bibles/mazeworld_5_room_demo
+        run: mkdir -p bibles/mazeworld_5_room_demo src-tauri/resources/runtime src-tauri/resources/notices
 
       - run: cargo fmt --all -- --check
       - run: cargo clippy --all-targets -- -D warnings
@@ -80,6 +163,10 @@ jobs:
   tauri-build:
     name: Tauri end-to-end build (debug)
     runs-on: ubuntu-latest
+    # `secrets` is not a context `steps.*.if` can read, so the token is lifted
+    # into the job env and the steps branch on THAT.
+    env:
+      CANON_TOKEN: ${{ secrets.CANON_REPO_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -114,6 +201,55 @@ jobs:
         env:
           DEMO_TAG: demo-v0.1.0
         run: bash scripts/fetch-demo.sh
+
+      # Row P0-11. The canon wheel lives in a second repository, so the runtime
+      # can only be built where a cross-repo token exists. Without one the job
+      # still builds — the bundle just has no runtime in it, which is exactly
+      # what `.gitkeep` + the resolver's PATH leg are for. The release workflow
+      # is where a runtime-less bundle would be a bug, and it fetches there.
+      - name: Read the canon pin
+        id: canon-pin
+        if: env.CANON_TOKEN != ''
+        run: |
+          ref=$(awk '$1 == "canon_ref" { print $2; exit }' scripts/runtime-manifest.txt)
+          if [ -z "$ref" ]; then
+            echo "::error::scripts/runtime-manifest.txt has no \`canon_ref\` line — that file is the pin."
+            exit 1
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "canon ref: $ref"
+
+      - name: Check out canon-ai (the wheel the runtime installs)
+        if: env.CANON_TOKEN != ''
+        uses: actions/checkout@v4
+        with:
+          repository: Demi-Build/canon-ai
+          ref: ${{ steps.canon-pin.outputs.ref }}
+          token: ${{ env.CANON_TOKEN }}
+          path: .canon-src
+
+      # Cached by the pin file's hash: bump the manifest, get a fresh download;
+      # otherwise the tarball is reused and the fetch runs offline.
+      - name: Cache the runtime payload
+        if: env.CANON_TOKEN != ''
+        uses: actions/cache@v4
+        with:
+          path: .cache/runtime
+          key: pbs-${{ runner.os }}-${{ hashFiles('scripts/runtime-manifest.txt') }}
+
+      - name: Fetch the vendored runtime
+        if: env.CANON_TOKEN != ''
+        env:
+          CANON_SPEC: ${{ github.workspace }}/.canon-src
+        run: bash scripts/fetch-runtime.sh
+
+      - name: Third-party notices (dry run)
+        if: env.CANON_TOKEN != ''
+        run: bash scripts/gen-notices.sh --dry-run
+
+      - name: No runtime on this run
+        if: env.CANON_TOKEN == ''
+        run: echo "CANON_REPO_TOKEN is not set — building without the vendored runtime."
 
       # Full Tauri integration build: frontend -> tsc -> vite build,
       # then cargo build on src-tauri. --debug skips release opts;

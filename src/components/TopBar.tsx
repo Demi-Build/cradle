@@ -1,5 +1,6 @@
 import { useStore } from "../store";
 import { kbd } from "../lib/keys";
+import { togglePanel } from "../lib/agentActions";
 import { Icon, IconSymbols } from "./start/Icons";
 import { EngineChip } from "./EngineChip";
 
@@ -16,6 +17,8 @@ export function TopBar() {
   const setNewProjectOpen = useStore((s) => s.setNewProjectOpen);
   const setDashboardOpen = useStore((s) => s.setDashboardOpen);
   const setJobsOpen = useStore((s) => s.setJobsOpen);
+  const openSettings = useStore((s) => s.openSettings);
+  const agentOpen = useStore((s) => s.agentUi.open && !s.agentUi.collapsed);
   const activeJobs = useStore(
     (s) => s.jobs.filter((j) => j.status === "queued" || j.status === "running").length,
   );
@@ -88,12 +91,39 @@ export function TopBar() {
         >
           ＋ New project
         </button>
+        {/* The agent panel toggle (README §1, PLAN "TopBar"): left of the
+            theme toggle, accent while the panel is open. */}
+        {world && (
+          <button
+            className={`icon-btn ${agentOpen ? "on" : ""}`}
+            onClick={togglePanel}
+            aria-label={agentOpen ? "Hide the agent panel" : "Show the agent panel"}
+            aria-pressed={agentOpen}
+            title={`${agentOpen ? "Hide" : "Show"} the agent panel · ${kbd("⇧A")}`}
+            style={agentOpen ? { color: "var(--accent)" } : undefined}
+            data-testid="agent-toggle"
+          >
+            ◧
+          </button>
+        )}
         <button
           className={`icon-btn ${drawerOpen ? "on" : ""}`}
           onClick={() => setDrawerOpen(!drawerOpen)}
           title="Notes & docs"
         >
           <Icon id="g-panel" size={14} />
+        </button>
+        {/* Row P0-12 / W3.5: the gear. Always available — a machine with no
+            project open is exactly the machine that needs to add a key or see
+            why canon will not start. Theme stays to its right, unmoved. */}
+        <button
+          className="icon-btn"
+          onClick={() => openSettings("keys")}
+          title="Settings — API keys, environment, permissions"
+          aria-label="Settings"
+          data-testid="topbar-settings"
+        >
+          ⚙
         </button>
         <button
           className="icon-btn"

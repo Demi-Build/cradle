@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b; --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55;
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;color:var(--fg)}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+</style>
+</helmet>
+
+<div data-screen-label="P1 · storyboard" style="min-width:1440px;padding:26px 30px 34px;background:var(--bg)">
+
+  <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:18px">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">flow board · P1 · style 2 of 2</div>
+      <h1 style="margin:4px 0 0;font-size:21px;font-weight:600;letter-spacing:-.01em">Character creation &amp; consistency</h1>
+    </div>
+    <div style="flex:1"></div>
+    <p style="margin:0;max-width:520px;font-size:11.5px;color:var(--fg-muted);line-height:1.55;text-wrap:pretty">Seven panels, each a real fragment of the surface at that moment. Spend and QA are stated under the panel that charges for them, so the money reads where it happens rather than in a separate lane.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--accent)">01</span>
+        <span style="font-size:12px;font-weight:600">Describe</span>
+        <div style="flex:1"></div>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">free</span>
+      </div>
+      <div style="padding:10px;background:var(--bg-sunken);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;min-height:168px">
+        <div style="display:flex;gap:4px">
+          <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:3px;border:1px solid var(--accent);background:oklch(72% .13 78/.12);color:var(--accent)">player</span>
+          <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:3px;border:1px solid var(--border);color:var(--fg-muted)">npc</span>
+          <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:3px;border:1px solid var(--border);color:var(--fg-muted)">enemy</span>
+        </div>
+        <div style="border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg);padding:7px 8px;font-size:11.5px;line-height:1.5;color:var(--fg)">a stilt-legged marsh heron, salvage goggles, ragged blue coat<span style="color:var(--accent)">|</span></div>
+        <div style="border:1px dashed var(--border-hi);border-radius:var(--radius-sm);padding:6px 7px">
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:3px">prompt cradle will send</div>
+          <div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted);line-height:1.5">32×32 sprite, mazeworld palette, side view, 4-colour ramp per material…</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center"><span style="font-family:var(--mono);font-size:9.5px;color:var(--info)">editable</span><span style="font-size:10.5px;color:var(--fg-dim)">never hidden</span></div>
+      </div>
+      <div style="padding:9px 10px;font-size:11px;color:var(--fg-muted);line-height:1.55">One field and a role. The pack's style bible writes the rest of the prompt and shows it, because the first thing anyone wants to change is the prompt.</div>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--accent)">02</span>
+        <span style="font-size:12px;font-weight:600">Pick an anchor tier</span>
+        <div style="flex:1"></div>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">$0.04–$0.48</span>
+      </div>
+      <div style="padding:10px;background:var(--bg-sunken);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:5px;min-height:168px">
+        <div style="border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.1);padding:7px 8px;display:flex;gap:8px;align-items:center">
+          <div style="width:26px;height:26px;border:1px solid var(--accent);border-radius:2px;background:repeating-linear-gradient(135deg,var(--bg) 0 4px,var(--bg-hover) 4px 8px)"></div>
+          <div style="flex:1"><div style="font-size:11.5px">Base image</div><div style="font-family:var(--mono);font-size:9.5px;color:var(--accent)">1 frame · $0.04–$0.12</div></div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 8px;display:flex;gap:8px;align-items:center">
+          <div style="display:flex;gap:2px">
+            <div style="width:13px;height:26px;border:1px solid var(--border-hi);border-radius:1px;background:var(--bg)"></div>
+            <div style="width:13px;height:26px;border:1px solid var(--border-hi);border-radius:1px;background:var(--bg)"></div>
+            <div style="width:13px;height:26px;border:1px solid var(--border-hi);border-radius:1px;background:var(--bg)"></div>
+          </div>
+          <div style="flex:1"><div style="font-size:11.5px;color:var(--fg-muted)">Turnaround sheet</div><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4 views · $0.16–$0.48</div></div>
+        </div>
+        <div style="border:1px dashed var(--border-hi);border-radius:var(--radius-sm);padding:7px 8px">
+          <div style="font-size:11.5px;color:var(--fg-muted)">3D proxy reference</div>
+          <div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);line-height:1.5">held as reference · 3D editing is v2</div>
+        </div>
+        <div style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Higher tier = fewer consistency failures later. Say that here, not in docs.</div>
+      </div>
+      <div style="padding:9px 10px;font-size:11px;color:var(--fg-muted);line-height:1.55">All three tiers ship in v1 as anchor <em>mechanisms</em>. The estimate sits on the tier, so the trade is visible before anything is spent.</div>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--accent)">03</span>
+        <span style="font-size:12px;font-weight:600">Approve &amp; lock</span>
+        <div style="flex:1"></div>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">gate</span>
+      </div>
+      <div style="padding:10px;background:var(--bg-sunken);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:7px;min-height:168px">
+        <div style="display:flex;gap:5px">
+          <div style="flex:1;height:70px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:repeating-linear-gradient(135deg,var(--bg) 0 5px,var(--bg-hover) 5px 10px);position:relative"><span style="position:absolute;left:4px;bottom:3px;font-family:var(--mono);font-size:8.5px;color:var(--accent)">01</span></div>
+          <div style="flex:1;height:70px;border:1px solid var(--border);border-radius:var(--radius-sm);background:repeating-linear-gradient(135deg,var(--bg) 0 5px,var(--bg-hover) 5px 10px);opacity:.5"></div>
+          <div style="flex:1;height:70px;border:1px solid var(--border);border-radius:var(--radius-sm);background:repeating-linear-gradient(135deg,var(--bg) 0 5px,var(--bg-hover) 5px 10px);opacity:.5"></div>
+        </div>
+        <div style="display:flex;gap:5px">
+          <button style="flex:1;padding:5px 8px;border:0;border-radius:var(--radius-sm);background:#f3efe3;color:#15171c;font-size:11.5px;font-weight:600;cursor:pointer">Lock anchor</button>
+          <button style="padding:5px 8px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Re-roll · $0.04</button>
+        </div>
+        <p style="margin:0;font-size:10.5px;color:var(--fg-dim);line-height:1.5">Locking is free and reversible; everything after it is conditioned on this image.</p>
+      </div>
+      <div style="padding:9px 10px;font-size:11px;color:var(--fg-muted);line-height:1.55">The one hard gate in the flow. Batch generation is disabled until an anchor is locked, and the disabled button says so.</div>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--accent)">04</span>
+        <span style="font-size:12px;font-weight:600">Batch states + moods</span>
+        <div style="flex:1"></div>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">$0.40–$1.60</span>
+      </div>
+      <div style="padding:10px;background:var(--bg-sunken);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;min-height:168px">
+        <div style="display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px">
+          <div style="display:flex;gap:6px;align-items:center"><span style="color:var(--ok)">✓</span><span style="flex:1;color:var(--fg-muted)">idle · 4 frames</span><span style="color:var(--fg-dim)">6.2 s</span></div>
+          <div style="display:flex;gap:6px;align-items:center"><span style="color:var(--ok)">✓</span><span style="flex:1;color:var(--fg-muted)">run · 6 frames</span><span style="color:var(--fg-dim)">9.4 s</span></div>
+          <div style="display:flex;gap:6px;align-items:center"><span style="color:var(--info)">◐</span><span style="flex:1;color:var(--fg)">jump · 6 frames</span><span style="color:var(--info)">running</span></div>
+          <div style="display:flex;gap:6px;align-items:center"><span style="color:var(--fg-dim)">·</span><span style="flex:1;color:var(--fg-dim)">hurt · death · 6 moods</span><span style="color:var(--fg-dim)">queued</span></div>
+        </div>
+        <div style="height:3px;border-radius:2px;background:var(--bg);overflow:hidden"><div style="width:27%;height:100%;background:var(--info)"></div></div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">3 of 11 · 22 s elapsed</span>
+          <div style="flex:1"></div>
+          <button style="padding:3px 7px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Stop</button>
+        </div>
+        <p style="margin:0;font-size:10.5px;color:var(--fg-dim);line-height:1.5">No ETA. Elapsed and count only — the API takes what it takes.</p>
+      </div>
+      <div style="padding:9px 10px;font-size:11px;color:var(--fg-muted);line-height:1.55">Each sheet is written as it lands and is openable immediately. Stopping keeps what finished and re-prices the rest.</div>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--accent)">05</span>
+        <span style="font-size:12px;font-weight:600">QA gate</span>
+        <div style="flex:1"></div>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">free · warns only</span>
+      </div>
+      <div style="padding:10px;background:var(--bg-sunken);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;min-height:168px">
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));background:oklch(68% .13 150/.12);color:var(--ok)">palette 98%</span>
+          <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));background:oklch(68% .13 150/.12);color:var(--ok)">alpha pass</span>
+          <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));background:oklch(72% .14 45/.12);color:var(--warn)">drift · jump 0.31</span>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);padding:7px 8px">
+          <div style="font-size:11px;color:var(--fg);line-height:1.5">Frame 3 of <span style="font-family:var(--mono);font-size:10.5px">jump</span> lost the goggles.</div>
+          <div style="display:flex;gap:5px;margin-top:6px">
+            <button style="flex:1;padding:4px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Re-roll · $0.04</button>
+            <button style="flex:1;padding:4px 6px;border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));border-radius:3px;background:oklch(70% .12 260/.12);color:var(--info);font-size:10.5px;cursor:pointer">Fix by hand · free</button>
+          </div>
+        </div>
+        <p style="margin:0;font-size:10.5px;color:var(--fg-dim);line-height:1.5">Two frames wrong out of forty is a hand-edit, not a re-roll. The copy leads with the free option.</p>
+      </div>
+      <div style="padding:9px 10px;font-size:11px;color:var(--fg-muted);line-height:1.55">Chips use the level editor's language, and any later edit clears them so a stale “pass” never describes an edited sheet.</div>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--accent)">06</span>
+        <span style="font-size:12px;font-weight:600">Hand-tune in PixEd</span>
+        <div style="flex:1"></div>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">free</span>
+      </div>
+      <div style="padding:10px;background:var(--bg-sunken);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px;min-height:168px">
+        <div style="display:flex;gap:3px;align-items:center">
+          <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">jump</span>
+          <div style="display:flex;gap:2px;flex:1">
+            <div style="flex:1;height:30px;border:1px solid var(--border);border-radius:1px;background:var(--bg);opacity:.4"></div>
+            <div style="flex:1;height:30px;border:1px solid var(--border);border-radius:1px;background:var(--bg);opacity:.6"></div>
+            <div style="flex:1;height:30px;border:1.5px solid var(--accent);border-radius:1px;background:var(--bg-hover)"></div>
+            <div style="flex:1;height:30px;border:1px solid var(--border);border-radius:1px;background:var(--bg);opacity:.6"></div>
+            <div style="flex:1;height:30px;border:1px solid var(--border);border-radius:1px;background:var(--bg);opacity:.4"></div>
+          </div>
+        </div>
+        <div style="flex:1;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);background-image:linear-gradient(to right,color-mix(in oklch,var(--border) 60%,transparent) 1px,transparent 1px),linear-gradient(to bottom,color-mix(in oklch,var(--border) 60%,transparent) 1px,transparent 1px);background-size:9px 9px;min-height:62px;position:relative">
+          <div style="position:absolute;inset:14px 32px;border:1px dashed color-mix(in oklch,var(--info) 50%,transparent)"></div>
+          <span style="position:absolute;left:6px;bottom:4px;font-family:var(--mono);font-size:8.5px;color:var(--info)">onion skin ±1 · 35%</span>
+        </div>
+        <div style="display:flex;gap:3px">
+          <span style="width:13px;height:13px;border-radius:2px;background:oklch(60% .11 250);border:1px solid var(--border-hi)"></span>
+          <span style="width:13px;height:13px;border-radius:2px;background:oklch(72% .1 90);border:1px solid var(--border-hi)"></span>
+          <span style="width:13px;height:13px;border-radius:2px;background:oklch(38% .04 250);border:1px solid var(--border-hi)"></span>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);align-self:center;margin-left:3px">coat · metal · shadow</span>
+        </div>
+      </div>
+      <div style="padding:9px 10px;font-size:11px;color:var(--fg-muted);line-height:1.55">Opens on the failing frame inside the state, using the Animation tab's own filmstrip. Save writes one version and re-runs the free checks.</div>
+    </div>
+
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:7px;padding:7px 10px;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--accent)">07</span>
+        <span style="font-size:12px;font-weight:600">Variants &amp; re-anchor</span>
+        <div style="flex:1"></div>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">skins free</span>
+      </div>
+      <div style="padding:10px;background:var(--bg-sunken);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:7px;min-height:168px">
+        <div style="display:flex;gap:5px">
+          <div style="flex:1;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px;text-align:center"><div style="height:26px;border-radius:2px;background:oklch(60% .11 250/.5)"></div><div style="font-family:var(--mono);font-size:8.5px;color:var(--fg-dim);margin-top:3px">base</div></div>
+          <div style="flex:1;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px;text-align:center"><div style="height:26px;border-radius:2px;background:oklch(66% .12 30/.5)"></div><div style="font-family:var(--mono);font-size:8.5px;color:var(--fg-dim);margin-top:3px">skin · rust</div></div>
+          <div style="flex:1;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px;text-align:center"><div style="height:26px;border-radius:2px;background:oklch(72% .1 140/.5)"></div><div style="font-family:var(--mono);font-size:8.5px;color:var(--fg-dim);margin-top:3px">skin · moss</div></div>
+        </div>
+        <div style="border:1px solid color-mix(in oklch,var(--warn) 40%,var(--border));border-radius:var(--radius-sm);background:oklch(72% .14 45/.07);padding:7px 8px">
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);margin-bottom:3px">re-anchor · blast radius</div>
+          <div style="font-size:11px;color:var(--fg-muted);line-height:1.5">11 generated sheets stale. 2 hand-edited frames and 3 skins survive as versions.</div>
+          <div style="display:flex;gap:5px;margin-top:6px">
+            <button style="flex:1;padding:4px 6px;border:1px solid var(--warn);border-radius:3px;background:transparent;color:var(--warn);font-size:10.5px;cursor:pointer">Review plan · $0.40–$1.60</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:9px 10px;font-size:11px;color:var(--fg-muted);line-height:1.55">Recolours are pure code and land beside the base under the same lineage. Re-anchoring hands off to the cascade plan card (P5) rather than acting on its own.</div>
+    </div>
+
+    <div style="border:1px dashed var(--border-hi);border-radius:var(--radius);background:transparent;padding:11px;display:flex;flex-direction:column;gap:9px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">open questions</div>
+      <div><div style="font-size:11.5px;color:var(--fg);line-height:1.5">Do moods generate with the states, or only when dialogue needs them?</div><div style="font-size:10.5px;color:var(--fg-dim);margin-top:2px">Boarded as one batch. Deferring saves money on silent characters.</div></div>
+      <div><div style="font-size:11.5px;color:var(--fg);line-height:1.5">Is the turnaround tier the default?</div><div style="font-size:10.5px;color:var(--fg-dim);margin-top:2px">It costs 4× and prevents most drift. Base image is boarded as default.</div></div>
+      <div style="border-top:1px solid var(--border);padding-top:8px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--err);margin-bottom:4px">failure state</div><div style="font-size:11px;color:var(--fg-muted);line-height:1.55">Generation leg down at step 4: keep what landed, stop, offer “Retry the remaining 5 · $0.20–$0.75”. The lock is untouched.</div></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}"></script>
+</body>
+</html>

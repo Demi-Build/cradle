@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55;--stage:#08090b;--cta-bg:#f3efe3;--cta-fg:#15171c}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a;--stage:#e6e3d9;--cta-bg:#1a1916;--cta-fg:#f7f6f2}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+
+<div style="min-width:1440px;height:100vh;overflow:hidden">
+<div data-theme="{{ theme }}" data-screen-label="S3 · Mesh ops and the Blender round-trip" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center;white-space:nowrap">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>mazeworld-5-room-demo</span><span style="color:var(--fg-dim)">/</span><span>heron-salvager</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">3d · mesh ops</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));background:oklch(68% .13 150/.1);color:var(--ok)">Blender 4.2 LTS · $BLENDER_BIN</span>
+    <button onClick="{{ toggleTheme }}" style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);background:transparent;color:var(--fg-dim);cursor:pointer">theme</button>
+  </header>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr);overflow:hidden;min-height:0;background:var(--bg)">
+
+    <section style="display:flex;flex-direction:column;min-height:0;overflow:hidden">
+      <div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px">
+        <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:99px;border:1px solid var(--info);color:var(--info)">tier 2</span>
+        <span style="font-size:12.5px;font-weight:600">Agent operations</span>
+        <span style="font-size:11px;color:var(--fg-muted)">Deterministic mesh math. Free — headless Blender costs conversation tokens.</span>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+
+        <div style="border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid var(--border);background:oklch(70% .12 260/.06)">
+            <span style="font-size:12px;font-weight:600">Proportional adjust</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted)">shorten the snout 20%</span>
+            <div style="flex:1"></div>
+            <span style="font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:99px;border:1px solid var(--ok);color:var(--ok)">free</span>
+            <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4.1s</span>
+          </div>
+          <div style="padding:11px;display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:12px">
+            <div style="min-width:0">
+              <div style="display:flex;gap:7px;align-items:stretch">
+                <div style="flex:1"><div style="height:112px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);position:relative;overflow:hidden"><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:96px;height:60px"><div style="position:absolute;left:0;top:12px;width:56px;height:38px;border:1.5px solid var(--special);background:oklch(74% .12 300/.2);border-radius:8px"></div><div style="position:absolute;left:52px;top:22px;width:44px;height:16px;border:1px solid color-mix(in oklch,var(--special) 55%,transparent);background:oklch(74% .12 300/.14);border-radius:0 8px 8px 0"></div></div><span style="position:absolute;left:6px;bottom:5px;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">before</span></div></div>
+                <div style="display:flex;align-items:center;font-family:var(--mono);font-size:12px;color:var(--fg-dim)">→</div>
+                <div style="flex:1"><div style="height:112px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));border-radius:var(--radius-sm);background:oklch(68% .13 150/.05);position:relative;overflow:hidden"><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:96px;height:60px"><div style="position:absolute;left:0;top:12px;width:56px;height:38px;border:1.5px solid var(--special);background:oklch(74% .12 300/.2);border-radius:8px"></div><div style="position:absolute;left:52px;top:22px;width:35px;height:16px;border:1px solid color-mix(in oklch,var(--special) 55%,transparent);background:oklch(74% .12 300/.14);border-radius:0 8px 8px 0"></div></div><span style="position:absolute;left:6px;bottom:5px;font-family:var(--mono);font-size:9px;color:var(--ok)">after</span></div></div>
+              </div>
+              <div style="display:flex;gap:5px;margin-top:7px;align-items:center">
+                <button style="padding:3px 9px;border:1px solid var(--border-hi);border-radius:3px;background:var(--bg-sunken);color:var(--fg-muted);font-family:var(--mono);font-size:10px;cursor:pointer">wipe</button>
+                <button style="padding:3px 9px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-family:var(--mono);font-size:10px;cursor:pointer">show the script</button>
+                <span style="font-size:10.5px;color:var(--fg-dim)">bpy: scale head.tip group 0.8 on local Y, preserve weights</span>
+              </div>
+            </div>
+            <div style="border-left:1px solid var(--border);padding-left:11px">
+              <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:5px">gate</div>
+              <div style="display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10.5px">
+                <div style="display:flex;gap:6px;color:var(--fg-muted)"><span style="flex:1">vertex delta</span><span style="color:var(--fg)">0</span></div>
+                <div style="display:flex;gap:6px;color:var(--fg-muted)"><span style="flex:1">manifold</span><span style="color:var(--ok)">yes</span></div>
+                <div style="display:flex;gap:6px;color:var(--fg-muted)"><span style="flex:1">weights kept</span><span style="color:var(--ok)">100%</span></div>
+                <div style="display:flex;gap:6px;color:var(--fg-muted)"><span style="flex:1">silhouette diff</span><span style="color:var(--warn)">0.11</span></div>
+                <div style="display:flex;gap:6px;color:var(--fg-muted)"><span style="flex:1">fits sheet</span><span style="color:var(--ok)">yes</span></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">
+                <button style="padding:6px 10px;border:0;border-radius:var(--radius-sm);background:var(--cta-bg);color:var(--cta-fg);font-size:11.5px;font-weight:600;cursor:pointer">Accept · v5</button>
+                <div style="display:flex;gap:4px">
+                  <button style="flex:1;padding:4px 6px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Tell it more</button>
+                  <button style="flex:1;padding:4px 6px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Reject</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">run another op</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <button style="text-align:left;padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-raised);cursor:pointer"><div style="font-size:11.5px;color:var(--fg)">Decimate / cleanup</div><div style="font-size:10.5px;color:var(--fg-muted);line-height:1.4">4.8k → target tris, weld doubles, fix normals</div></button>
+            <button style="text-align:left;padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-raised);cursor:pointer"><div style="font-size:11.5px;color:var(--fg)">Smart UV unwrap</div><div style="font-size:10.5px;color:var(--fg-muted);line-height:1.4">islands + margin → texture PNG for PixEd</div></button>
+            <button style="text-align:left;padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-raised);cursor:pointer"><div style="font-size:11.5px;color:var(--fg)">Mirror across the spine</div><div style="font-size:10.5px;color:var(--fg-muted);line-height:1.4">geometry, groups and weights, one side to the other</div></button>
+            <button style="text-align:left;padding:7px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-raised);cursor:pointer"><div style="font-size:11.5px;color:var(--fg)">Shape-key scaffold</div><div style="font-size:10.5px;color:var(--fg-muted);line-height:1.4">empty keys named for the 8 canon moods</div></button>
+          </div>
+          <div style="margin-top:7px;display:flex;gap:6px;align-items:center">
+            <input value="" placeholder="or describe the operation — “thin the legs 15%”" style="flex:1;background:var(--bg-sunken);border:1px solid var(--border-hi);border-radius:var(--radius-sm);color:var(--fg);font-size:11.5px;padding:6px 8px" />
+            <button style="padding:6px 11px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg);font-size:11.5px;cursor:pointer">Send · free</button>
+          </div>
+          <p style="margin:7px 0 0;font-size:10.5px;color:var(--fg-muted);line-height:1.45">If what you describe is not an operation — “make the face kinder”, “better hands” — the agent says so and points at tier 3 or at generation. It does not attempt art.</p>
+        </div>
+
+        <div style="border:1px solid color-mix(in oklch,var(--err) 40%,var(--border));border-radius:var(--radius);background:oklch(62% .18 25/.05);padding:10px 11px">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+            <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:99px;border:1px solid var(--err);color:var(--err)">failure state</span>
+            <span style="font-size:11.5px;font-weight:600">Headless run crashed</span>
+            <div style="flex:1"></div>
+            <button style="padding:2px 7px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Retry</button>
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--fg-muted);background:var(--bg-sunken);border:1px solid var(--border);border-radius:3px;padding:6px 7px;line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            <div style="color:var(--fg-dim)">decimate_v3.py · exit 1</div>
+            <div>RuntimeError: Modifier is disabled, skipping apply</div>
+            <div style="color:var(--fg-dim)">… 14 more lines</div>
+          </div>
+          <p style="margin:6px 0 0;font-size:10.5px;color:var(--fg-muted);line-height:1.45">The script and the stderr tail are always shown — a failed op is debuggable, not mysterious. The mesh is untouched; nothing was written.</p>
+        </div>
+      </div>
+    </section>
+
+    <div style="background:var(--border)"></div>
+
+    <section style="display:flex;flex-direction:column;min-height:0;overflow:hidden">
+      <div style="padding:8px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px">
+        <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:99px;border:1px solid var(--special);color:var(--special)">tier 3</span>
+        <span style="font-size:12.5px;font-weight:600">The Blender round-trip</span>
+        <span style="font-size:11px;color:var(--fg-muted)">Your hands, real Blender, returning as a version.</span>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+
+        <div style="border:1px solid color-mix(in oklch,var(--special) 45%,var(--border));border-radius:var(--radius);background:var(--bg-raised);padding:11px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:12px;font-weight:600">Watching for your save</span>
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--special)"></span>
+            <div style="flex:1"></div>
+            <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">elapsed 6m 12s</span>
+            <button style="padding:2px 7px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Cancel watch</button>
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--fg-muted);background:var(--bg-sunken);border:1px solid var(--border);border-radius:3px;padding:7px 8px;line-height:1.7">
+            <div><span style="color:var(--fg-dim)">exported</span> ~/mazeworld/exchange/heron-salvager.v4.glb</div>
+            <div><span style="color:var(--fg-dim)">opened with</span> Blender 4.2.5 LTS</div>
+            <div><span style="color:var(--fg-dim)">watching</span> mtime · re-import offered on save</div>
+          </div>
+          <p style="margin:7px 0 0;font-size:11px;color:var(--fg-muted);line-height:1.5">Cradle invokes Blender as an external process on a glTF file. Nothing is embedded, nothing is linked — the licence stays where it belongs.</p>
+        </div>
+
+        <div style="border:1px solid color-mix(in oklch,var(--accent) 50%,var(--border));border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-bottom:1px solid var(--border);background:oklch(72% .13 78/.07)">
+            <span style="font-size:12px;font-weight:600">Save detected · re-import diff</span>
+            <div style="flex:1"></div>
+            <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">14s ago</span>
+          </div>
+          <div style="padding:11px">
+            <div style="display:flex;gap:7px;align-items:stretch;margin-bottom:9px">
+              <div style="flex:1"><div style="height:118px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);position:relative;overflow:hidden"><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:96px"><div style="position:absolute;left:14px;top:0;width:28px;height:24px;border:1px solid color-mix(in oklch,var(--special) 60%,transparent);background:oklch(74% .12 300/.18);border-radius:12px 12px 4px 4px"></div><div style="position:absolute;left:10px;top:26px;width:36px;height:40px;border:1.5px solid var(--special);background:oklch(74% .12 300/.2);border-radius:6px"></div><div style="position:absolute;left:18px;top:68px;width:8px;height:28px;border:1px solid color-mix(in oklch,var(--special) 45%,transparent);background:oklch(74% .12 300/.12);border-radius:4px"></div><div style="position:absolute;left:30px;top:68px;width:8px;height:28px;border:1px solid color-mix(in oklch,var(--special) 45%,transparent);background:oklch(74% .12 300/.12);border-radius:4px"></div></div><span style="position:absolute;left:6px;bottom:5px;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">v4 · in cradle</span></div></div>
+              <div style="display:flex;align-items:center;font-family:var(--mono);font-size:12px;color:var(--fg-dim)">→</div>
+              <div style="flex:1"><div style="height:118px;border:1px solid color-mix(in oklch,var(--accent) 50%,var(--border));border-radius:var(--radius-sm);background:oklch(72% .13 78/.05);position:relative;overflow:hidden"><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:96px"><div style="position:absolute;left:13px;top:0;width:30px;height:26px;border:1px solid color-mix(in oklch,var(--special) 60%,transparent);background:oklch(74% .12 300/.18);border-radius:14px 14px 4px 4px"></div><div style="position:absolute;left:10px;top:28px;width:36px;height:40px;border:1.5px solid var(--special);background:oklch(74% .12 300/.2);border-radius:8px"></div><div style="position:absolute;left:17px;top:70px;width:9px;height:26px;border:1px solid color-mix(in oklch,var(--special) 45%,transparent);background:oklch(74% .12 300/.12);border-radius:4px"></div><div style="position:absolute;left:30px;top:70px;width:9px;height:26px;border:1px solid color-mix(in oklch,var(--special) 45%,transparent);background:oklch(74% .12 300/.12);border-radius:4px"></div></div><span style="position:absolute;left:6px;bottom:5px;font-family:var(--mono);font-size:9px;color:var(--accent)">your saved file</span></div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;font-family:var(--mono);font-size:10.5px">
+              <div style="display:flex;gap:6px;color:var(--fg-muted)"><span style="flex:1">vertex count</span><span style="color:var(--fg)">4 812 → 5 044</span></div>
+              <div style="display:flex;gap:6px;color:var(--fg-muted)"><span style="flex:1">bone names</span><span style="color:var(--ok)">14 / 14 match</span></div>
+              <div style="display:flex;gap:6px;color:var(--fg-muted)"><span style="flex:1">weight sanity</span><span style="color:var(--ok)">no unweighted</span></div>
+              <div style="display:flex;gap:6px;color:var(--fg-muted)"><span style="flex:1">UV islands</span><span style="color:var(--fg)">unchanged · 9</span></div>
+              <div style="display:flex;gap:6px;color:var(--fg-muted)"><span style="flex:1">texture maps</span><span style="color:var(--warn)">base colour replaced</span></div>
+              <div style="display:flex;gap:6px;color:var(--fg-muted)"><span style="flex:1">silhouette diff</span><span style="color:var(--warn)">0.08 vs v4</span></div>
+            </div>
+            <div style="margin-top:9px;border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));border-radius:var(--radius-sm);background:oklch(72% .14 45/.07);padding:7px 8px">
+              <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);margin-bottom:3px">what this import will stale</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--fg-muted);line-height:1.6"><div>4 pose renders · conditioned on the old geometry <span style="color:var(--warn)">NR</span></div><div>2 state clips · re-check deformation <span style="color:var(--warn)">NR</span></div><div style="color:var(--ok)">the 2D anchor and its sheets · untouched</div></div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:9px;align-items:center">
+              <button style="padding:6px 12px;border:0;border-radius:var(--radius-sm);background:var(--cta-bg);color:var(--cta-fg);font-size:12px;font-weight:600;cursor:pointer">Import as new version · v5</button>
+              <button style="padding:6px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Discard</button>
+              <div style="flex:1"></div>
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">journaled with before/after hashes</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="border:1px dashed var(--border-hi);border-radius:var(--radius);background:var(--bg-sunken);padding:10px 11px">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:5px">
+            <span style="font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:99px;border:1px solid var(--border-hi);color:var(--fg-dim)">alternate state</span>
+            <span style="font-size:11.5px;color:var(--fg-muted)">Blender not installed</span>
+          </div>
+          <button disabled="" style="width:100%;text-align:left;padding:6px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:11px;cursor:not-allowed;margin-bottom:5px" title="Blender was not found at $BLENDER_BIN, on PATH, or in /Applications. Tier 2 and tier 3 both need it.">Open in Blender · not found</button>
+          <p style="margin:0;font-size:10.5px;color:var(--fg-muted);line-height:1.5">Detected exactly like Godot: <span style="font-family:var(--mono);font-size:10px">$BLENDER_BIN</span> → PATH → /Applications. Every tier 2 and tier 3 affordance disables with that reason and an install pointer. Recipes are pinned to 4.x LTS and version-gated — a 5.0 install is reported, not silently used.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">
+    <span>heron-salvager · 3d · mesh ops</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span>v4 current · 1 op awaiting Accept</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span style="color:var(--accent)">re-import ready</span>
+    <div style="flex:1"></div>
+    <span style="color:var(--fg-dim)">operations are journaled with their script · art is a round-trip</span>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme: "light" };
+  renderVals() {
+    return {
+      theme: this.state.theme,
+      toggleTheme: () => this.setState((p) => ({ theme: p.theme === "dark" ? "light" : "dark" })),
+    };
+  }
+}
+</script>
+</body>
+</html>

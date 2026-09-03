@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b; --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55;
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;color:var(--fg)}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+</style>
+</helmet>
+
+<div data-screen-label="P8 · boss from parts" style="min-width:1440px;padding:26px 30px 34px;background:var(--bg)">
+
+  <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:14px">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">flow board · P8</div>
+      <h1 style="margin:4px 0 0;font-size:21px;font-weight:600;letter-spacing:-.01em">A boss from parts, and everything that follows it</h1>
+    </div>
+    <div style="flex:1"></div>
+    <p style="margin:0;max-width:540px;font-size:11.5px;color:var(--fg-muted);line-height:1.55;text-wrap:pretty">The flow that proves the moodboard is not decoration. References become enemies, enemies become a boss by splicing, and the boss's own parts travel onward as the source material for its sounds and its area's theme. One thread, four destinations, nothing retyped.</p>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">entry: References ▸ new board</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">exit: boss, 3 attack sounds, area theme — all sharing one lineage</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));background:oklch(72% .14 45/.1);color:var(--warn)">total spend $0.68–$2.20</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:96px repeat(5,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+
+    <div style="background:var(--bg-sunken);padding:8px 10px"></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1</div><div style="font-size:11.5px;font-weight:600">Build the board</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">2</div><div style="font-size:11.5px;font-weight:600">Generate the enemies</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3</div><div style="font-size:11.5px;font-weight:600">Splice the boss</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4</div><div style="font-size:11.5px;font-weight:600">Sound its attacks</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">5</div><div style="font-size:11.5px;font-weight:600">Score its area</div></div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)">user</span><span style="font-size:10.5px;color:var(--fg-dim)">decides, approves</span></div>
+
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Drops five photographs and a tone note onto a new board, <span style="font-family:var(--mono);font-size:10.5px">Weir bestiary</span>. Turns steering on for art, leaves music off.</p>
+      <div style="display:flex;gap:3px">
+        <div style="flex:1;height:34px;border:1px solid var(--border);border-radius:2px;background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 4px,var(--bg-hover) 4px 8px)"></div>
+        <div style="flex:1;height:34px;border:1px solid var(--border);border-radius:2px;background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 4px,var(--bg-hover) 4px 8px)"></div>
+        <div style="flex:1;height:34px;border:1px solid var(--border);border-radius:2px;background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 4px,var(--bg-hover) 4px 8px)"></div>
+        <div style="flex:1;height:34px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken);display:flex;align-items:center;justify-content:center"><span style="font-family:var(--mono);font-size:8px;color:var(--fg-dim)">note</span></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">free · uploads and curation</span>
+    </div>
+
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Makes three enemies — two steered by the board, one from a prompt alone, to see the difference.</p>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:3px;padding:4px 6px"><span style="width:18px;height:18px;border-radius:2px;background:oklch(62% .12 20/.4);flex:none"></span><span style="font-size:10.5px;flex:1">scrap-hound</span><span style="font-family:var(--mono);font-size:9px;color:var(--accent)">board</span></div>
+        <div style="display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:3px;padding:4px 6px"><span style="width:18px;height:18px;border-radius:2px;background:oklch(58% .1 300/.4);flex:none"></span><span style="font-size:10.5px;flex:1">husk</span><span style="font-family:var(--mono);font-size:9px;color:var(--accent)">board</span></div>
+        <div style="display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:3px;padding:4px 6px"><span style="width:18px;height:18px;border-radius:2px;background:oklch(66% .09 60/.4);flex:none"></span><span style="font-size:10.5px;flex:1">mote</span><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">prompt only</span></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">$0.12–$0.36</span>
+    </div>
+
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Picks two enemies and a photo into the source tray, weights them, and splices. Keeps candidate b, then locks it as the boss's anchor.</p>
+      <div style="display:flex;align-items:center;gap:5px">
+        <span style="width:20px;height:20px;border-radius:2px;background:oklch(62% .12 20/.4);border:1px solid var(--border-hi)"></span>
+        <span style="width:20px;height:20px;border-radius:2px;background:oklch(58% .1 300/.4);border:1px solid var(--border-hi)"></span>
+        <span style="width:20px;height:20px;border-radius:2px;background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 4px,var(--bg-hover) 4px 8px);border:1px solid var(--border-hi)"></span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim)">→</span>
+        <span style="width:34px;height:34px;border-radius:2px;background:oklch(56% .13 340/.5);border:1.5px solid var(--accent)"></span>
+      </div>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">0.5 hound · 0.3 husk · 0.2 cistern</span>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">$0.08–$0.30 · anchor $0.16–$0.48</span>
+    </div>
+
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Sends the boss <em>and its parts</em> to SFX. Generates three attack sounds in place, on the frames where each attack lands.</p>
+      <div style="display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;color:var(--fg-muted)">
+        <div style="display:flex;gap:6px"><span style="flex:1">slam · frame 4</span><span style="color:var(--ok)">kept</span></div>
+        <div style="display:flex;gap:6px"><span style="flex:1">grind · frames 2, 6</span><span style="color:var(--ok)">kept</span></div>
+        <div style="display:flex;gap:6px"><span style="flex:1">shriek · frame 1</span><span style="color:var(--warn)">re-rolled once</span></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">$0.12–$0.36</span>
+    </div>
+
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Opens the Music editor with the boss and its component enemies already on the brief, and writes the Weir's theme against them.</p>
+      <div style="border:1px solid var(--border);border-radius:3px;background:var(--bg-sunken);padding:5px 6px;font-size:10.5px;color:var(--fg-muted);line-height:1.45">“grinding, wet, something too big for the room”</div>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">$0.20–$0.70</span>
+    </div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info)">cradle</span><span style="font-size:10.5px;color:var(--fg-dim)">does the work</span></div>
+
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Stores each reference once, tags it by kind, and shows the composed prompt any surface will send. Curation is metadata; nothing is generated and nothing leaves the machine yet.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Runs each request with the board's on-references as guidance at their weights, and records <em>which</em> references steered each result — so the prompt-only enemy is identifiable later as the odd one out.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Multi-source img2img: the tray's images are the inputs, weights are the mix. The result is a normal entity whose lineage names its parts (<span style="font-family:var(--mono);font-size:10px">spliced from scrap-hound, husk</span>), and locking its anchor starts its own consistency chain.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Carries the boss's lineage into the SFX brief as material — the parts are audible suggestions, not decoration: a hound's grit plus a husk's hollow. Candidates play pinned to their frames in the running loop.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Pre-fills the Music brief from the boss, its parts and the area's palette, and auditions candidates in the boss room at that region's volume and crossfade.</div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn)">spend</span><span style="font-size:10.5px;color:var(--fg-dim)">&amp; QA gates</span></div>
+
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">References, boards, weights, steering switches — all free, always.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--warn)">$0.12–$0.36</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Three separate confirms, one per enemy — a bestiary is browsing, not a batch.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--warn)">$0.24–$0.78</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Splice, then the anchor lock. QA runs free on the result: palette conformance and silhouette read at sprite size.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--warn)">$0.12–$0.36</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Priced per sound, in place. Keep none costs the one run and nothing is written.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--warn)">$0.20–$0.70</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Two candidates. The area theme is one track; its tension section comes later as a variant.</span></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px">
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info);margin-bottom:5px">the thread that makes this work</div>
+      <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Lineage is the through-line. Because the splice records its parts, step 4 and step 5 can ask "what is this thing made of?" and get a real answer. Nothing in this flow is retyped, and no screen needs a private copy of the references.</p>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);margin-bottom:5px">three strengths of influence</div>
+      <div style="font-size:11px;color:var(--fg-muted);line-height:1.6">
+        <div><span style="color:var(--fg)">Curated</span> — on a board, visible, changing nothing</div>
+        <div><span style="color:var(--fg)">Steering</span> — in the prompt at a weight</div>
+        <div><span style="color:var(--fg)">Source</span> — the image the result is generated <em>from</em></div>
+      </div>
+      <p style="margin:6px 0 0;font-size:10.5px;color:var(--fg-dim);line-height:1.45">Same library, three verbs. Confusing them is how tools end up steering with everything you ever uploaded.</p>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px">
+      <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--err);margin-bottom:5px">to settle in build</div>
+      <p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Whether the image provider supports true multi-source img2img with weights, or whether a splice must be composed locally first and sent as one image. The design reads the same either way; the cost and quality do not.</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}"></script>
+</body>
+</html>

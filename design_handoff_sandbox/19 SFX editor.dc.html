@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55;--stage:#08090b;--cta-bg:#f3efe3;--cta-fg:#15171c}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a;--stage:#e6e3d9;--cta-bg:#1a1916;--cta-fg:#f7f6f2}
+html,body{margin:0;padding:0}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select{font-family:inherit}
+@keyframes pulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+</style>
+</helmet>
+
+<div style="min-width:1440px;background:var(--bg)">
+<div data-theme="{{ theme }}" data-screen-label="Q · sfx editor" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center;white-space:nowrap">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>mazeworld-5-room-demo</span><span style="color:var(--fg-dim)">/</span><span>step_stone</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">sfx</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);color:var(--fg-dim)">a sound is an asset · bindings live on the thing</span>
+    <button onClick="{{ toggleTheme }}" style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);background:transparent;color:var(--fg-dim);cursor:pointer">theme</button>
+  </header>
+
+  <div style="display:grid;grid-template-columns:208px minmax(0,1fr) 372px;overflow:hidden;min-height:0">
+
+    <aside style="border-right:1px solid var(--border);background:var(--bg-raised);padding:10px 0;overflow:hidden">
+      <button style="display:block;width:100%;text-align:left;background:none;color:var(--fg);border:0;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">Mazeworld · 5-room demo</button>
+      <div style="padding:11px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">SFX (28)</div>
+      <div style="padding:0 14px 4px 22px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-dim)">movement</div>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)"><span style="flex:1">step_stone</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--special)">4 var</span></button>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer"><span style="flex:1">step_water</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3 var</span></button>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer"><span style="flex:1">land_hard</span></button>
+      <div style="padding:8px 14px 4px 22px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-dim)">objects</div>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer"><span style="flex:1">latch_wood</span></button>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer"><span style="flex:1">shatter_a</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3 var</span></button>
+      <div style="padding:8px 14px 4px 22px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-dim)">ui &amp; stingers</div>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer"><span style="flex:1">secret_found</span></button>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-dim);border:0;padding:6px 14px 4px 22px;font-size:12px;text-align:left;cursor:pointer">+ New sound</button>
+      <div style="padding:11px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Also here</div>
+      <a href="./18 Music editor.dc.html" style="display:block;padding:4px 14px 4px 22px;font-size:12px;color:var(--fg-muted)">Music (6)</a>
+      <a href="./17 Audio.dc.html" style="display:block;padding:4px 14px 4px 22px;font-size:12px;color:var(--fg-muted)">Audio dock · bindings</a>
+    </aside>
+
+    <main style="display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0">
+      <div style="display:flex;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <button style="background:none;color:var(--fg);border:0;border-bottom:2px solid var(--accent);padding:8px 13px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Sound</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">Bindings</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">History</button>
+        <div style="flex:1"></div>
+        <button style="align-self:center;padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Publish…</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:9px;padding:6px 20px;border-bottom:1px solid var(--border);background:var(--bg-raised)">
+        <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);flex:none">sfx editor</span>
+        <span style="font-size:11.5px;color:var(--fg-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Author the sound and its variant set here. Where it fires — frame, event or place — is set on the thing.</span>
+        <div style="flex:1;min-width:8px"></div>
+        <a href="./17 Audio.dc.html" style="flex:none;padding:3px 9px;border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));border-radius:var(--radius-sm);background:oklch(70% .12 260/.1);color:var(--info);font-size:11.5px;white-space:nowrap">Bind in the dock →</a>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:14px 20px 20px">
+
+        <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px">
+          <div style="min-width:0;flex:1">
+            <div style="display:flex;align-items:baseline;gap:9px">
+              <h1 style="margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em">step_stone</h1>
+              <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">sfx_2b70</span>
+              <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">movement</span>
+            </div>
+            <p style="margin:5px 0 0;font-size:12px;color:var(--fg-muted);line-height:1.55;max-width:600px">Wet stone footstep, small creature, soft grit. Four variants so a run cycle never repeats the same sample twice in a row.</p>
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+              <span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">0.18 s</span>
+              <span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">surface · stone</span>
+              <span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--special) 45%,var(--border));color:var(--special)">4 variants</span>
+              <span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));color:var(--info)">bound in 6 places</span>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;flex-direction:column;gap:5px;width:170px">
+            <button style="padding:6px 10px;border:0;border-radius:var(--radius-sm);background:var(--cta-bg);color:var(--cta-fg);font-size:12px;font-weight:600;cursor:pointer">▶ Play variant set</button>
+            <select style="padding:5px 8px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px"><option>with run · heron</option><option>dry</option><option>in l1r3</option></select>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+          <span style="font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted)">the sample</span>
+          <span style="font-size:11.5px;color:var(--fg-dim)">trim and envelope only — this is not a DAW</span>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:11px 12px;margin-bottom:18px">
+          <div style="position:relative;height:70px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:8px">
+            <div style="position:absolute;left:0;right:0;top:50%;height:1px;background:var(--border-hi)"></div>
+            <div style="position:absolute;left:6%;right:22%;top:8px;bottom:8px;background:repeating-linear-gradient(90deg,color-mix(in oklch,var(--special) 55%,transparent) 0 2px,transparent 2px 4px);opacity:.7"></div>
+            <div style="position:absolute;left:0;width:6%;top:0;bottom:0;background:oklch(0% 0 0/.35);border-right:2px solid var(--accent);cursor:ew-resize"></div>
+            <div style="position:absolute;right:0;width:22%;top:0;bottom:0;background:oklch(0% 0 0/.35);border-left:2px solid var(--accent);cursor:ew-resize"></div>
+            <span style="position:absolute;left:calc(6% + 5px);top:5px;font-family:var(--mono);font-size:9px;color:var(--accent)">trim · 0.18 s kept</span>
+            <span style="position:absolute;right:5px;bottom:4px;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">44.1 kHz mono</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px">
+            <div style="display:flex;align-items:center;gap:7px"><span style="font-family:var(--mono);font-size:11px;flex:1">attack</span><input value="2" style="width:44px;text-align:right;background:var(--bg-sunken);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11px;padding:2px 5px" /><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">ms</span></div>
+            <div style="display:flex;align-items:center;gap:7px"><span style="font-family:var(--mono);font-size:11px;flex:1">release</span><input value="60" style="width:44px;text-align:right;background:var(--bg-sunken);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11px;padding:2px 5px" /><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">ms</span></div>
+            <div style="display:flex;align-items:center;gap:7px"><span style="font-family:var(--mono);font-size:11px;flex:1">gain</span><input value="-12" style="width:44px;text-align:right;background:var(--bg-sunken);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11px;padding:2px 5px" /><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">dB</span></div>
+            <div style="display:flex;align-items:center;gap:7px"><span style="font-family:var(--mono);font-size:11px;flex:1">pitch var</span><input value="±0.08" style="width:52px;text-align:right;background:var(--bg-sunken);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11px;padding:2px 5px" /></div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+          <span style="font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted)">variant set</span>
+          <span style="font-size:11.5px;color:var(--fg-dim)">the engine rotates through these so repeats never sound mechanical</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-bottom:18px">
+          <div style="border:1.5px solid var(--accent);border-radius:var(--radius);background:var(--bg-raised);padding:9px 10px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><button style="width:20px;height:18px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg);font-size:9px;cursor:pointer">▶</button><span style="font-family:var(--mono);font-size:10.5px;flex:1">a</span></div>
+            <div style="height:24px;background:repeating-linear-gradient(90deg,color-mix(in oklch,var(--special) 50%,transparent) 0 2px,transparent 2px 4px);opacity:.7;border-radius:2px"></div>
+          </div>
+          <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px 10px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><button style="width:20px;height:18px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:9px;cursor:pointer">▶</button><span style="font-family:var(--mono);font-size:10.5px;flex:1;color:var(--fg-muted)">b</span></div>
+            <div style="height:24px;background:repeating-linear-gradient(90deg,color-mix(in oklch,var(--special) 40%,transparent) 0 2px,transparent 2px 5px);opacity:.6;border-radius:2px"></div>
+          </div>
+          <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px 10px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><button style="width:20px;height:18px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:9px;cursor:pointer">▶</button><span style="font-family:var(--mono);font-size:10.5px;flex:1;color:var(--fg-muted)">c</span></div>
+            <div style="height:24px;background:repeating-linear-gradient(90deg,color-mix(in oklch,var(--special) 40%,transparent) 0 3px,transparent 3px 5px);opacity:.6;border-radius:2px"></div>
+          </div>
+          <div style="border:1px solid var(--warn);border-radius:var(--radius);background:oklch(72% .14 45/.05);padding:9px 10px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><button style="width:20px;height:18px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:9px;cursor:pointer">▶</button><span style="font-family:var(--mono);font-size:10.5px;flex:1;color:var(--fg-muted)">d</span><span style="font-family:var(--mono);font-size:9px;color:var(--warn)">loud</span></div>
+            <div style="height:24px;background:repeating-linear-gradient(90deg,color-mix(in oklch,var(--warn) 45%,transparent) 0 2px,transparent 2px 3px);opacity:.7;border-radius:2px"></div>
+          </div>
+          <div style="border:1px dashed var(--accent);border-radius:var(--radius);background:oklch(72% .13 78/.05);padding:9px 10px;display:flex;flex-direction:column;gap:5px">
+            <div style="font-size:11.5px">+ variant</div>
+            <p style="margin:0;font-size:10.5px;color:var(--fg-muted);line-height:1.4">Generated from this sample, same surface and length.</p>
+            <div style="flex:1"></div>
+            <button style="padding:3px 6px;border:1px solid var(--accent);border-radius:3px;background:oklch(72% .13 78/.12);color:var(--accent);font-size:10.5px;cursor:pointer">$0.03–$0.10</button>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+          <span style="font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted)">where it is bound</span>
+          <span style="font-size:11.5px;color:var(--fg-dim)">read-only here — bindings belong to the thing that fires them</span>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:9px;padding:7px 11px;border-bottom:1px solid var(--border)"><span style="font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:99px;border:1px solid var(--special);color:var(--special);flex:none">frame</span><span style="font-size:11.5px;color:var(--fg-muted);flex:1">heron-salvager · run · frames 2, 5</span><a href="./17 Audio.dc.html" style="font-size:11px;color:var(--info)">open</a></div>
+          <div style="display:flex;align-items:center;gap:9px;padding:7px 11px;border-bottom:1px solid var(--border)"><span style="font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:99px;border:1px solid var(--special);color:var(--special);flex:none">frame</span><span style="font-size:11.5px;color:var(--fg-muted);flex:1">scrap-hound · walk · frames 1, 4</span><a href="./17 Audio.dc.html" style="font-size:11px;color:var(--info)">open</a></div>
+          <div style="display:flex;align-items:center;gap:9px;padding:7px 11px;border-bottom:1px solid var(--border)"><span style="font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:99px;border:1px solid var(--ok);color:var(--ok);flex:none">event</span><span style="font-size:11.5px;color:var(--fg-muted);flex:1">pressure_plate · stepped on</span><a href="./17 Audio.dc.html" style="font-size:11px;color:var(--info)">open</a></div>
+          <div style="display:flex;align-items:center;gap:9px;padding:7px 11px"><span style="font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:99px;border:1px solid var(--info);color:var(--info);flex:none">place</span><span style="font-size:11.5px;color:var(--fg-muted);flex:1">l1r3 · dripping ledge emitter</span><a href="./17 Audio.dc.html" style="font-size:11px;color:var(--info)">open</a></div>
+        </div>
+      </div>
+    </main>
+
+    <aside style="border-left:1px solid var(--border);background:var(--bg-raised);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+      <div style="padding:9px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+        <span style="font-size:12.5px;font-weight:600">Generate</span>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">this sound</span>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:10px">
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:4px">brief</div>
+          <div style="border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:7px 8px;font-size:11.5px;line-height:1.5">wet stone footstep, small creature, soft grit<span style="color:var(--accent)">|</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:11px;flex:1">length</span><input value="0.20" style="width:52px;text-align:right;background:var(--bg-sunken);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11px;padding:2px 5px" /><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);width:20px">s</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:11px;flex:1">surface</span><select style="background:var(--bg-sunken);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-size:11px;padding:2px 5px"><option>stone</option><option>water</option><option>metal</option><option>wood</option></select></div>
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:11px;flex:1">variants</span><div style="display:inline-flex;border:1px solid var(--border-hi);border-radius:3px;overflow:hidden"><button style="width:18px;height:18px;border:0;background:var(--bg-sunken);color:var(--fg-muted);cursor:pointer;font-size:11px">−</button><span style="font-family:var(--mono);font-size:11px;padding:0 8px">4</span><button style="width:18px;height:18px;border:0;background:var(--bg-sunken);color:var(--fg-muted);cursor:pointer;font-size:11px">+</button></div></div>
+          <button style="align-self:flex-start;padding:2px 7px;border:1px dashed var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-family:var(--mono);font-size:9.5px;cursor:pointer">Advanced · 5 keys</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted);flex:1">one set of 4</span>
+          <button style="padding:5px 11px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.14);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer">Generate · $0.04–$0.16</button>
+        </div>
+        <p style="margin:0;font-size:10.5px;color:var(--fg-dim);line-height:1.5">Candidates play <strong style="color:var(--fg-muted);font-weight:600">pinned to their binding</strong> — with the run loop, on the plate, or at the emitter — never in isolation.</p>
+
+        <div style="height:1px;background:var(--border)"></div>
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:5px">or start from</div>
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <button style="display:flex;align-items:center;gap:7px;text-align:left;padding:5px 7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;cursor:pointer;color:var(--fg)"><span style="font-size:11px;flex:1">Record from mic</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">free</span></button>
+            <button style="display:flex;align-items:center;gap:7px;text-align:left;padding:5px 7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;cursor:pointer;color:var(--fg)"><span style="font-size:11px;flex:1">Import a file</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">free</span></button>
+            <button style="display:flex;align-items:center;gap:7px;text-align:left;padding:5px 7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;cursor:pointer;color:var(--fg)"><span style="font-size:11px;flex:1">Vary an existing sound</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">$0.03</span></button>
+          </div>
+        </div>
+
+        <div style="height:1px;background:var(--border)"></div>
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--info);margin-bottom:5px">in-place generation</div>
+          <p style="margin:0 0 7px;font-size:11px;color:var(--fg-muted);line-height:1.55">You should never have to come here to make a sound. While the jump is <em>playing</em>, scrub to the frame that needs one and make it there — the same popover appears on a frame lane, an event row or an emitter:</p>
+          <div style="border:1px solid var(--border-hi);border-radius:var(--radius);background:var(--bg-sunken);padding:8px 9px;box-shadow:0 8px 20px rgba(0,0,0,.35)">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">
+              <span style="font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--special)">frame</span>
+              <span style="font-family:var(--mono);font-size:10px;color:var(--fg)">jump · frame 1 · takeoff</span>
+              <div style="flex:1"></div>
+              <span style="font-family:var(--mono);font-size:9px;color:var(--ok)">▶ looping</span>
+            </div>
+            <div style="border:1px solid var(--border-hi);border-radius:3px;background:var(--bg);padding:5px 6px;font-size:10.5px;color:var(--fg);margin-bottom:6px">short cloth-and-grit push off stone<span style="color:var(--accent)">|</span></div>
+            <div style="display:flex;gap:5px">
+              <button style="flex:1;padding:4px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Pick existing</button>
+              <button style="flex:1;padding:4px 6px;border:1px solid var(--accent);border-radius:3px;background:oklch(72% .13 78/.12);color:var(--accent);font-size:10.5px;cursor:pointer">Generate · $0.04</button>
+            </div>
+            <p style="margin:6px 0 0;font-size:10px;color:var(--fg-dim);line-height:1.45">Each candidate drops onto frame 1 and plays in the running loop as it lands. Keep one and it becomes a real SFX asset with this page, named from the state.</p>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);background:var(--bg-sunken);padding:8px 12px;display:flex;align-items:center;gap:7px">
+        <span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));background:oklch(72% .14 45/.12);color:var(--warn)">trim edited</span>
+        <div style="flex:1"></div>
+        <button style="padding:5px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:12px;cursor:pointer">Revert</button>
+        <button style="padding:5px 12px;border:0;border-radius:var(--radius-sm);background:var(--cta-bg);color:var(--cta-fg);font-size:12px;font-weight:600;cursor:pointer">Save</button>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">
+    <span>step_stone · 0.18 s · stone · 4 variants</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span style="color:var(--info)">bound in 6 places</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span style="color:var(--warn)">trim edited</span>
+    <div style="flex:1"></div>
+    <span style="color:var(--fg-dim)">authored here · fired by frames, events and places</span>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme: "dark" };
+  renderVals() {
+    return {
+      theme: this.state.theme,
+      toggleTheme: () => this.setState((p) => ({ theme: p.theme === "dark" ? "light" : "dark" })),
+    };
+  }
+}
+</script>
+</body>
+</html>

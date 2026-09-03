@@ -111,11 +111,3 @@ export function WorldToolRail({
     </div>
   );
 }
-
-/** Single-key shortcuts for the rail, mirroring the design's V/L/P/S. */
-export const TOOL_KEYS: Record<string, WorldTool> = {
-  v: "select",
-  l: "place",
-  p: "path",
-  s: "stop",
-};

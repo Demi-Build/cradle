@@ -1,6 +1,12 @@
 export type DialogueChoice = {
   text: string;
-  next_node_id: string;
+  /** `null` ends the conversation. WIDENED from `string` by row P0-9: the
+   *  authoring model (`model.ts`) allows a choice that ends the conversation
+   *  rather than pointing at a node, and it must survive the View projection.
+   *  The lane walker below already treats an unresolvable target as "no edge,
+   *  but still a choice", which is exactly the right reading — a node with
+   *  one null-target choice is NOT terminal (PLAN watch-out). */
+  next_node_id: string | null;
 };
 
 export type DialogueNode = {
@@ -99,7 +105,7 @@ function ingestTree(
     const node = nodes[nid];
     const rawChoices = node.choices ?? [];
     const choices: BeatChoice[] = rawChoices
-      .filter((c) => nodes[c.next_node_id])
+      .filter((c) => c.next_node_id !== null && !!nodes[c.next_node_id])
       .map((c) => ({ text: c.text, toBeatId: prefix + c.next_node_id }));
     const isTerminal = rawChoices.length === 0;
     if (isTerminal) info.terminals.push(nid);
@@ -113,7 +119,7 @@ function ingestTree(
       isTerminal,
     });
     for (const c of rawChoices) {
-      if (!nodes[c.next_node_id]) continue;
+      if (c.next_node_id === null || !nodes[c.next_node_id]) continue;
       edges.push({ from: prefix + nid, to: prefix + c.next_node_id, kind });
     }
   }

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px; --radius-lg:10px;
+  --accent:oklch(72% 0.13 78); --accent-ink:oklch(28% 0.05 78);
+  --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45); --err:oklch(62% 0.18 25);
+  --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b;
+  --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55; --stage:#08090b;
+  --cta-bg:#f3efe3; --cta-fg:#15171c;
+}
+[data-theme="light"]{
+  --bg:#f7f6f2; --bg-raised:#ffffff; --bg-sunken:#efede6; --bg-hover:#edebe2;
+  --border:#e0dccf; --border-hi:#c9c2af;
+  --fg:#1a1916; --fg-muted:#6a6860; --fg-dim:#95928a; --stage:#e6e3d9;
+  --cta-bg:#1a1916; --cta-fg:#f7f6f2;
+}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select{font-family:inherit}
+@keyframes pulse{0%{opacity:1}50%{opacity:.35}100%{opacity:1}}
+</style>
+</helmet>
+
+<div style="min-width:1440px;height:100vh;overflow:hidden">
+<div data-theme="{{ theme }}" data-screen-label="A · character mode (flat)" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center;white-space:nowrap">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>mazeworld-5-room-demo</span><span style="color:var(--fg-dim)">/</span><span>l1r2</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">level · character</span>
+    </div>
+    <div style="flex:1"></div>
+    <button onClick="{{ cycleSession }}" style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);background:transparent;color:var(--fg-dim);letter-spacing:.05em;cursor:pointer">session: {{ sessKey }} · click to cycle</button>
+    <button onClick="{{ toggleTheme }}" style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);background:transparent;color:var(--fg-dim);cursor:pointer">theme</button>
+  </header>
+
+  <div style="display:grid;grid-template-columns:208px minmax(0,1fr) 412px;overflow:hidden;min-height:0">
+
+    <aside style="border-right:1px solid var(--border);background:var(--bg-raised);overflow:hidden;padding:10px 0">
+      <button style="display:block;width:100%;text-align:left;background:none;color:var(--fg);border:0;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">Mazeworld · 5-room demo</button>
+      <div style="margin-top:4px">
+        <div style="padding:7px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Levels (5)</div>
+        <ul style="list-style:none;margin:0;padding:0">
+          <li><button style="display:flex;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer"><span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim)">l1r1</span><span>Ember Threshold</span></button></li>
+          <li><button style="display:flex;gap:8px;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)"><span style="font-family:var(--mono);font-size:11px;color:var(--accent)">l1r2</span><span>The Long Gap</span></button></li>
+          <li><button style="display:flex;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer"><span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim)">l1r3</span><span>Cistern</span></button></li>
+        </ul>
+        <div style="padding:11px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Actors</div>
+        <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)"><span style="width:12px;height:12px;background:var(--accent);opacity:.5;border-radius:2px"></span>Player</button>
+        <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer">Enemies (7)</button>
+        <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer">Items (12)</button>
+        <div style="padding:11px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Sessions (1)</div>
+        <button style="display:flex;align-items:center;gap:7px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 26px;font-size:11.5px;text-align:left;cursor:pointer"><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span><span style="font-family:var(--mono);font-size:11px">pygame · l1r2</span></button>
+      </div>
+    </aside>
+
+    <main style="display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0">
+
+      <div style="display:flex;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Overview</button>
+        <button style="background:none;color:var(--fg);border:0;border-bottom:2px solid var(--accent);padding:8px 13px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Level</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Animation</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">History</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:9px;padding:7px 14px;border-bottom:1px solid var(--border);background:var(--bg-raised);flex-wrap:nowrap;overflow:hidden">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:var(--radius-sm);border:1px solid color-mix(in oklch,var(--accent) 45%,var(--border));background:oklch(72% .13 78/.1);color:var(--accent)">pygame<span style="color:var(--fg-dim);font-size:9px;letter-spacing:.08em;text-transform:uppercase">primary</span></span>
+        <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-dim);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px 8px;opacity:.55">godot</span>
+        <span style="width:1px;height:18px;background:var(--border)"></span>
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:{{ sessColor }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ sessColor }};animation:{{ sessAnim }}"></span><strong style="font-weight:600">{{ sessLabel }}</strong></span>
+        <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ sessNote }}</span>
+        <div style="flex:1;min-width:8px"></div>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim);white-space:nowrap">swap <span style="color:var(--ok)">{{ swapMs }}</span></span>
+        <span style="width:1px;height:18px;background:var(--border);flex:none"></span>
+        <button style="flex:none;padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer;white-space:nowrap" title="Launch a sandbox session for this level — ⌘R">▶ Launch</button>
+        <button style="flex:none;padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer;white-space:nowrap">⟳</button>
+        <button style="flex:none;padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer;white-space:nowrap">⏹</button>
+      </div>
+
+      <div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:0">
+
+        <div style="position:relative;background:var(--stage);overflow:hidden;border-right:1px solid var(--border)">
+          <div style="position:absolute;inset:0;background-image:linear-gradient(to right,color-mix(in oklch,var(--border) 70%,transparent) 1px,transparent 1px),linear-gradient(to bottom,color-mix(in oklch,var(--border) 70%,transparent) 1px,transparent 1px);background-size:20px 20px;opacity:.55"></div>
+          <div style="position:absolute;left:0;right:0;bottom:60px;height:20px;background:color-mix(in oklch,var(--accent) 22%,var(--stage));border-top:2px solid color-mix(in oklch,var(--accent) 55%,var(--stage))"></div>
+          <div style="position:absolute;left:5%;bottom:80px;width:24%;height:20px;background:color-mix(in oklch,var(--accent) 16%,var(--stage));border-top:2px solid color-mix(in oklch,var(--accent) 40%,var(--stage))"></div>
+          <div style="position:absolute;right:6%;bottom:120px;width:28%;height:20px;background:color-mix(in oklch,var(--accent) 16%,var(--stage));border-top:2px solid color-mix(in oklch,var(--accent) 40%,var(--stage))"></div>
+          <div style="position:absolute;left:32%;right:0;bottom:40px;height:20px;background:repeating-linear-gradient(45deg,oklch(62% .18 25/.16) 0 6px,transparent 6px 12px);border-top:1px dashed color-mix(in oklch,var(--err) 60%,transparent)"></div>
+          <div style="position:absolute;left:32%;bottom:24px;font-family:var(--mono);font-size:9px;color:color-mix(in oklch,var(--err) 70%,var(--fg-dim));letter-spacing:.07em;white-space:nowrap">KILL PLANE · 5.0-cell gap</div>
+
+          <div style="position:absolute;left:12%;bottom:100px;width:14px;height:20px;background:var(--fg);border-radius:2px;box-shadow:0 0 0 2px color-mix(in oklch,var(--info) 60%,transparent)"></div>
+          <div style="position:absolute;left:9%;bottom:126px;display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--info);white-space:nowrap"><span style="width:8px;height:8px;border:1.5px solid var(--info);border-radius:50%"></span>spawn 12,18</div>
+          <svg viewBox="0 0 300 120" preserveAspectRatio="none" style="position:absolute;left:14%;right:32%;bottom:118px;height:84px;overflow:visible"><path d="M0 112 C 70 -10, 190 -10, 262 94" style="fill:none;stroke:oklch(70% .12 260);stroke-width:1.5;stroke-dasharray:4 4;opacity:.75"></path></svg>
+          <div style="position:absolute;right:10px;top:12px;font-family:var(--mono);font-size:9.5px;color:var(--info);white-space:nowrap;background:color-mix(in oklch,var(--bg-raised) 88%,transparent);border:1px solid color-mix(in oklch,var(--info) 35%,var(--border));border-radius:var(--radius-sm);padding:2px 7px">arc · apex 0.34 s · 4.6 cells</div>
+
+          <div style="position:absolute;left:12px;top:12px;display:flex;flex-direction:column;gap:2px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:4px;box-shadow:0 1px 2px rgba(0,0,0,.4)">
+            <button style="width:30px;height:30px;border:0;border-radius:var(--radius-sm);background:none;color:var(--fg-muted);font-size:13px;cursor:pointer">▶</button>
+            <button style="width:30px;height:30px;border:0;border-radius:var(--radius-sm);background:var(--bg-hover);color:var(--accent);font-size:13px;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)">✛</button>
+            <button style="width:30px;height:30px;border:0;border-radius:var(--radius-sm);background:none;color:var(--fg-muted);font-size:13px;cursor:pointer">⌖</button>
+            <div style="height:1px;background:var(--border);margin:2px 4px"></div>
+            <button style="width:30px;height:30px;border:0;border-radius:var(--radius-sm);background:none;color:var(--fg-muted);font-size:13px;cursor:pointer">▦</button>
+          </div>
+
+          <div style="position:absolute;left:52px;top:12px;max-width:236px;background:var(--bg-raised);border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));border-radius:var(--radius);padding:6px 8px;box-shadow:0 1px 2px rgba(0,0,0,.4)">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--info)">spawn tool</span>
+              <span style="display:inline-block;padding:0 4px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:9px;color:var(--fg-muted)">S</span>
+            </div>
+            <p style="margin:3px 0 0;font-size:11px;color:var(--fg-muted);line-height:1.45">Click the canvas or minimap to move this session's spawn.</p>
+          </div>
+
+          <div style="position:absolute;right:10px;bottom:10px;width:150px;height:66px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+            <div style="position:absolute;left:6px;right:6px;bottom:16px;height:3px;background:color-mix(in oklch,var(--accent) 45%,var(--bg-sunken))"></div>
+            <div style="position:absolute;left:44px;right:6px;bottom:9px;height:3px;background:repeating-linear-gradient(45deg,oklch(62% .18 25/.35) 0 4px,transparent 4px 8px)"></div>
+            <div style="position:absolute;left:22px;bottom:22px;width:4px;height:6px;background:var(--fg)"></div>
+            <div style="position:absolute;left:18px;bottom:20px;width:11px;height:11px;border:1px solid var(--info);border-radius:50%"></div>
+            <div style="position:absolute;left:6px;top:4px;font-family:var(--mono);font-size:8.5px;color:var(--fg-dim);letter-spacing:.07em">l1r2 · 96×32</div>
+          </div>
+        </div>
+
+        <aside style="background:var(--bg-raised);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+          <div style="padding:9px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+            <span style="font-size:12.5px;font-weight:600">Character</span>
+            <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">player · feel</span>
+            <div style="flex:1"></div>
+            <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.5px">
+              <button style="background:var(--bg-hover);color:var(--fg);border:0;padding:2px 8px;font-size:10.5px;border-radius:3px;cursor:pointer;font-weight:500">Focused</button>
+              <button style="background:none;color:var(--fg-muted);border:0;padding:2px 8px;font-size:10.5px;border-radius:3px;cursor:pointer" title="Show every key in the schema, ungrouped — 20 in this pack.">Everything</button>
+            </div>
+            <button style="padding:2px 7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-family:var(--mono);font-size:9.5px;cursor:pointer">⋯</button>
+          </div>
+
+          <div style="padding:9px 12px;border-bottom:1px solid var(--border);background:var(--bg-sunken)">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">
+              <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">can he make the jump</span>
+              <div style="flex:1"></div>
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">derived · live</span>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:10px">
+              <div style="flex:none"><div style="font-family:var(--mono);font-size:19px;color:var(--warn);line-height:1.1">−0.4</div><div style="font-size:10.5px;color:var(--fg-muted)">cells short of the 5.0 gap</div></div>
+              <div style="flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 8px">
+                <div><div style="font-family:var(--mono);font-size:12px">4.6</div><div style="font-size:10px;color:var(--fg-dim)">max distance</div></div>
+                <div><div style="font-family:var(--mono);font-size:12px">0.34 s</div><div style="font-size:10px;color:var(--fg-dim)">to apex</div></div>
+                <div><div style="font-family:var(--mono);font-size:12px">16.5</div><div style="font-size:10px;color:var(--fg-dim)">jump velocity</div></div>
+              </div>
+            </div>
+          </div>
+          <div style="flex:1;min-height:0;overflow-y:auto;padding:0 0 8px">
+
+            <div style="padding:9px 12px 6px;display:flex;align-items:center;gap:8px;position:sticky;top:0;background:var(--bg-raised);border-bottom:1px solid var(--border);z-index:1">
+              <span style="font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted)">movement</span>
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">2 overrides</span>
+              <div style="flex:1"></div>
+              <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.5px">
+                <button style="background:var(--bg-hover);color:var(--fg);border:0;padding:2px 8px;font-size:10.5px;border-radius:3px;cursor:pointer;font-weight:500">This level</button>
+                <button style="background:none;color:var(--fg-muted);border:0;padding:2px 8px;font-size:10.5px;border-radius:3px;cursor:pointer;font-weight:500">Whole game</button>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column">
+
+              <div style="padding:8px 12px 9px;border-bottom:1px solid var(--border);box-shadow:inset 2px 0 0 var(--warn);background:oklch(72% .14 45/.045)">
+                <div style="display:flex;align-items:baseline;gap:7px">
+                  <span style="font-family:var(--mono);font-size:11.5px;color:var(--fg)">jump_height</span>
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn);letter-spacing:.06em;text-transform:uppercase">level override</span>
+                  <div style="flex:1"></div>
+                  <input value="3.20" style="width:52px;text-align:right;background:var(--bg-sunken);border:1px solid var(--border-hi);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11.5px;padding:1px 5px" />
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">cells</span>
+                </div>
+                <div style="position:relative;height:16px;margin-top:7px">
+                  <div style="position:absolute;left:0;right:0;top:7px;height:3px;border-radius:2px;background:var(--bg-sunken);border:1px solid var(--border)"></div>
+                  <div style="position:absolute;left:0;width:56%;top:7px;height:3px;border-radius:2px;background:var(--accent)"></div>
+                  <div style="position:absolute;left:34%;top:3px;width:2px;height:11px;background:var(--fg-dim)" title="pack value 2.80"></div>
+                  <div style="position:absolute;left:56%;top:1px;width:11px;height:15px;margin-left:-5px;border-radius:3px;background:var(--cta-bg);border:1px solid var(--border-hi);cursor:grab"></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1.5</span>
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted);white-space:nowrap" title="The pack value 2.80 is shadowed by this level's override.">pack 2.80</span>
+                  <button style="padding:1px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--warn);font-size:10.5px;cursor:pointer;white-space:nowrap">Clear override</button>
+                  <div style="flex:1"></div>
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4.5</span>
+                  <button style="padding:1px 5px;border:1px dashed var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-dim);font-family:var(--mono);font-size:9.5px;cursor:pointer;white-space:nowrap" title="Widening a band is a journaled schema edit — it changes the pack registry for every level.">⤢ band</button>
+                </div>
+              </div>
+
+              <div style="padding:8px 12px 9px;border-bottom:1px solid var(--border);box-shadow:inset 2px 0 0 var(--warn);background:oklch(72% .14 45/.045)">
+                <div style="display:flex;align-items:baseline;gap:7px">
+                  <span style="font-family:var(--mono);font-size:11.5px;color:var(--fg)">gravity</span>
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn);letter-spacing:.06em;text-transform:uppercase">level override</span>
+                  <div style="flex:1"></div>
+                  <input value="38.0" style="width:52px;text-align:right;background:var(--bg-sunken);border:1px solid var(--accent);border-radius:3px;color:var(--fg);font-family:var(--mono);font-size:11.5px;padding:1px 5px" />
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">c/s²</span>
+                </div>
+                <div style="position:relative;height:16px;margin-top:7px">
+                  <div style="position:absolute;left:0;right:0;top:7px;height:3px;border-radius:2px;background:var(--bg-sunken);border:1px solid var(--border)"></div>
+                  <div style="position:absolute;left:0;width:51%;top:7px;height:3px;border-radius:2px;background:var(--accent)"></div>
+                  <div style="position:absolute;left:38%;top:3px;width:2px;height:11px;background:var(--fg-dim)"></div>
+                  <div style="position:absolute;left:51%;top:1px;width:11px;height:15px;margin-left:-5px;border-radius:3px;background:var(--cta-bg);border:1px solid var(--border-hi);cursor:grab"></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">15</span>
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted);white-space:nowrap" title="The pack value 32.0 is shadowed by this level's override.">pack 32.0</span>
+                  <button style="padding:1px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--warn);font-size:10.5px;cursor:pointer;white-space:nowrap">Clear override</button>
+                  <div style="flex:1"></div>
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">60</span>
+                  <button style="padding:1px 5px;border:1px dashed var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-dim);font-family:var(--mono);font-size:9.5px;cursor:pointer;white-space:nowrap">⤢ band</button>
+                </div>
+              </div>
+
+              <div style="padding:7px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+                <span style="font-family:var(--mono);font-size:11.5px;color:var(--fg)">run_speed</span>
+                <div style="position:relative;flex:1;height:12px">
+                  <div style="position:absolute;left:0;right:0;top:5px;height:3px;border-radius:2px;background:var(--bg-sunken);border:1px solid var(--border)"></div>
+                  <div style="position:absolute;left:0;width:62%;top:5px;height:3px;border-radius:2px;background:color-mix(in oklch,var(--accent) 70%,var(--bg-sunken))"></div>
+                  <div style="position:absolute;left:62%;top:0;width:9px;height:13px;margin-left:-4px;border-radius:2px;background:var(--fg-muted)"></div>
+                </div>
+                <span style="font-family:var(--mono);font-size:11.5px;color:var(--fg-muted);width:38px;text-align:right">9.00</span>
+              </div>
+
+              <div style="padding:7px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;opacity:.5" title="code-owned — see below">
+                <span style="font-family:var(--mono);font-size:11.5px;color:var(--fg-muted);text-decoration:line-through;text-decoration-color:var(--fg-dim)">air_accel</span>
+                <div style="position:relative;flex:1;height:12px">
+                  <div style="position:absolute;left:0;right:0;top:5px;height:3px;border-radius:2px;background:repeating-linear-gradient(45deg,var(--border-hi) 0 3px,transparent 3px 6px)"></div>
+                </div>
+                <span style="font-family:var(--mono);font-size:11.5px;color:var(--fg-dim);width:38px;text-align:right">18.0</span>
+              </div>
+              <div style="padding:0 12px 9px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:7px;background:oklch(70% .12 260/.05)">
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--info);letter-spacing:.06em;text-transform:uppercase;padding-top:7px;flex:none">advisory</span>
+                <p style="margin:6px 0 0;font-size:11px;color:var(--fg-muted);line-height:1.5">The engine copy stopped reading this key — <span style="font-family:var(--mono);font-size:10.5px">game_coder</span> rewrote air control in <span style="font-family:var(--mono);font-size:10.5px">player.py</span> on 12 Aug. The slider stays for reference; changing it changes nothing in game.</p>
+                <a href="#" style="flex:none;padding:2px 7px;margin-top:6px;border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));border-radius:3px;color:var(--info);font-size:10.5px;white-space:nowrap">Open in agent →</a>
+              </div>
+            </div>
+
+              <button style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--border);padding:8px 12px;cursor:pointer;color:var(--fg)">
+                <span style="font-size:11px;color:var(--fg-dim)">▶</span>
+                <span style="font-size:12px;flex:1">Advanced <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">8 more movement keys</span></span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">walk · accel · friction · coyote</span>
+              </button>
+            <div style="padding:9px 12px 6px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+              <span style="font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted)">combat</span>
+              <div style="flex:1"></div>
+              <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1.5px">
+                <button style="background:none;color:var(--fg-muted);border:0;padding:2px 8px;font-size:10.5px;border-radius:3px;cursor:pointer">This level</button>
+                <button style="background:var(--bg-hover);color:var(--fg);border:0;padding:2px 8px;font-size:10.5px;border-radius:3px;cursor:pointer;font-weight:500">Whole game</button>
+              </div>
+            </div>
+            <div style="padding:7px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+              <span style="font-family:var(--mono);font-size:11.5px;color:var(--fg);flex:1">player_max_hearts</span>
+              <div style="display:inline-flex;align-items:center;gap:0;border:1px solid var(--border-hi);border-radius:3px;overflow:hidden"><button style="width:19px;height:19px;border:0;background:var(--bg-sunken);color:var(--fg-muted);cursor:pointer;font-size:11px">−</button><span style="font-family:var(--mono);font-size:11.5px;padding:0 8px;color:var(--fg)">3</span><button style="width:19px;height:19px;border:0;background:var(--bg-sunken);color:var(--fg-muted);cursor:pointer;font-size:11px">+</button></div>
+            </div>
+            <div style="padding:7px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+              <span style="font-family:var(--mono);font-size:11.5px;color:var(--fg)">stomp_bounce_factor</span>
+              <div style="position:relative;flex:1;height:12px">
+                <div style="position:absolute;left:0;right:0;top:5px;height:3px;border-radius:2px;background:var(--bg-sunken);border:1px solid var(--border)"></div>
+                <div style="position:absolute;left:0;width:52%;top:5px;height:3px;border-radius:2px;background:color-mix(in oklch,var(--accent) 70%,var(--bg-sunken))"></div>
+                <div style="position:absolute;left:52%;top:0;width:9px;height:13px;margin-left:-4px;border-radius:2px;background:var(--fg-muted)"></div>
+              </div>
+              <span style="font-family:var(--mono);font-size:11.5px;color:var(--fg-muted);width:38px;text-align:right">0.65</span>
+            </div>
+            <div style="padding:7px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+              <span style="font-family:var(--mono);font-size:11.5px;color:var(--fg)">hurt_iframes_s</span>
+              <div style="position:relative;flex:1;height:12px">
+                <div style="position:absolute;left:0;right:0;top:5px;height:3px;border-radius:2px;background:var(--bg-sunken);border:1px solid var(--border)"></div>
+                <div style="position:absolute;left:0;width:36%;top:5px;height:3px;border-radius:2px;background:color-mix(in oklch,var(--accent) 70%,var(--bg-sunken))"></div>
+                <div style="position:absolute;left:36%;top:0;width:9px;height:13px;margin-left:-4px;border-radius:2px;background:var(--fg-muted)"></div>
+              </div>
+              <span style="font-family:var(--mono);font-size:11.5px;color:var(--fg-muted);width:38px;text-align:right">1.20</span>
+            </div>
+            <div style="padding:9px 12px 7px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)">
+              <span style="font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted)">rules</span>
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4 keys</span>
+              <div style="flex:1"></div>
+              <button style="background:none;border:0;color:var(--fg-dim);font-size:11px;cursor:pointer">▶ show</button>
+            </div>
+          </div>
+
+          <div style="border-top:1px solid var(--border);background:var(--bg-sunken);padding:8px 12px;display:flex;flex-direction:column;gap:7px">
+            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+              <span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));background:oklch(72% .14 45/.12);color:var(--warn)">2 unapplied</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--fg-dim)">validation cleared by edit</span>
+              <div style="flex:1"></div>
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">drag is local · Apply writes</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:7px">
+              <button style="flex:none;padding:5px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:12px;cursor:pointer">Revert</button>
+              <button style="flex:1;padding:5px 10px;border:0;border-radius:var(--radius-sm);background:var(--cta-bg);color:var(--cta-fg);font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px">Apply 2 changes <span style="display:inline-block;padding:0 4px;border:1px solid color-mix(in oklch,var(--cta-fg) 25%,transparent);border-radius:3px;font-family:var(--mono);font-size:9.5px;opacity:.7">⌘⏎</span></button>
+            </div>
+            <p style="margin:0;font-size:10.5px;color:var(--fg-dim);line-height:1.45">Apply journals <span style="font-family:var(--mono);font-size:10px;color:var(--fg-muted)">canon tune set</span>, hot-swaps the live session, and re-runs the free validator. Restorable from History.</p>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <aside style="border-left:1px solid var(--border);background:var(--bg-raised);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border)">
+        <span style="font-size:12.5px;font-weight:600">Agent</span>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">game_designer</span>
+        <div style="flex:1"></div>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">412px</span>
+        <button style="width:20px;height:20px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10px;cursor:pointer">⇥</button>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="align-self:flex-end;max-width:88%;background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius);padding:7px 9px;font-size:12px">The jump can't clear the gap in l1r2. Make it just possible with a run-up.</div>
+        <div style="font-size:12px;color:var(--fg-muted);line-height:1.55">The widest gap is 5.0 cells; max distance at the current numbers is 4.2. Two ways: raise <span style="font-family:var(--mono);font-size:11px;color:var(--fg)">jump_height</span> to 3.2 for this level only, or drop <span style="font-family:var(--mono);font-size:11px;color:var(--fg)">gravity</span> pack-wide. I staged the level-only version so the rest of the game keeps its feel.</div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-sunken);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:7px;padding:6px 9px;border-bottom:1px solid var(--border)">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--ok)">✓</span>
+            <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">tune.stage</span>
+            <span style="font-size:11px;color:var(--fg-muted)">l1r2 · 2 keys</span>
+            <div style="flex:1"></div>
+            <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">free</span>
+          </div>
+          <div style="padding:6px 9px;display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10.5px">
+            <div style="display:flex;gap:8px"><span style="color:var(--fg-muted);flex:1">jump_height</span><span style="color:var(--fg-dim)">2.80</span><span style="color:var(--fg-dim)">→</span><span style="color:var(--accent)">3.20</span></div>
+            <div style="display:flex;gap:8px"><span style="color:var(--fg-muted);flex:1">gravity</span><span style="color:var(--fg-dim)">32.0</span><span style="color:var(--fg-dim)">→</span><span style="color:var(--accent)">38.0</span></div>
+          </div>
+          <div style="padding:6px 9px;border-top:1px solid var(--border);display:flex;align-items:center;gap:7px">
+            <span style="font-size:11px;color:var(--fg-muted);flex:1">Staged in the panel — nothing written yet.</span>
+            <a href="#" style="font-size:11px;color:var(--info)">Show in panel</a>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--fg-muted);line-height:1.55">Play it before you keep it. If it feels floaty, pull <span style="font-family:var(--mono);font-size:11px;color:var(--fg)">gravity</span> back toward 34 — the run-up still clears at 3.2.</div>
+        <div style="border:1px dashed var(--border-hi);border-radius:var(--radius);padding:8px 9px;display:flex;align-items:center;gap:8px">
+          <div style="flex:1"><div style="font-size:11.5px;color:var(--fg)">Regenerate the jump-arc reference frames</div><div style="font-size:10.5px;color:var(--fg-dim)">4 frames · img2img on the locked anchor</div></div>
+          <button style="flex:none;padding:4px 9px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.12);color:var(--accent);font-size:11.5px;cursor:pointer">Generate · $0.07–$0.30</button>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding:8px 12px;display:flex;align-items:center;gap:8px">
+        <input placeholder="Ask, or describe the feel you want…" style="flex:1;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--fg);font-size:12px;padding:6px 8px" />
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">$0.41 today</span>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">
+    <span style="color:{{ sessColor }}">● {{ sessLabel }}</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span>l1r2 · character</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span style="color:var(--warn)">2 unapplied</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span>validator idle — runs on Apply</span>
+    <div style="flex:1"></div>
+    <span style="color:var(--fg-dim)">relaunch budget 3 s · rebuild 1 s · on-disk to visible 100 ms</span>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+const STATES = {
+  live: { label: "live", color: "var(--ok)", note: "edits swap in place", anim: "none", swap: "180 ms" },
+  behind: { label: "behind", color: "var(--warn)", note: "2 keys not in session — restart", anim: "none", swap: "—" },
+  relaunching: { label: "relaunching", color: "var(--info)", note: "rebuilding · 1.4 s of 3 s", anim: "pulse 1.1s ease-in-out infinite", swap: "—" },
+  off: { label: "not running", color: "var(--fg-dim)", note: "launch to tune against the level", anim: "none", swap: "—" },
+};
+const ORDER = ["live", "behind", "relaunching", "off"];
+
+class Component extends DCLogic {
+  state = { theme: "dark", sess: 0 };
+  renderVals() {
+    const key = ORDER[this.state.sess % ORDER.length];
+    const s = STATES[key];
+    return {
+      theme: this.state.theme,
+      sessKey: key,
+      sessLabel: s.label,
+      sessColor: s.color,
+      sessNote: s.note,
+      sessAnim: s.anim,
+      swapMs: s.swap,
+      toggleTheme: () => this.setState((p) => ({ theme: p.theme === "dark" ? "light" : "dark" })),
+      cycleSession: () => this.setState((p) => ({ sess: p.sess + 1 })),
+    };
+  }
+}
+</script>
+</body>
+</html>

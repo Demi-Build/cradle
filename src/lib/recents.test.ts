@@ -42,6 +42,19 @@ describe("loadRecents / saveRecents", () => {
     saveRecents(recents);
     expect(loadRecents()).toEqual(recents);
   });
+
+  it("keeps world_kind (canon's pack_type, open data) and tolerates its absence", () => {
+    // Entries saved before P0-3 carry no kind; RecentTile falls back to its
+    // count-field sniff for those and reads the kind verbatim otherwise.
+    const recents = [
+      mkRecent({ path: "/a", world_kind: "platformer", levels: 2 }),
+      mkRecent({ path: "/b", world_kind: "shooter" }),
+      mkRecent({ path: "/c", rooms: 3 }),
+    ];
+    saveRecents(recents);
+    const loaded = loadRecents();
+    expect(loaded.map((r) => r.world_kind)).toEqual(["platformer", "shooter", undefined]);
+  });
 });
 
 describe("upsertRecent", () => {

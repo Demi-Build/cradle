@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type LineageNode, type LineageTree } from "../../lib/invoke";
 import { useStore } from "../../store";
+import { confirmAction } from "../agent/confirmGateState";
 
 const COL_W = 240;
 const ROW_H = 168;
@@ -41,12 +42,35 @@ const OP_TONE: Record<string, string> = {
   restore: "var(--accent)",
 };
 
-/** Restore target for a node, derived from its facet + owning artifact. */
-function restoreTarget(node: LineageNode, artifactId: string): string | null {
+/** Restore target for a node, derived from its facet + owning artifact.
+ *  Row P0-8 widened the `row` facet from the two platformer families to EVERY
+ *  registry kind — P0-6's write core restores a collection kind's file, so
+ *  `npc:1000` / `quest:4000` / `class:warrior` all rewind through the same
+ *  `asset restore`. A GRID step is not an asset target at all: it restores
+ *  through its own writer (`grid restore`), so it returns a `GridRestore`. */
+type GridRestore = { grid: true; levelId: string; step: string };
+
+/** The `room:<map_id>/<step>` family (P.9 R1) this node belongs to, if any.
+ *  A node's `artifacts` lists every id whose history holds those bytes — one
+ *  file, two steps, so the room's own id is the one to act on. */
+function gridStepOf(node: LineageNode, artifactId: string): GridRestore | null {
+  const ids = [artifactId, ...node.artifacts];
+  for (const id of ids) {
+    const [, rest] = [id.split(":")[0], id.split(":").slice(1).join(":")];
+    if (!rest?.includes("/")) continue;
+    const parts = rest.split("/");
+    // `room:<id>/<step>` — two parts. (`level:<stage>/<id>/<step>` has three
+    // and keeps the platformer's own restore path.)
+    if (parts.length === 2) return { grid: true, levelId: parts[0], step: parts[1] };
+  }
+  return null;
+}
+
+function restoreTarget(node: LineageNode, artifactId: string): string | GridRestore | null {
   const [kind, rest] = [artifactId.split(":")[0], artifactId.split(":")[1] ?? ""];
+  const grid = gridStepOf(node, artifactId);
+  if (grid) return grid;
   switch (node.facet) {
-    case "row":
-      return kind === "enemy" || kind === "item" ? artifactId : null;
     case "sprite":
       if (artifactId === "player") return "player";
       return kind === "enemy" || kind === "item" ? artifactId : null;
@@ -56,9 +80,28 @@ function restoreTarget(node: LineageNode, artifactId: string): string | null {
       const band = node.detail?.band;
       return kind === "backdrop" && band !== undefined ? `backdrop:${rest}/${band}` : null;
     }
+    case "row":
+    case "data":
+      // Every registry kind's row file (P.4.1: the CAS unit is the FILE, so a
+      // row restore brings the whole collection back — the label says so).
+      return rest ? artifactId : null;
     default:
       return null;
   }
+}
+
+/** What a restore of this node actually covers. A collection kind's CAS unit
+ *  is its FILE (P.4.1), so restoring one row's version restores every row in
+ *  that file — the button must say so rather than imply a single row. */
+function restoreScope(node: LineageNode, target: string | GridRestore): string {
+  // A room's two STEPS share ONE file (maze.json), but `restore_room_step` is
+  // scoped to the named step's own keys: restoring `grid` keeps the placement
+  // edits made since, and vice versa. Say which step is the unit.
+  if (typeof target !== "string")
+    return `restores this room's ${target.step} step — the other step keeps the edits made since`;
+  if (node.facet === "row" || node.facet === "data")
+    return "restores the whole row file — every row in it comes back";
+  return "restores this version";
 }
 
 export function LineagePanel({
@@ -138,18 +181,22 @@ export function LineagePanel({
   const doRestore = async (node: LineageNode) => {
     const target = restoreTarget(node, artifactId);
     if (!target) return;
+    // Free (a journaled restore) — the confirm card, never the paid card.
     if (
-      !window.confirm(
-        `Restore this ${node.facet} version (${shortHash(node.id)}) as current?\n\n` +
-          "Nothing is deleted — newer versions stay in the history and this " +
-          "becomes a new branch.",
-      )
+      !(await confirmAction({
+        title: `Restore this ${node.facet} version (${shortHash(node.id)}) as current?`,
+        body:
+          `${restoreScope(node, target)}. Nothing is deleted — newer versions stay in the ` +
+          "history and this becomes a new branch.",
+        confirmLabel: "Restore",
+      }))
     )
       return;
     setBusy(node.id);
     setNote(null);
     try {
-      await api.assetRestore(worldPath, target, node.id);
+      if (typeof target === "string") await api.assetRestore(worldPath, target, node.id);
+      else await api.restoreGridStep(worldPath, target.levelId, target.step, node.id);
       // Re-select refreshes the whole detail pane (row data AND this tree);
       // the new branch + moved current ring is the visible confirmation.
       select({ kind: "entity", typeId, id: entityId, tab: "history" });
@@ -544,6 +591,59 @@ function CompareStrip({
           </tbody>
         </table>
       )}
+    </div>
+  );
+}
+
+/** A room's History tab. One file (`maze.json`) carries TWO artifact steps —
+ *  `room:<id>/grid` for the painted cells and `room:<id>/placements` for the
+ *  drags, encounter writes and 🎲 npcs/events/items rolls (P.9 R1) — and each
+ *  keeps its own journal chain. Asking for only one of them (which is what the
+ *  History tab used to do) hides every hand edit, so both are offered and the
+ *  step the room editor writes most lands first. */
+export function RoomHistory({
+  gridKind,
+  roomId,
+  typeId,
+  steps = ["placements", "grid"],
+}: {
+  gridKind: string;
+  roomId: string;
+  typeId: string;
+  steps?: string[];
+}) {
+  const [step, setStep] = useState(steps[0]);
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6, padding: "8px 4px 0", alignItems: "center" }}>
+        <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>step</span>
+        {steps.map((s) => (
+          <button
+            key={s}
+            onClick={() => setStep(s)}
+            aria-pressed={s === step}
+            style={{
+              fontSize: 11,
+              padding: "2px 8px",
+              borderRadius: 6,
+              border: "1px solid var(--border)",
+              background: s === step ? "var(--accent)" : "transparent",
+              color: s === step ? "var(--bg)" : "var(--fg)",
+              cursor: "pointer",
+            }}
+          >
+            {s}
+          </button>
+        ))}
+        <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>
+          — one maze.json, two chains: painted cells and placements
+        </span>
+      </div>
+      <LineagePanel
+        artifactId={`${gridKind}:${roomId}/${step}`}
+        typeId={typeId}
+        entityId={roomId}
+      />
     </div>
   );
 }

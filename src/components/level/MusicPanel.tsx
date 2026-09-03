@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { api, type MusicSection, type MusicTrack } from "../../lib/invoke";
 import type { LevelBundle } from "./drawLevel";
 import { AudioPlayer } from "../AudioPlayer";
-import { fmtUsd } from "../../lib/cost";
 import { enqueueJob } from "../../lib/jobs";
 import { PromptOverride } from "../PromptOverride";
+import { confirmSpend } from "../agent/confirmGateState";
 
 /** Flat Lyria per-track price for the pre-run gate (matches cost_model's
  *  music_usd_per_track). The RECORDED spend is the op's real returned cost. */
@@ -73,14 +73,19 @@ export function MusicPanel({
   const generate = (section: number | null) =>
     guard("generate", async () => {
       const paid = backend === "lyria";
-      const est = paid ? `~${fmtUsd(MUSIC_TRACK_USD)} (Lyria)` : "$0 (fake)";
       const where = section == null ? "this level" : `section ${section + 1}`;
+      // The paid card gates Lyria (row P1-A5; fixed per-track price); fake
+      // runs at once.
       if (
-        !window.confirm(
-          `Generate music for ${where} — ${est}.\n\n` +
-            (paid ? "Lyria needs GOOGLE_API_KEY via CANON_ENV_FILE. " : "") +
-            "Proceed?",
-        )
+        !(await confirmSpend({
+          title: `generate music for ${where}`,
+          body: paid ? "Lyria needs GOOGLE_API_KEY via CANON_ENV_FILE." : undefined,
+          backends: { music: backend },
+          backend: "lyria",
+          model: "lyria",
+          fixedUsd: MUSIC_TRACK_USD,
+          unitLabel: "1 track",
+        }))
       )
         return;
       // Fire-and-forget background job — the tray tracks it; the level reloads

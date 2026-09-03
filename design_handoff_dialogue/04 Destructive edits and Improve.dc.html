@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px; --radius-lg:10px;
+  --accent:oklch(72% 0.13 78); --accent-ink:oklch(28% 0.05 78);
+  --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45); --err:oklch(62% 0.18 25);
+  --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b;
+  --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55; --stage:#08090b;
+  --shadow-2:0 30px 80px rgba(0,0,0,.7);
+}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div data-theme="dark" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);position:relative;font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>the-chain-of-orbit</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">whisper-tam · dialogue</span>
+    </div>
+    <div style="flex:1"></div>
+    <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px">
+      <button onClick="{{ showDelete }}" style="{{ delBtn }}">Delete preview</button>
+      <button onClick="{{ showImprove }}" style="{{ impBtn }}">✨ Improve</button>
+    </div>
+  </header>
+
+  <div style="position:relative;overflow:hidden;min-height:0;padding:12px 14px;display:flex;flex-direction:column">
+    <div style="flex:1;min-height:0;position:relative;overflow:auto;background:var(--stage);border:1px solid var(--border);border-top:2px solid var(--accent);border-radius:var(--radius);background-image:radial-gradient(var(--border-hi) 1px,transparent 1px);background-size:20px 20px">
+
+      <sc-if value="{{ isDelete }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;left:12px;top:12px;z-index:5;display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:oklch(76% .16 25);background:color-mix(in srgb,var(--bg-raised) 93%,transparent);border:1px solid oklch(62% .18 25/.55);border-radius:99px;padding:3px 10px;backdrop-filter:blur(12px)">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--err)"></span>consequence preview · nothing deleted yet
+        </div>
+
+        <div style="position:absolute;left:16px;top:48px;transform:scale(.62);transform-origin:top left;width:592px;height:600px">
+          <svg width="592" height="600" style="position:absolute;inset:0;overflow:visible">
+            <path d="M296 148 C296 166 140 158 140 176" stroke="var(--warn)" stroke-width="2.5" stroke-dasharray="5 4" fill="none"></path>
+            <path d="M296 148 C296 166 452 158 452 176" stroke="#555" stroke-width="1.5" fill="none"></path>
+            <path d="M140 322 L140 400" stroke="var(--warn)" stroke-width="2" stroke-dasharray="4 4" fill="none"></path>
+            <path d="M452 306 L452 400" stroke="#555" stroke-width="1.5" fill="none"></path>
+            <text x="152" y="168" fill="var(--warn)" font-size="11" font-family="Inter">becomes end of conversation</text>
+          </svg>
+
+          <div style="position:absolute;left:156px;top:0;width:280px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:12px">
+            <header style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border-radius:8px;font-family:var(--mono);font-weight:600;background:var(--accent);color:var(--accent-ink)">entry</span>
+              <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">start</span>
+            </header>
+            <div style="line-height:1.5;font-size:12.5px">The voices from above sing in frequencies beyond flesh... but their song speaks of unity, not this... this brutality.</div>
+            <div style="margin-top:10px;display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:center;gap:8px;background:oklch(72% .14 45/.12);border:1px dashed var(--warn);border-radius:var(--radius-sm);padding:5px 8px;font-size:11px">
+                <span style="flex:1">What do the voices tell you?</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">→ ⌀</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 8px;font-size:11px"><span style="flex:1">The Chain says you speak heresy.</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">→ heresy</span></div>
+            </div>
+          </div>
+
+          <div style="position:absolute;left:0;top:176px;width:280px;background:color-mix(in oklch,var(--err) 12%,var(--bg-raised));border:2px dashed var(--err);border-radius:var(--radius);padding:12px 14px;font-size:12px">
+            <header style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border-radius:8px;font-family:var(--mono);font-weight:600;background:var(--err);color:#fff">deleting</span>
+              <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">voices</span>
+            </header>
+            <div style="line-height:1.5;font-size:12.5px;text-decoration:line-through;color:var(--fg-muted)">Signal-pattern-seven-seven... harmony not hierarchy... The metal whispers truth - they seek convergence, not conquest.</div>
+            <div style="margin-top:10px;font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">3 choices · 3 gates deleted with it</div>
+          </div>
+
+          <div style="position:absolute;left:312px;top:176px;width:280px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:12px">
+            <header style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border-radius:8px;font-family:var(--mono);font-weight:600;background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border)">tree</span>
+              <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">heresy</span>
+            </header>
+            <div style="line-height:1.5;font-size:12.5px">Heresy? The resonance speaks clearly through copper-song and steel-dreams. The Chain hears static where divine frequency flows...</div>
+          </div>
+
+          <div style="position:absolute;left:0;top:400px;width:280px;background:var(--bg-raised);border:1px dashed var(--warn);border-radius:var(--radius);padding:12px 14px;font-size:12px">
+            <header style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border-radius:8px;font-family:var(--mono);font-weight:600;background:oklch(72% .14 45/.14);color:var(--warn);border:1px solid var(--warn)">becomes unreachable</span>
+              <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">reward</span>
+            </header>
+            <div style="line-height:1.5;font-size:12.5px">The shard sings its way home. Signal-pattern-seven-seven, closing. You have heard what the Prophet buried.</div>
+          </div>
+
+          <div style="position:absolute;left:312px;top:400px;width:280px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:12px">
+            <header style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border-radius:8px;font-family:var(--mono);font-weight:600;background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border)">terminal</span>
+              <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">end</span>
+            </header>
+            <div style="line-height:1.5;font-size:12.5px">When the great transmission comes, you will understand... the metal fragments sing the same tune as distant stars...</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isImprove }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:16px;top:20px;transform:scale(.62);transform-origin:top left;width:592px;height:600px;opacity:.4">
+          <svg width="592" height="600" style="position:absolute;inset:0;overflow:visible">
+            <path d="M296 148 C296 166 140 158 140 176" stroke="#555" stroke-width="1.5" fill="none"></path>
+            <path d="M296 148 C296 166 452 158 452 176" stroke="#555" stroke-width="1.5" fill="none"></path>
+            <path d="M140 322 L140 400" stroke="#555" stroke-width="1.5" fill="none"></path>
+            <path d="M452 306 L452 400" stroke="#555" stroke-width="1.5" fill="none"></path>
+          </svg>
+          <div style="position:absolute;left:156px;top:0;width:280px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:12px">
+            <header style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border-radius:8px;font-family:var(--mono);font-weight:600;background:var(--accent);color:var(--accent-ink)">entry</span>
+              <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">start</span>
+            </header>
+            <div style="line-height:1.5;font-size:12.5px">The voices from above sing in frequencies beyond flesh... but their song speaks of unity, not this... this brutality.</div>
+          </div>
+          <div style="position:absolute;left:0;top:176px;width:280px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:12px">
+            <header style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border-radius:8px;font-family:var(--mono);font-weight:600;background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border)">tree</span>
+              <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">voices</span>
+            </header>
+            <div style="line-height:1.5;font-size:12.5px">Signal-pattern-seven-seven... harmony not hierarchy... The metal whispers truth - they seek convergence, not conquest.</div>
+          </div>
+          <div style="position:absolute;left:312px;top:176px;width:280px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:12px">
+            <header style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;padding:1px 6px;border-radius:8px;font-family:var(--mono);font-weight:600;background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border)">tree</span>
+              <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted)">heresy</span>
+            </header>
+            <div style="line-height:1.5;font-size:12.5px">Heresy? The resonance speaks clearly through copper-song and steel-dreams.</div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:16px;padding:0 12px;border-top:1px solid var(--border);background:var(--bg-raised);font-size:10.5px;color:var(--fg-muted);font-family:var(--mono);white-space:nowrap;overflow:hidden">
+    <span style="color:var(--accent)">MODE EDIT</span>
+    <span>{{ statusLine }}</span>
+    <span style="margin-left:auto;display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10px">⌘K</span>
+  </footer>
+
+  <sc-if value="{{ isDelete }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:flex-start;justify-content:center;padding-top:9vh;z-index:1100">
+      <div role="dialog" style="width:492px;max-width:92vw;background:var(--bg-raised);border:1px solid var(--border-hi);border-radius:12px;box-shadow:var(--shadow-2);overflow:hidden">
+        <div style="padding:16px 18px 10px">
+          <div style="font-size:17px;font-weight:600">Delete node <span style="font-family:var(--mono)">voices</span>?</div>
+          <div style="margin-top:4px;font-size:12px;color:var(--fg-muted);line-height:1.55">The canvas behind this sheet is showing exactly what changes. This lands in the unsaved buffer — <span style="font-family:var(--mono);color:var(--fg)">⌘S</span> is still what writes.</div>
+        </div>
+
+        <div style="padding:0 18px 14px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:flex-start;gap:9px;background:oklch(72% .14 45/.1);border:1px solid color-mix(in oklch,var(--warn) 60%,var(--border));border-radius:var(--radius-sm);padding:9px 10px">
+            <span style="font-family:var(--mono);font-size:11px;color:var(--warn);flex:none">⚠</span>
+            <div style="flex:1">
+              <div style="font-size:12px;color:var(--fg);font-weight:600">1 inbound choice loses its target</div>
+              <div style="margin-top:3px;font-family:var(--mono);font-size:10.5px;color:var(--warn);line-height:1.6">start[1] “What do the voices tell you?” → ends the conversation</div>
+              <div style="margin-top:5px;display:flex;gap:6px;align-items:center;font-size:11px;color:var(--fg-muted)">
+                <span>instead:</span>
+                <select style="background:var(--bg-sunken);border:1px solid var(--border-hi);color:var(--fg);border-radius:3px;padding:2px 5px;font-size:10.5px;font-family:var(--mono)"><option>end the conversation</option><option>re-point to heresy</option><option>re-point to reward</option><option>delete the choice too</option></select>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:9px;background:oklch(72% .14 45/.1);border:1px solid color-mix(in oklch,var(--warn) 60%,var(--border));border-radius:var(--radius-sm);padding:9px 10px">
+            <span style="font-family:var(--mono);font-size:11px;color:var(--warn);flex:none">⚠</span>
+            <div style="flex:1">
+              <div style="font-size:12px;color:var(--fg);font-weight:600">1 node becomes unreachable</div>
+              <div style="margin-top:3px;font-family:var(--mono);font-size:10.5px;color:var(--warn)">reward — nothing else points at it</div>
+              <div style="margin-top:4px;font-size:10.5px;color:var(--fg-dim);line-height:1.5">Unreachable nodes are a warning, not an error. It stays in the tree and keeps its gates; the tester will list it under “unreachable in every state”.</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:9px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 10px">
+            <span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim);flex:none">✓</span>
+            <div style="flex:1;font-size:11.5px;color:var(--fg-muted);line-height:1.5">Entry node is unaffected · 3 gates on this node's choices are deleted with it (<span style="font-family:var(--mono);color:var(--fg)">has_item</span>, <span style="font-family:var(--mono);color:var(--fg)">quest</span>, <span style="font-family:var(--mono);color:var(--fg)">time</span>) · the other 3 variants don't reference it.</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;padding:11px 18px;border-top:1px solid var(--border);background:var(--bg-sunken)">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">⌘Z undoes this before save</span>
+          <div style="flex:1"></div>
+          <button style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Cancel <span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-raised);font-family:var(--mono);font-size:10px">esc</span></button>
+          <button style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border:1px solid oklch(62% .18 25/.55);border-radius:var(--radius-sm);background:transparent;color:oklch(76% .16 25);font-size:11.5px;cursor:pointer">Delete node and 1 choice</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isImprove }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:flex-start;justify-content:center;padding-top:6vh;z-index:1100">
+      <div role="dialog" style="width:720px;max-width:94vw;max-height:86vh;background:var(--bg-raised);border:1px solid var(--border-hi);border-radius:12px;box-shadow:var(--shadow-2);overflow:hidden;display:flex;flex-direction:column">
+        <div style="padding:16px 18px 12px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:17px;font-weight:600">✨ Improve this tree</span>
+            <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid var(--accent);background:oklch(72% .13 78/.1);color:var(--accent);letter-spacing:.06em;text-transform:uppercase">paid · anthropic</span>
+            <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--fg-dim)">canon dialogue improve</span>
+          </div>
+          <div style="margin-top:4px;font-size:12px;color:var(--fg-muted);line-height:1.55">The result arrives as a proposal you accept row by row. Nothing is applied and nothing is written until you accept and then save.</div>
+        </div>
+
+        <div style="flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:296px 1fr">
+
+          <div style="padding:14px;display:flex;flex-direction:column;gap:12px;border-right:1px solid var(--border)">
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">instruction</span>
+              <textarea rows="3" style="background:var(--bg-sunken);border:1px solid var(--border);color:var(--fg);border-radius:var(--radius-sm);padding:7px 9px;font-size:11.5px;line-height:1.5;resize:vertical">Make Tam more reluctant to name the Prophet directly — she should hint, not accuse. Keep every node id.</textarea>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">scope</span>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+                <button style="background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border-hi);font-size:10.5px;padding:2px 9px;border-radius:99px;font-family:var(--mono);cursor:pointer">this node</button>
+                <button style="background:oklch(72% .13 78/.1);color:var(--accent);border:1px solid var(--accent);font-size:10.5px;padding:2px 9px;border-radius:99px;font-family:var(--mono);cursor:pointer">this variant</button>
+                <button style="background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border-hi);font-size:10.5px;padding:2px 9px;border-radius:99px;font-family:var(--mono);cursor:pointer">all 4 variants</button>
+              </div>
+            </div>
+
+            <label style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--fg-muted);cursor:pointer">
+              <span style="width:28px;height:16px;border-radius:99px;background:var(--accent);position:relative;flex:none"><span style="position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--accent-ink)"></span></span>
+              Keep structure — node ids, choice targets and gates are preserved; only prose changes.
+            </label>
+
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">backend</span>
+              <select style="background:var(--bg-sunken);border:1px solid var(--border);color:var(--fg);border-radius:var(--radius-sm);padding:4px 6px;font-size:11.5px"><option>anthropic — paid</option><option>fake — $0, canned text</option></select>
+            </div>
+
+            <div style="background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 11px;display:flex;flex-direction:column;gap:3px">
+              <div style="display:flex;align-items:baseline;gap:8px">
+                <span style="font-size:11.5px;color:var(--fg-muted)">Estimated cost · <span style="color:var(--warn)">paid run</span></span>
+                <span style="margin-left:auto;font-family:var(--mono);font-size:17px;color:var(--fg)">$0.02–0.06</span>
+              </div>
+              <span style="font-size:10.5px;color:var(--fg-dim);line-height:1.5">5 nodes · 7 choices in one request. Key read from <span style="font-family:var(--mono)">CANON_ENV_FILE</span>; a missing key is refused up front with the variable named.</span>
+            </div>
+
+            <details style="border-top:1px solid var(--border);padding-top:9px">
+              <summary style="font-size:11.5px;color:var(--fg-muted);cursor:pointer;list-style:none">Edit prompt (advanced)</summary>
+              <textarea rows="4" style="margin-top:7px;width:100%;background:var(--bg-sunken);border:1px solid var(--border);color:var(--fg-muted);border-radius:var(--radius-sm);padding:7px 9px;font-size:10.5px;font-family:var(--mono);line-height:1.5;resize:vertical">You are re-authoring an NPC dialogue tree for a MazeWorld pack. Preserve node ids, choice targets, conditions and effects exactly. Rewrite only `prompt` and choice `text`…</textarea>
+            </details>
+          </div>
+
+          <div style="padding:14px;display:flex;flex-direction:column;gap:9px;background:var(--bg-sunken)">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">proposal · 3 changes</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--ok)"><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span>structure unchanged</span>
+              <button style="margin-left:auto;background:none;border:0;color:var(--fg-dim);font-size:10.5px;font-family:var(--mono);cursor:pointer;text-decoration:underline">accept all</button>
+            </div>
+
+            <div style="background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+              <div style="display:flex;align-items:center;gap:8px;padding:6px 9px;border-bottom:1px solid var(--border)">
+                <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">voices</span><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">prompt</span>
+                <div style="flex:1"></div>
+                <button style="padding:2px 8px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:10.5px;cursor:pointer">Skip</button>
+                <button style="padding:2px 8px;border:1px solid transparent;border-radius:var(--radius-sm);background:var(--accent);color:var(--accent-ink);font-size:10.5px;font-weight:500;cursor:pointer">Accept</button>
+              </div>
+              <div style="padding:8px 9px;font-size:11.5px;line-height:1.55;background:oklch(62% .18 25/.07);color:var(--fg-muted);border-bottom:1px solid var(--border)">
+                <span style="font-family:var(--mono);color:var(--err);margin-right:6px">−</span>Signal-pattern-seven-seven... harmony not hierarchy... The metal whispers truth - they seek convergence, not conquest. <span style="background:oklch(62% .18 25/.22)">But the Prophet twists the frequency...</span>
+              </div>
+              <div style="padding:8px 9px;font-size:11.5px;line-height:1.55;background:oklch(68% .13 150/.07);color:var(--fg)">
+                <span style="font-family:var(--mono);color:var(--ok);margin-right:6px">+</span>Signal-pattern-seven-seven... harmony not hierarchy... The metal whispers truth - they seek convergence, not conquest. <span style="background:oklch(68% .13 150/.2)">Someone closer to the altar bends the frequency. I did not say who.</span>
+              </div>
+            </div>
+
+            <div style="background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+              <div style="display:flex;align-items:center;gap:8px;padding:6px 9px;border-bottom:1px solid var(--border)">
+                <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">heresy</span><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">prompt</span>
+                <div style="flex:1"></div>
+                <button style="padding:2px 8px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:10.5px;cursor:pointer">Skip</button>
+                <button style="padding:2px 8px;border:1px solid var(--ok);border-radius:var(--radius-sm);background:oklch(68% .13 150/.14);color:var(--ok);font-size:10.5px;font-weight:500;cursor:pointer">Accepted ✓</button>
+              </div>
+              <div style="padding:8px 9px;font-size:11.5px;line-height:1.55;background:oklch(68% .13 150/.07);color:var(--fg)">
+                <span style="font-family:var(--mono);color:var(--ok);margin-right:6px">+</span>Heresy is a word for hearing the wrong part clearly. The resonance comes through copper-song and steel-dreams. The Chain hears static where a frequency flows.
+              </div>
+            </div>
+
+            <div style="background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+              <div style="display:flex;align-items:center;gap:8px;padding:6px 9px;border-bottom:1px solid var(--border)">
+                <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">voices[3]</span><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">choice text</span>
+                <div style="flex:1"></div>
+                <button style="padding:2px 8px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-dim);font-size:10.5px;cursor:pointer">Skip</button>
+                <button style="padding:2px 8px;border:1px solid transparent;border-radius:var(--radius-sm);background:var(--accent);color:var(--accent-ink);font-size:10.5px;font-weight:500;cursor:pointer">Accept</button>
+              </div>
+              <div style="padding:8px 9px;font-size:11.5px;line-height:1.55;background:oklch(62% .18 25/.07);color:var(--fg-muted);border-bottom:1px solid var(--border)"><span style="font-family:var(--mono);color:var(--err);margin-right:6px">−</span>I recovered your resonance shard.</div>
+              <div style="padding:8px 9px;font-size:11.5px;line-height:1.55;background:oklch(68% .13 150/.07);color:var(--fg)"><span style="font-family:var(--mono);color:var(--ok);margin-right:6px">+</span>The shard found me. I brought it back.</div>
+              <div style="padding:6px 9px;border-top:1px solid var(--border);font-family:var(--mono);font-size:9.5px;color:var(--ok)">gates and target unchanged · has_item, quest, → reward</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;padding:11px 18px;border-top:1px solid var(--border);background:var(--bg-sunken)">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">1 of 3 accepted · accepted rows land unsaved</span>
+          <div style="flex:1"></div>
+          <button style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Discard proposal</button>
+          <button style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border:1px solid transparent;border-radius:var(--radius-sm);background:var(--accent);color:var(--accent-ink);font-size:11.5px;font-weight:500;cursor:pointer">Apply 1 accepted change</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="position:absolute;left:12px;bottom:30px;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);border:1px dashed var(--border-hi);border-radius:99px;padding:3px 9px;background:var(--bg-sunken);z-index:1200">{{ badge }}</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { view: "delete" };
+  seg(on) {
+    return "background:" + (on ? "var(--bg-hover)" : "none") +
+      ";color:" + (on ? "var(--fg)" : "var(--fg-muted)") +
+      ";border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500" +
+      (on ? ";box-shadow:inset 0 -2px 0 var(--accent)" : "");
+  }
+  renderVals() {
+    const del = this.state.view === "delete";
+    return {
+      isDelete: del,
+      isImprove: !del,
+      delBtn: this.seg(del),
+      impBtn: this.seg(!del),
+      showDelete: () => this.setState({ view: "delete" }),
+      showImprove: () => this.setState({ view: "improve" }),
+      statusLine: del
+        ? "previewing: delete node voices · 1 orphaned choice · 1 unreachable node"
+        : "improve proposal open · 1 of 3 accepted · nothing written",
+      badge: del
+        ? "screen 04a · destructive edit · consequence preview"
+        : "screen 04b · improve · paid gate + per-row diff",
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -6,15 +6,41 @@
 // Create runs the roll, Create+LLM also authors name/flavor exactly as
 // pipeline generation would (confirm-gated — it spends tokens).
 //
-// EDIT (pass editRow/editId): prefilled from the EXISTING row's flat view
-// (top-level + stats/behavior/params). Values land verbatim via `canon db
-// update` — no rerolls, no LLM; canon rehashes, stamps user_edited, and
-// journals op=edit with the field diff. Only CHANGED fields are sent.
+// EDIT (pass editRow/editId): prefilled from the EXISTING row's flat view.
+// Values land verbatim via `canon db update` — no rerolls, no LLM; canon
+// rehashes, stamps user_edited, and journals op=edit with the field diff.
+// Only CHANGED fields are sent.
+//
+// Row P0-8 made this work for ALL NINE dungeon types, not the two platformer
+// ones. Two literals dissolved into pack data:
+//
+//   • the cradle-typeId → canon-kind map is `pack info`'s own entity list
+//     (`kindForTypeId`), so a NEW kind (`db define`) edits with no code change;
+//   • the `HIDDEN` set is `canon db schema` / `db types`'s per-kind lists,
+//     which row P0-6 added beside the existing four (P0 paper P.1):
+//       hidden      — not rendered (the P.9 S5 hide set)
+//       protected   — rendered, NOT editable, with the reason (doctrine 4:
+//                     disabled-with-a-reason beats hidden), in a collapsed
+//                     section so identity plumbing never crowds the form
+//       routed      — rendered as a LINK to the owning surface ("owned by the
+//                     grid — edit it on the room canvas")
+//       decorative  — editable, with "engine ignores this field"
+//       user_fields — editable; these are the free wins nothing generates
+//
+// List containers (`shop_inventory`, `abilities`, `spells`, `loot_table`,
+// `target_items`, `choices`, `monster_ids`, …) are detected from the ROW —
+// an array value IS a list container — and edited with the grammar the write
+// core accepts (P.1): `<c>[<i>].<key>` for a field, `<c>[+]` to append,
+// `<c>[<i>] = null` to remove. Add/remove are STRUCTURAL: they issue their
+// own `db update` at once (so the indices the next edit uses are the ones on
+// disk) and are disabled while there are unsaved field edits.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../lib/invoke";
 import { DB_NESTING } from "../../lib/dbNesting";
+import { kindForTypeId, typeIdForKind } from "../../lib/placements";
 import { useStore } from "../../store";
+import { confirmSpend } from "../agent/confirmGateState";
 
 type SpecField = {
   name: string;
@@ -24,53 +50,88 @@ type SpecField = {
   depends_on?: string;
 };
 
+/** One entry of `canon db types` — the four original keys plus the five P.1
+ *  lists row P0-6 added. Everything is optional: a pack whose registry
+ *  predates a list simply renders nothing for it. */
 type DbType = {
   skeleton_fields: SpecField[];
   llm_fields: string[];
   code_fields: string[];
-  schema_source?: string;
+  schema_source?: string | null;
+  label?: string;
+  id_field?: string;
+  user_fields?: string[];
+  hidden?: string[];
+  decorative?: string[];
+  protected?: string[];
+  routed?: Record<string, string>;
 };
 
-// cradle type id → canon db type
-const DB_TYPE: Record<string, string> = { enemies: "enemy", items: "item" };
+const PROTECTED_REASON = "identity / provenance / asset plumbing — canon refuses edits here";
+const DECORATIVE_NOTE = "engine ignores this field";
 
-// Identity/provenance/art plumbing — canon refuses these; don't render them.
-const HIDDEN = new Set([
-  "artifact_id",
-  "enemy_id",
-  "item_id",
-  "provenance_hash",
-  "parents",
-  "status",
-  "review_status",
-  "sprite_path",
-  "sprite_hash",
-  "animation",
-  "canon_version",
-]);
+/** What a routed field's owning verb means on screen. The verb string is DATA
+ *  (`grid` | `dialogue` | `scene` | anything a future registry adds), so an
+ *  unknown one still renders its name rather than disappearing. */
+function routedCopy(verb: string): string {
+  if (verb === "grid") return "owned by the grid — edit it on the room canvas";
+  if (verb === "dialogue") return "owned by dialogue — edit it on the Dialogue tab";
+  if (verb === "scene") return "owned by scene — edit it in the scene editor";
+  return `owned by ${verb} — use that surface`;
+}
 
-/** The row's editable flat view — mirrors canon's db-update routing. Known
- * knobs keep their bare names; hand-added custom knobs become dotted
- * "<container>.<key>" paths (the only spelling canon can route). */
-function flattenRow(dbType: string, row: Record<string, unknown>): Record<string, unknown> {
-  const nesting = DB_NESTING[dbType] ?? {};
-  const flat: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(row)) {
-    if (HIDDEN.has(k)) continue;
-    if ((k === "stats" || k === "behavior" || k === "params") && v && typeof v === "object") {
-      for (const [nk, nv] of Object.entries(v as Record<string, unknown>)) {
-        if (HIDDEN.has(nk)) continue;
-        flat[nesting[nk] === k ? nk : `${k}.${nk}`] = nv;
-      }
-    } else if (typeof v !== "object" || Array.isArray(v)) {
-      flat[k] = v;
-    }
-  }
-  return flat;
+/** The last dotted segment — what canon's protected wall matches on
+ *  (`write_core.leaf_of`), so the form classifies a field exactly the way the
+ *  writer will. */
+function leafOf(name: string): string {
+  const bare = name.replace(/\[[^\]]*\]/g, "");
+  return bare.includes(".") ? bare.slice(bare.lastIndexOf(".") + 1) : bare;
 }
 
 function scalarEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+type Split = {
+  /** Flat scalar fields, addressed exactly as canon takes them. */
+  flat: Record<string, unknown>;
+  /** Array-valued fields — the P.1 list containers. */
+  lists: Record<string, unknown[]>;
+};
+
+/** The row's editable view. Known platformer knobs keep their bare names
+ *  (canon's `nesting` map routes them); every other nested key becomes the
+ *  dotted "<container>.<key>" path — the only other spelling the core
+ *  accepts. Arrays split off as list containers. A container the registry
+ *  itself claims (routed to another verb, or protected) is NOT flattened:
+ *  its sub-keys are not addressable, so the form shows the container by name
+ *  and points at the surface that owns it (`dialogue_tree` → dialogue). */
+function splitRow(
+  dbType: string,
+  row: Record<string, unknown>,
+  hidden: Set<string>,
+  claimed: (name: string) => boolean,
+): Split {
+  const nesting = DB_NESTING[dbType] ?? {};
+  const flat: Record<string, unknown> = {};
+  const lists: Record<string, unknown[]> = {};
+  for (const [k, v] of Object.entries(row)) {
+    if (hidden.has(k)) continue;
+    if (claimed(k)) {
+      flat[k] = v;
+    } else if (Array.isArray(v)) {
+      lists[k] = v;
+    } else if (v && typeof v === "object") {
+      for (const [nk, nv] of Object.entries(v as Record<string, unknown>)) {
+        if (hidden.has(nk)) continue;
+        if (Array.isArray(nv)) continue; // a list inside a container: v1.1
+        flat[nesting[nk] === k ? nk : `${k}.${nk}`] = nv;
+      }
+    } else {
+      flat[k] = v;
+    }
+  }
+  return { flat, lists };
 }
 
 export function RowEditor({
@@ -88,14 +149,49 @@ export function RowEditor({
   editId?: string;
 }) {
   const worldPath = useStore((s) => s.worldPath);
-  const dbType = DB_TYPE[typeId];
+  const packInfo = useStore((s) => s.world?.pack_info ?? null);
+  const select = useStore((s) => s.select);
+  const dbType = useMemo(() => kindForTypeId(packInfo, typeId), [packInfo, typeId]);
   const editing = Boolean(editRow && editId);
-  const original = useMemo(() => (editRow ? flattenRow(dbType, editRow) : {}), [dbType, editRow]);
+  const [row, setRow] = useState<Record<string, unknown>>(editRow ?? {});
+  useEffect(() => setRow(editRow ?? {}), [editRow]);
   const [spec, setSpec] = useState<DbType | null>(null);
-  const [fields, setFields] = useState<Record<string, unknown>>(original);
+  const [fields, setFields] = useState<Record<string, unknown>>({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [completeOff, setCompleteOff] = useState<string | null>(null);
+  const [showProtected, setShowProtected] = useState(false);
+  const [newId, setNewId] = useState("");
+
+  const hidden = useMemo(() => new Set(spec?.hidden ?? []), [spec]);
+  const protectedSet = useMemo(() => new Set(spec?.protected ?? []), [spec]);
+  const decorative = useMemo(() => new Set(spec?.decorative ?? []), [spec]);
+  const routed = useMemo(() => spec?.routed ?? {}, [spec]);
+  const idField = spec?.id_field ?? "id";
+  const label = spec?.label ?? dbType;
+  /** The type id of whatever grid this pack declares — where a `grid`-routed
+   *  field is actually edited (rooms for a dungeon, levels for a platformer). */
+  const gridTypeId = useMemo(() => {
+    const gridKind = Object.keys(packInfo?.grids ?? {})[0];
+    return gridKind ? typeIdForKind(gridKind) : null;
+  }, [packInfo]);
+
+  const claimed = useCallback(
+    (name: string) => Boolean(routed[name]) || protectedSet.has(name),
+    [routed, protectedSet],
+  );
+  const split = useMemo(
+    () => (editing ? splitRow(dbType, row, hidden, claimed) : { flat: {}, lists: {} }),
+    [editing, dbType, row, hidden, claimed],
+  );
+  const original = split.flat;
+
+  useEffect(() => {
+    setFields(original);
+    // `original` is rebuilt whenever the row or the hide set changes; the
+    // form follows it so a structural add/remove shows its result at once.
+  }, [original]);
 
   useEffect(() => {
     api
@@ -103,9 +199,23 @@ export function RowEditor({
       .then((r) => {
         const types = (r as { types: Record<string, DbType> }).types;
         setSpec(types[dbType] ?? null);
+        if (!types[dbType]) {
+          setErr(`this pack declares no ${dbType} type — nothing to edit`);
+        }
       })
       .catch((e) => setErr(String(e)));
   }, [worldPath, dbType]);
+
+  const classify = useCallback(
+    (name: string): "protected" | "routed" | "decorative" | "editable" => {
+      const leaf = leafOf(name);
+      if (protectedSet.has(name) || protectedSet.has(leaf)) return "protected";
+      if (routed[name] || routed[leaf]) return "routed";
+      if (decorative.has(name) || decorative.has(leaf)) return "decorative";
+      return "editable";
+    },
+    [protectedSet, routed, decorative],
+  );
 
   const set = (name: string, value: unknown) =>
     setFields((f) => {
@@ -119,33 +229,55 @@ export function RowEditor({
     if (!editing) return {};
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(fields)) {
+      if (classify(k) !== "editable" && classify(k) !== "decorative") continue;
       // A cleared input ("") is "leave it alone", never a literal write —
       // an empty-string hp would poison the play surfaces' numerics.
       if (v === "" && original[k] !== "") continue;
       if (!scalarEqual(v, original[k])) out[k] = v;
     }
     return out;
-  }, [editing, fields, original]);
+  }, [editing, fields, original, classify]);
   const dirty = Object.keys(changed).length > 0;
 
+  /** Re-read the row after a structural list op, without remounting the
+   *  panel (a remount would drop the pane the user is working in). */
+  const refresh = async () => {
+    const fresh = (await api.getEntity(worldPath, typeId, editId!)) as Record<string, unknown>;
+    setRow(fresh);
+  };
+
   const create = async (complete: boolean) => {
+    // Create+LLM spends tokens: the paid card gates it (row P1-A5). A plain
+    // Create is free and asks nothing.
     if (
       complete &&
-      !window.confirm(
-        "LLM-complete this row?\n\nBackend: anthropic (cheap tier — Haiku for " +
-          "enemy/item text). Rough cost: well under 1¢. Anchored fields are " +
-          "preserved; the model authors the rest.",
-      )
+      !(await confirmSpend({
+        title: `LLM-complete this ${dbType} row`,
+        body:
+          "Backend: anthropic (cheap tier). Anchored fields are preserved; the model authors " +
+          "the rest.",
+        backends: { llm: "anthropic" },
+        backend: "anthropic",
+        model: "cheap tier (Haiku)",
+        fixedUsd: 0.01,
+        unitLabel: "1 completion",
+      }))
     )
       return;
     setBusy(true);
     setErr(null);
     try {
-      const result = await api.dbNew(worldPath, dbType, fields, complete);
+      const payload = { ...fields };
+      if (newId.trim()) payload[idField] = newId.trim();
+      const result = await api.dbNew(worldPath, dbType, payload, complete);
       onCreated(result.id);
       onClose();
     } catch (e) {
-      setErr(String(e));
+      const message = String(e);
+      // `db complete` answers a structured not-yet on a kind whose seed binds
+      // no per-row completion body — render the reason, never crash.
+      if (complete && /not_yet|not yet/.test(message)) setCompleteOff(message.slice(0, 200));
+      setErr(message);
     } finally {
       setBusy(false);
     }
@@ -171,6 +303,7 @@ export function RowEditor({
       if (warnings.length) {
         setNote(`saved ✓ — ${warnings[0]}`);
         setRefreshOnClose(true); // panel stays open to show the warning
+        await refresh();
       } else {
         onCreated(editId);
         onClose();
@@ -182,7 +315,25 @@ export function RowEditor({
     }
   };
 
-  const label: React.CSSProperties = {
+  /** One structural list op through the P.1 grammar the core accepts. */
+  const listOp = async (address: string, value: unknown) => {
+    if (!editId) return;
+    setBusy(true);
+    setErr(null);
+    setNote(null);
+    try {
+      await api.dbUpdate(worldPath, dbType, editId, { [address]: value });
+      setRefreshOnClose(true);
+      await refresh();
+      setNote(`saved ✓ — ${address}`);
+    } catch (e) {
+      setErr(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const labelStyle: React.CSSProperties = {
     fontSize: 11,
     color: "var(--fg-dim)",
     display: "block",
@@ -190,20 +341,23 @@ export function RowEditor({
   };
   const marked = (name: string) => (editing ? name in changed && "✎" : name in fields && "🔒");
 
-  // Edit mode shows every flat row field; spec metadata upgrades matching
-  // names to dropdowns/bounded inputs. Extra hand-added knobs render as
-  // plain inputs after the spec-known ones.
   const specNames = new Set([
     "name",
     "flavor",
     ...(spec?.skeleton_fields.map((f) => f.name) ?? []),
   ]);
-  const extraFields = editing ? Object.keys(original).filter((k) => !specNames.has(k)) : [];
+  const orderedExtras = editing ? Object.keys(original).filter((k) => !specNames.has(k)) : [];
+  const extraFields = orderedExtras.filter(
+    (k) => classify(k) === "editable" || classify(k) === "decorative",
+  );
+  const protectedFields = orderedExtras.filter((k) => classify(k) === "protected");
+  const routedFields = orderedExtras.filter((k) => classify(k) === "routed");
 
-  const textInput = (name: string) => (
+  const textInput = (name: string, disabled = false) => (
     <input
       style={{ width: "100%" }}
       value={String(fields[name] ?? "")}
+      disabled={disabled}
       onChange={(e) => set(name, e.target.value)}
       placeholder={editing ? "" : "(let the LLM write it)"}
     />
@@ -217,24 +371,6 @@ export function RowEditor({
           type="checkbox"
           checked={Boolean(fields[name])}
           onChange={(e) => set(name, e.target.checked)}
-        />
-      );
-    }
-    if (Array.isArray(orig)) {
-      return (
-        <input
-          style={{ width: "100%" }}
-          value={(fields[name] as unknown[])?.join(", ") ?? ""}
-          onChange={(e) =>
-            set(
-              name,
-              e.target.value
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean),
-            )
-          }
-          placeholder="comma-separated"
         />
       );
     }
@@ -252,14 +388,19 @@ export function RowEditor({
     return textInput(name);
   };
 
+  const hint = (text: string) => (
+    <span style={{ color: "var(--fg-muted)", fontSize: 10, marginLeft: 6 }}>{text}</span>
+  );
+
   return (
     <div
+      className="row-editor"
       style={{
         position: "fixed",
         top: 0,
         right: 0,
         bottom: 0,
-        width: 320,
+        width: 340,
         background: "var(--bg-raised)",
         borderLeft: "1px solid var(--border)",
         padding: 16,
@@ -270,9 +411,9 @@ export function RowEditor({
     >
       <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
         <strong style={{ flex: 1 }}>
-          {editing ? `Edit ${dbType} · ${editId}` : `New ${dbType}`}
+          {editing ? `Edit ${label} · ${editId}` : `New ${label}`}
         </strong>
-        <button onClick={close} style={{ cursor: "pointer" }}>
+        <button onClick={close} style={{ cursor: "pointer" }} aria-label="Close">
           ✕
         </button>
       </div>
@@ -294,24 +435,41 @@ export function RowEditor({
       {!spec && !err && <p style={{ fontSize: 12 }}>Loading field spec…</p>}
       {spec && (
         <>
-          <label style={label}>
-            name {marked("name")}
-            <input
-              style={{ width: "100%" }}
-              value={(fields.name as string) ?? ""}
-              onChange={(e) => set("name", e.target.value)}
-              placeholder={editing ? "" : "(let the LLM name it)"}
-            />
-          </label>
-          <label style={label}>
-            flavor {marked("flavor")}
-            {textInput("flavor")}
-          </label>
+          {!editing && (
+            <label style={labelStyle}>
+              {idField}
+              {hint("leave blank when canon allocates it")}
+              <input
+                style={{ width: "100%" }}
+                value={newId}
+                onChange={(e) => setNewId(e.target.value)}
+                placeholder="(allocated)"
+              />
+            </label>
+          )}
+          {(!editing || "name" in original) && (
+            <label style={labelStyle}>
+              name {marked("name")}
+              <input
+                style={{ width: "100%" }}
+                value={(fields.name as string) ?? ""}
+                onChange={(e) => set("name", e.target.value)}
+                placeholder={editing ? "" : "(let the LLM name it)"}
+              />
+            </label>
+          )}
+          {(!editing || "flavor" in original) && (
+            <label style={labelStyle}>
+              flavor {marked("flavor")}
+              {textInput("flavor")}
+            </label>
+          )}
           {spec.skeleton_fields
-            .filter((f) => !editing || f.name in original)
+            .filter((f) => (!editing || f.name in original) && classify(f.name) !== "protected")
             .map((f) => (
-              <label key={f.name} style={label}>
+              <label key={f.name} style={labelStyle}>
                 {f.name} {marked(f.name)}
+                {classify(f.name) === "decorative" && hint(DECORATIVE_NOTE)}
                 {f.mode === "choices" ? (
                   <select
                     style={{ width: "100%" }}
@@ -379,12 +537,165 @@ export function RowEditor({
               </label>
             ))}
           {extraFields.map((name) => (
-            <label key={name} style={label}>
+            <label key={name} style={labelStyle}>
               {name} {marked(name)}
+              {classify(name) === "decorative" && hint(DECORATIVE_NOTE)}
               {genericInput(name)}
             </label>
           ))}
-          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+
+          {routedFields.length > 0 && (
+            <div style={{ marginTop: 14 }} data-testid="routed-fields">
+              <div className="dock-sect">Owned by another surface</div>
+              {routedFields.map((name) => {
+                const verb = routed[name] ?? routed[leafOf(name)] ?? "another verb";
+                const go =
+                  verb === "dialogue" && editId
+                    ? () => select({ kind: "entity", typeId, id: editId, tab: "dialogue" })
+                    : verb === "grid" && gridTypeId
+                      ? () => select({ kind: "type", typeId: gridTypeId })
+                      : null;
+                return (
+                  <div key={name} style={{ fontSize: 11, margin: "4px 0" }}>
+                    <span style={{ fontFamily: "var(--mono)" }}>{name}</span>{" "}
+                    {go ? (
+                      <button
+                        className="linkish"
+                        onClick={go}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "var(--accent)",
+                          cursor: "pointer",
+                          padding: 0,
+                          fontSize: 11,
+                        }}
+                      >
+                        {routedCopy(verb)} →
+                      </button>
+                    ) : (
+                      <span style={{ color: "var(--fg-muted)" }}>{routedCopy(verb)}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {Object.keys(split.lists).length > 0 && (
+            <div style={{ marginTop: 14 }} data-testid="list-containers">
+              <div className="dock-sect">Lists</div>
+              {Object.entries(split.lists).map(([container, items]) => {
+                const off = classify(container);
+                return (
+                  <div key={container} style={{ marginTop: 8 }}>
+                    <div style={{ fontSize: 11, color: "var(--fg-dim)" }}>
+                      {container}
+                      {off === "decorative" && hint(DECORATIVE_NOTE)}
+                      {off === "protected" && hint(PROTECTED_REASON)}
+                    </div>
+                    {items.map((item, index) => (
+                      <div
+                        key={`${container}-${index}`}
+                        style={{ display: "flex", gap: 6, alignItems: "center", margin: "3px 0" }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: "var(--mono)",
+                            fontSize: 10,
+                            color: "var(--fg-muted)",
+                          }}
+                        >
+                          [{index}]
+                        </span>
+                        <span style={{ flex: 1, fontSize: 11, overflow: "hidden" }}>
+                          {typeof item === "object" && item !== null
+                            ? Object.entries(item as Record<string, unknown>)
+                                .map(([k, v]) => `${k}=${String(v)}`)
+                                .join(" · ")
+                            : String(item)}
+                        </span>
+                        <button
+                          disabled={busy || off === "protected" || dirty}
+                          title={
+                            off === "protected"
+                              ? PROTECTED_REASON
+                              : dirty
+                                ? "save your field edits first — removing an item renumbers the list"
+                                : `remove ${container}[${index}]`
+                          }
+                          onClick={() => void listOp(`${container}[${index}]`, null)}
+                          style={{ cursor: "pointer", fontSize: 11 }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      disabled={busy || off === "protected" || dirty || !editing}
+                      title={
+                        off === "protected"
+                          ? PROTECTED_REASON
+                          : !editing
+                            ? "add items after the row exists"
+                            : dirty
+                              ? "save your field edits first — appending renumbers the list"
+                              : `append to ${container}`
+                      }
+                      onClick={() =>
+                        void listOp(
+                          `${container}[+]`,
+                          typeof items[0] === "object" && items[0] !== null
+                            ? Object.fromEntries(
+                                Object.keys(items[0] as Record<string, unknown>).map((k) => [
+                                  k,
+                                  "",
+                                ]),
+                              )
+                            : "",
+                        )
+                      }
+                      style={{ cursor: "pointer", fontSize: 11, marginTop: 2 }}
+                    >
+                      ＋ add
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {protectedFields.length > 0 && (
+            <div style={{ marginTop: 14 }} data-testid="protected-fields">
+              <button
+                onClick={() => setShowProtected((v) => !v)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--fg-dim)",
+                  cursor: "pointer",
+                  fontSize: 11,
+                  padding: 0,
+                }}
+              >
+                {showProtected ? "▾" : "▸"} Protected ({protectedFields.length})
+              </button>
+              {showProtected &&
+                protectedFields.map((name) => (
+                  <label key={name} style={labelStyle} title={PROTECTED_REASON}>
+                    {name} {hint(PROTECTED_REASON)}
+                    <input
+                      style={{ width: "100%", opacity: 0.6 }}
+                      disabled
+                      readOnly
+                      value={String(original[name] ?? "")}
+                    />
+                  </label>
+                ))}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
             {editing ? (
               <button
                 disabled={busy || !dirty}
@@ -409,19 +720,21 @@ export function RowEditor({
             ) : (
               <>
                 <button disabled={busy} onClick={() => create(false)} style={{ cursor: "pointer" }}>
-                  {busy ? "…" : "Create (roll only)"}
+                  {busy ? "…" : spec.schema_source ? "🎲 Create (roll only)" : "Create"}
                 </button>
                 <button
-                  disabled={busy}
+                  disabled={busy || !!completeOff}
+                  title={completeOff ?? undefined}
                   onClick={() => create(true)}
                   style={{
-                    cursor: "pointer",
-                    background: "var(--accent)",
-                    color: "var(--accent-ink)",
+                    cursor: completeOff ? "default" : "pointer",
+                    background: completeOff ? undefined : "var(--accent)",
+                    color: completeOff ? undefined : "var(--accent-ink)",
                     fontWeight: 600,
-                    border: "none",
+                    border: completeOff ? undefined : "none",
                     borderRadius: 6,
                     padding: "4px 10px",
+                    opacity: completeOff ? 0.6 : 1,
                   }}
                 >
                   {busy ? "…" : "Create + LLM complete"}

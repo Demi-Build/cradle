@@ -5,6 +5,7 @@ import { enqueueJob } from "../lib/jobs";
 import { PromptOverride } from "./PromptOverride";
 import { WorldSidebar } from "./world/WorldSidebar";
 import { useStore } from "../store";
+import { confirmSpend } from "./agent/confirmGateState";
 
 /** Inline "+ New level" form: a blank DRAFT to paint, or a generated DRAFT
  *  (terrain + enemies + items). Either way it lands a draft — publish is a
@@ -65,15 +66,19 @@ function NewLevelForm({ onDone }: { onDone: () => void }) {
         /* estimate is advisory */
       }
     }
-    const cost =
-      backend === "fake"
-        ? "Generate with the FAKE backend — $0, no API calls (placeholder layout)."
-        : `Generate with anthropic — PAID (est. ${fmtRange(est?.total_usd)}).`;
+    // The paid card gates the spend (row P1-A5 replaced every window.confirm
+    // cost gate); a $0 (fake) selection runs at once — free never
+    // spend-confirms (doctrine 3).
     if (
-      !window.confirm(
-        `${cost}\n\nStage ${stage} · difficulty ${difficulty} · ${width}×${height} · ` +
-          `${enemies} enemies · ${items} items.\n\nLands a DRAFT (publish separately). Proceed?`,
-      )
+      !(await confirmSpend({
+        title: `generate a level in ${stage}`,
+        body:
+          `Generate with anthropic — est. ${fmtRange(est?.total_usd)}.\n` +
+          `Stage ${stage} · difficulty ${difficulty} · ${width}×${height} · ${enemies} enemies · ${items} items.\n` +
+          "Lands a DRAFT (publish separately).",
+        estimate: est,
+        backends: { llm: backend },
+      }))
     )
       return;
     setBusy(true);
@@ -291,12 +296,23 @@ type PartitionCount = { value: string; count: number };
 export function LeftNav() {
   const { world, worldPath, entities, selection, select, setEntities, setError } = useStore();
   const worldStoryTitle = useStore((s) => s.worldStoryTitle);
+  // "Agent changed this" (README §8): an accent dot next to any artifact the
+  // agent touched this session — every open conversation's `touched` list.
+  const touched = useStore((s) => {
+    const keys = new Set<string>();
+    for (const c of Object.values(s.agent.conversations))
+      for (const t of c.touched) keys.add(`${t.typeId}:${t.id}`);
+    return keys.size ? [...keys].sort().join("|") : "";
+  });
+  const touchedSet = new Set(touched ? touched.split("|") : []);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [partitionCounts, setPartitionCounts] = useState<Record<string, PartitionCount[]>>({});
   const [newLevelOpen, setNewLevelOpen] = useState(false);
   const [playingGame, setPlayingGame] = useState(false);
-  // Platformer packs expose tilesets — that's the "can create levels" signal.
-  const isPlatformer = !!world?.entity_counts.some((c) => c.type_id === "tilesets");
+  // The world's registry kind (canon's pack_type) gates the platformer-only
+  // surfaces — world map, library, ▶ Play game, + new level. Read, not sniffed
+  // from tilesets (P0-3: `world_kind` replaces the duck-typed detectors).
+  const isPlatformer = world?.world_kind === "platformer";
 
   useEffect(() => {
     setExpanded({});
@@ -511,6 +527,13 @@ export function LeftNav() {
                           onClick={() => select({ kind: "entity", typeId: type_id, id: ref.id })}
                         >
                           {ref.name ?? ref.id}
+                          {touchedSet.has(`${type_id}:${ref.id}`) && (
+                            <span
+                              className="ag-nav-dot"
+                              title="The agent changed this in this session"
+                              data-testid="nav-agent-dot"
+                            />
+                          )}
                         </button>
                       </li>
                     ))}

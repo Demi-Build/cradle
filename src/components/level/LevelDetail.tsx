@@ -7,26 +7,51 @@
 // all modes) and marks its layer dirty; Save (⌘S) persists — sparse layers via
 // `canon level apply-edit`, the painted grid via `canon level import-grids`
 // (terrain/background/hazards re-derived canon-side) — then re-exports fresh.
+//
+// `room` is the SAME screen rendering a dungeon ROOM: the bundle comes from
+// the one `canon grid export` in the same shape, blocks mode is forced (no
+// tilesheet), and the Dock's tabs come from `pack info`'s placements. Row
+// P0-5 shipped it read-only; row P0-8 turned the writes on — paint / fill /
+// erase → `grid import-grids`, drag / place / erase placements → `grid
+// apply-edit`, a monster drop → an ENCOUNTER (a combat event carrying
+// `monster_ids`, P0 paper P.9 G4), and the per-step 🎲 rolls → `grid roll`,
+// all code-only and $0 (doctrine 3: free never spend-confirms). What a room
+// still cannot do keeps its reason on screen (doctrine 4) — see
+// `readOnlyReasons.ts`.
+//
+// Optimistic UI never diverges from disk: after every write the bundle is
+// re-exported, so what renders is what canon wrote.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { api, type CostEstimate, type ValidationReport } from "../../lib/invoke";
 import { fmtRange } from "../../lib/cost";
 import { enqueueJob } from "../../lib/jobs";
+import { placementTabs, typeIdForKind, type PlacementTab } from "../../lib/placements";
 import { countProblems } from "../../lib/validation";
 import { isShortcut, kbd } from "../../lib/keys";
 import { useStore } from "../../store";
+import { confirmSpend } from "../agent/confirmGateState";
+import { EntityLink } from "../EntityLink";
 import { LevelCanvas } from "./LevelCanvas";
 import { Dock } from "./Dock";
 import { RegenerateLayoutModal } from "./RegenerateLayoutModal";
 import { ImproveLayoutModal } from "./ImproveLayoutModal";
 import { MusicPanel } from "./MusicPanel";
-import { ToolRail, TOOL_KEYS, type Tool } from "./ToolRail";
+import { ToolRail, type Tool } from "./ToolRail";
+import { TOOL_KEYS } from "./toolKeys";
 import { Minimap } from "./Minimap";
 import { AudioLane } from "./AudioLane";
 import type { CamApi, CamState } from "./LevelCanvas";
 import { floodFill } from "./gridOps";
-import type { Brush, LevelBundle, RenderMode, Selection } from "./drawLevel";
+import { RAIL_ROOM, ROLL_COST_NOTE, ROOM_REASONS } from "./readOnlyReasons";
+import {
+  SEL_KIND_BY_WIRE,
+  type Brush,
+  type LevelBundle,
+  type RenderMode,
+  type Selection,
+} from "./drawLevel";
 
 const MODES: { id: RenderMode; label: string }[] = [
   { id: "blocks", label: "Blocks" },
@@ -48,6 +73,22 @@ function resolveAsset(p: string | null, rev = 0): string | null {
     }
   }
   return p;
+}
+
+/** The reason out of a canon CLI refusal: the verb wraps its structured
+ *  error as JSON, and the useful half is the `error` field's sentence. */
+function cleanReason(message: string | undefined): string {
+  if (!message) return "";
+  const brace = message.indexOf("{");
+  if (brace >= 0) {
+    try {
+      const body = JSON.parse(message.slice(brace, message.lastIndexOf("}") + 1));
+      if (typeof body.error === "string") return body.error;
+    } catch {
+      /* not JSON after all — fall through to the raw text */
+    }
+  }
+  return message.replace(/^Error:\s*/, "");
 }
 
 /** Compact relative time ("just now" / "5m ago" / "3h ago" / "2d ago") from an
@@ -84,11 +125,14 @@ type DbInfo = {
   spriteUrl: string | null;
 };
 
-/** enemy/item DB lookups for stamping new placements with display data. */
-function useDbInfo(typeId: "enemies" | "items"): Record<string, DbInfo> {
+/** enemy/item DB lookups for stamping new placements with display data.
+ *  `enabled=false` skips the fetch: a room lists its OWN kinds (see
+ *  `useRoomDb`), and a dungeon pack has no `enemies` type to ask for. */
+function useDbInfo(typeId: string, enabled = true): Record<string, DbInfo> {
   const worldPath = useStore((s) => s.worldPath);
   const [map, setMap] = useState<Record<string, DbInfo>>({});
   useEffect(() => {
+    if (!enabled) return;
     let alive = true;
     (async () => {
       try {
@@ -119,23 +163,92 @@ function useDbInfo(typeId: "enemies" | "items"): Record<string, DbInfo> {
     return () => {
       alive = false;
     };
-  }, [worldPath, typeId]);
+  }, [worldPath, typeId, enabled]);
+  return map;
+}
+
+/** One `Record<id, DbInfo>` per cradle type id — the room palettes' rows.
+ *  Built on `useDbInfo`'s body via one hook per id would break the rules of
+ *  hooks, so this fetches the whole set in a single effect. */
+function useRoomDb(typeIds: string[], enabled: boolean): Record<string, Record<string, DbInfo>> {
+  const worldPath = useStore((s) => s.worldPath);
+  const [map, setMap] = useState<Record<string, Record<string, DbInfo>>>({});
+  const key = typeIds.join(",");
+  useEffect(() => {
+    if (!enabled || !key) return;
+    let alive = true;
+    (async () => {
+      const out: Record<string, Record<string, DbInfo>> = {};
+      for (const typeId of key.split(",")) {
+        try {
+          const rows = await api.listEntityRows(worldPath, typeId);
+          out[typeId] = Object.fromEntries(
+            rows.map((r) => {
+              const data = r.data ?? {};
+              return [
+                r.id,
+                {
+                  name: (data.name as string) ?? (data.title as string) ?? r.id,
+                  size: 1,
+                  kind: (data.category as string) ?? (data.type as string) ?? null,
+                  color: "#7a8b99",
+                  spriteUrl: null,
+                } satisfies DbInfo,
+              ];
+            }),
+          );
+        } catch {
+          out[typeId] = {};
+        }
+      }
+      if (alive) setMap(out);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [worldPath, key, enabled]);
   return map;
 }
 
 type DirtyLayer = "grids" | "entities" | "items" | "triggers" | "markers";
 type SaveState = { status: "idle" | "saving" | "saved" | "error"; msg?: string };
 
-export function LevelDetail({ levelId }: { levelId: string }) {
+export function LevelDetail({
+  levelId,
+  room = false,
+}: {
+  levelId: string;
+  /** This grid is a dungeon ROOM (rows P0-5 + P0-8): blocks mode, tabs from
+   *  `pack info` placements, the maze cell palette, per-step 🎲 rolls, and the
+   *  platformer-only affordances disabled with their reasons. */
+  room?: boolean;
+}) {
   const worldPath = useStore((s) => s.worldPath);
   const select = useStore((s) => s.select);
   const setEntities = useStore((s) => s.setEntities);
   const layout = useStore((s) => s.layout);
   const setLayout = useStore((s) => s.setLayout);
+  // The registry's placements block (`pack info`, kept on the world summary —
+  // one fetch per world load): the Dock tabs and the tray's row links.
+  const packInfo = useStore((s) => s.world?.pack_info ?? null);
+  const tabs = useMemo<PlacementTab[]>(
+    () => (room ? placementTabs(packInfo) : []),
+    [room, packInfo],
+  );
+  /** The roster a monster drop draws from (P.9 G4): a room places monsters
+   *  through an encounter, so the Dock gains a tab for the kind the pack
+   *  declares beside its event placement. Data — absent kind, absent tab. */
+  const monsterTypeId = useMemo(
+    () =>
+      room && packInfo?.entities?.monster && tabs.some((t) => t.kind === "event")
+        ? typeIdForKind("monster")
+        : null,
+    [room, packInfo, tabs],
+  );
   const [bundle, setBundle] = useState<LevelBundle | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [mode, setMode] = useState<RenderMode>("art");
-  const [showGrid, setShowGrid] = useState(false);
+  const [mode, setMode] = useState<RenderMode>(room ? "blocks" : "art");
+  const [showGrid, setShowGrid] = useState(room);
   const [showLabels, setShowLabels] = useState(false);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [brush, setBrushState] = useState<Brush | null>(null);
@@ -204,8 +317,15 @@ export function LevelDetail({ levelId }: { levelId: string }) {
       unlisten?.();
     };
   }, []);
-  const enemyDb = useDbInfo("enemies");
-  const itemDb = useDbInfo("items");
+  const enemyDb = useDbInfo("enemies", !room);
+  const itemDb = useDbInfo("items", !room);
+  // A room's palettes list the pack's OWN rows, per placement kind plus the
+  // monster roster — one fetch per type id, keyed by it.
+  const roomTypeIds = useMemo(
+    () => [...tabs.map((t) => t.typeId), ...(monsterTypeId ? [monsterTypeId] : [])],
+    [tabs, monsterTypeId],
+  );
+  const roomDb = useRoomDb(roomTypeIds, room);
 
   const bundleRef = useRef<LevelBundle | null>(null);
   const setBundleSynced = (b: LevelBundle | null) => {
@@ -329,12 +449,14 @@ export function LevelDetail({ levelId }: { levelId: string }) {
       .exportLevel(worldPath, levelId)
       .then((b) => alive && setBundleSynced(resolveBundleAssets(b as LevelBundle)))
       .catch((e) => alive && setErr(String(e)));
-    api.baselineLevel(worldPath, levelId).catch(() => {});
+    // Baselining journals the level's current bytes through the PLATFORMER's
+    // own verb — a WRITE into the pack. A room has no baseline verb (its
+    // journal starts at the first edit), so the room path skips it.
+    if (!room) api.baselineLevel(worldPath, levelId).catch(() => {});
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [worldPath, levelId]);
+  }, [worldPath, levelId, room]);
 
   // Unsaved-changes guard for window close.
   useEffect(() => {
@@ -423,6 +545,90 @@ export function LevelDetail({ levelId }: { levelId: string }) {
         triggers: [...b.triggers, { x, y, type: "checkpoint", params: {} }],
       });
       markDirty("triggers");
+    } else if (brush.kind === "event") {
+      // A room's event tile (P.6.2 row 6): the trigger wire carries the row
+      // id in `params.event_id`, exactly as the export emits it.
+      setBundleSynced({
+        ...b,
+        triggers: [
+          ...b.triggers.filter((t) => !(t.x === x && t.y === y)),
+          { x, y, type: brush.eventType, params: { event_id: brush.eventId } },
+        ],
+      });
+      markDirty("triggers");
+    } else if (brush.kind === "monster") {
+      // P.9 G4: a monster is not a placement — dropping one BUILDS or targets
+      // the combat encounter on that cell. Cross-file write, so it goes to
+      // canon at once rather than riding the batch save.
+      void dropMonster(x, y, brush.monsterId);
+    }
+  };
+
+  /** The encounter currently selected on the canvas — what 🎲 Monsters
+   *  re-rolls (a monsters roll is per-encounter, P.9 G4). */
+  const selectedEventId = useMemo(() => {
+    if (!bundle || selection?.kind !== "trigger") return null;
+    const id = bundle.triggers[selection.index]?.params?.event_id;
+    return id === undefined || id === null ? null : String(id);
+  }, [bundle, selection]);
+
+  /** Drop a monster on a cell: target the encounter already there, or ask
+   *  canon to create one (`event_id: null` → a new combat event from the
+   *  kind's own id_alloc). Flushes pending edits first so the write lands on
+   *  the room as it looks, then re-exports — optimistic UI never diverges
+   *  from disk. */
+  const dropMonster = async (x: number, y: number, monsterId: string) => {
+    const b = bundleRef.current;
+    if (!b) return;
+    if (!(await doSave())) return;
+    const at = bundleRef.current?.triggers.find(
+      (t) => t.x === x && t.y === y && t.params?.event_id !== undefined,
+    );
+    const existing = (at?.params?.monster_ids as (string | number)[] | undefined) ?? [];
+    setSave({ status: "saving" });
+    try {
+      await api.saveLevelEdit(worldPath, levelId, {
+        encounters: [
+          {
+            x,
+            y,
+            event_id: at?.params?.event_id ?? null,
+            monster_ids: [...existing.map(String), monsterId].filter(
+              (m, i, all) => all.indexOf(m) === i,
+            ),
+          },
+        ],
+      });
+      await reload();
+      setSave({ status: "saved" });
+      setPlayNote(
+        at ? `monster added to encounter ${at.params?.event_id}` : "new encounter created here",
+      );
+    } catch (e) {
+      setSave({ status: "error", msg: String(e) });
+    }
+  };
+
+  /** One per-step 🎲 roll (`canon grid roll`) — code only and $0, so it never
+   *  raises a spend card (doctrine 3). Pending edits flush first (canon owns
+   *  the formats), then the fresh room re-exports. */
+  const doRoll = async (step: string) => {
+    if (!(await doSave())) return;
+    setPlayNote(null);
+    setSave({ status: "saving" });
+    try {
+      const result = await api.rollGrid(worldPath, levelId, step, {
+        encounter: step === "monsters" ? selectedEventId : null,
+      });
+      await reload();
+      setSave({ status: "saved" });
+      const warning = result.warnings?.[0];
+      setPlayNote(
+        `${step} rolled — ${result.changed ? "updated ✓" : "no change"}` +
+          (warning ? ` · ${warning}` : ""),
+      );
+    } catch (e) {
+      setSave({ status: "error", msg: String(e) });
     }
   };
 
@@ -450,7 +656,11 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     if (ei >= 0) return deleteSelection({ kind: "enemy", index: ei });
     const ii = b.items.findIndex((it) => it.x === x && it.y === y);
     if (ii >= 0) return deleteSelection({ kind: "item", index: ii });
-    const ti = b.triggers.findIndex((t) => t.x === x && t.y === y && t.type === "checkpoint");
+    // Checkpoints for a platformer level; every event tile for a room (the
+    // ROW stays on disk — erasing a placement never deletes a row).
+    const ti = b.triggers.findIndex(
+      (t) => t.x === x && t.y === y && (room || t.type === "checkpoint"),
+    );
     if (ti >= 0) return deleteSelection({ kind: "trigger", index: ti });
     // … otherwise clear the tile.
     paintTile(x, y, 0);
@@ -534,7 +744,9 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           x: t.x,
           y: t.y,
           type: t.type,
-          params: t.params ?? {},
+          // A room's event placement carries only its row id on the wire; the
+          // writer keeps the on-disk sidecar shape (P.6.3's write table).
+          params: room ? { event_id: t.params?.event_id } : (t.params ?? {}),
         }));
       if (dirty.has("markers")) {
         sparse.spawn = b.spawn;
@@ -601,11 +813,14 @@ export function LevelDetail({ levelId }: { levelId: string }) {
         /* estimate is advisory — never block the op on it */
       }
     }
+    // The paid card gates a paid backend (row P1-A5); fake runs at once.
     if (
-      !window.confirm(
-        `${paid ? `PAID (anthropic — est. ${fmtRange(est?.total_usd)})` : "FAKE — $0, no API calls"}: ` +
-          `(re)place ${kind} on ${levelId} using its current terrain.\n\nProceed?`,
-      )
+      !(await confirmSpend({
+        title: `place ${kind} on ${levelId}`,
+        body: `est. ${fmtRange(est?.total_usd)} — (re)places ${kind} using the level's current terrain.`,
+        estimate: est,
+        backends: { llm: placeBackend },
+      }))
     )
       return;
     setPlayNote(null);
@@ -669,11 +884,15 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   const registerCommands = useStore((s) => s.registerCommands);
   const unregisterCommands = useStore((s) => s.unregisterCommands);
   useEffect(() => {
+    // A room registers the same commands: the ones it can run are live, the
+    // rest stay greyed with their reason — the palette answers "why can't I?"
+    // instead of losing the entry (doctrine 4).
+    const group = room ? `Room · ${levelId}` : `Level · ${levelId}`;
     registerCommands("level", [
       {
         id: "level.save",
         label: "Save this level",
-        group: `Level · ${levelId}`,
+        group,
         hint: kbd("S"),
         enabled: dirty.size > 0,
         disabledReason: "no unsaved edits",
@@ -682,37 +901,42 @@ export function LevelDetail({ levelId }: { levelId: string }) {
       {
         id: "level.validate",
         label: "Validate this level",
-        group: `Level · ${levelId}`,
+        group,
         keywords: "check playable problems reachability",
+        enabled: !room,
+        disabledReason: ROOM_REASONS.validate,
         run: () => void doValidate(),
       },
       {
         id: "level.improve",
         label: "Improve this level…",
-        group: `Level · ${levelId}`,
+        group,
         keywords: "llm refine instruction harder easier",
-        enabled: !neverBuilt,
-        disabledReason: "nothing built yet — generate first",
+        enabled: !room && !neverBuilt,
+        disabledReason: room ? ROOM_REASONS.improve : "nothing built yet — generate first",
         run: () => void openImprove(),
       },
       {
         id: "level.layout",
-        label: "Regenerate the layout…",
-        group: `Level · ${levelId}`,
-        keywords: "redesign terrain blind",
-        run: () => void openRegen(),
+        label: room ? "Roll a new maze layout" : "Regenerate the layout…",
+        group,
+        keywords: "redesign terrain blind maze roll",
+        enabled: true,
+        run: () => void (room ? doRoll("layout") : openRegen()),
       },
       {
         id: "level.music",
         label: "Music and regions…",
-        group: `Level · ${levelId}`,
+        group,
         keywords: "audio theme track sections",
+        enabled: !room,
+        disabledReason: ROOM_REASONS.music,
         run: () => setMusicOpen(true),
       },
     ]);
     return () => unregisterCommands("level");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [levelId, dirty.size, neverBuilt, registerCommands, unregisterCommands]);
+  }, [levelId, room, dirty.size, neverBuilt, registerCommands, unregisterCommands]);
 
   const publish = async () => {
     setSave({ status: "saving" });
@@ -759,7 +983,7 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selection, dirty]);
+  }, [selection, dirty, room]);
 
   const selected = useMemo(() => {
     if (!bundle || !selection) return null;
@@ -777,10 +1001,15 @@ export function LevelDetail({ levelId }: { levelId: string }) {
     );
   if (!bundle) return <p style={{ padding: 16 }}>Rendering level…</p>;
 
-  const isDraft = !bundle.display_name && !bundle.parent_level;
-  const chip = (label: string, tone?: string, key?: string) => (
+  const isDraft = !room && !bundle.display_name && !bundle.parent_level;
+  // Count chips read their nouns from the pack's placements (NPCs / events /
+  // items for a room) — the platformer keeps its literal enemies / items.
+  const nounFor = (wire: string, fallback: string) =>
+    (tabs.find((t) => t.wire === wire)?.label ?? fallback).toLowerCase();
+  const chip = (label: string, tone?: string, key?: string, title?: string) => (
     <span
       key={key ?? label}
+      title={title}
       style={{
         display: "inline-block",
         fontSize: 12,
@@ -796,8 +1025,25 @@ export function LevelDetail({ levelId }: { levelId: string }) {
       {label}
     </span>
   );
-  const btn = (label: string, onClick: () => void, accent = false): React.ReactNode => (
-    <button onClick={onClick} className={accent ? "btn pri" : "btn"} style={{ marginLeft: 8 }}>
+  /** A header action; `disabledReason` keeps it visible and explains itself
+   *  (doctrine 4 — disabled with a reason beats hidden). */
+  const btn = (
+    label: string,
+    onClick: () => void,
+    accent = false,
+    disabledReason?: string,
+    /** Tooltip when the action IS available — where the room rolls carry
+     *  their "$0 — code only" promise (doctrine 3). */
+    title?: string,
+  ): React.ReactNode => (
+    <button
+      key={label}
+      onClick={onClick}
+      className={accent ? "btn pri" : "btn"}
+      style={{ marginLeft: 8 }}
+      disabled={!!disabledReason}
+      title={disabledReason ?? title}
+    >
       {label}
     </button>
   );
@@ -856,11 +1102,24 @@ export function LevelDetail({ levelId }: { levelId: string }) {
         )}
         {isDraft && chip("draft — not in world", "var(--accent)")}
         {bundle.parent_level && chip(`secret room of ${bundle.parent_level}`, "var(--special)")}
-        {chip(`${bundle.entities.length} enemies`)}
-        {chip(`${bundle.items.length} items`)}
+        {chip(`${bundle.entities.length} ${nounFor("entities", "enemies")}`)}
+        {room && chip(`${bundle.triggers.length} ${nounFor("triggers", "events")}`)}
+        {chip(`${bundle.items.length} ${nounFor("items", "items")}`)}
+        {room &&
+          (bundle.warnings?.length ?? 0) > 0 &&
+          chip(`${bundle.warnings!.length} warnings`, "var(--warn)", "warnings")}
         {dirty.size > 0 && chip(`unsaved: ${[...dirty].join(" ")}`, "var(--warn)", "dirty")}
         {save.status === "saved" && dirty.size === 0 && chip("saved ✓", "var(--ok)")}
-        {save.status === "error" && chip(`save failed: ${save.msg?.slice(0, 60)}`, "var(--err)")}
+        {save.status === "error" &&
+          chip(
+            // Canon refuses fail-closed with a REASON (a wall over a
+            // placement, a free door drag): show as much as fits and keep
+            // the whole sentence on the hover.
+            `save failed: ${cleanReason(save.msg).slice(0, 90)}`,
+            "var(--err)",
+            "save-error",
+            cleanReason(save.msg),
+          )}
         {valReport &&
           chip(
             !valReport.ok
@@ -877,40 +1136,106 @@ export function LevelDetail({ levelId }: { levelId: string }) {
           )}
         {playNote && chip(playNote.slice(0, 70), "var(--special)", "play-note")}
         <span style={{ flex: 1 }} />
-        {btn(validating ? "Validating…" : "✓ Validate", () => void doValidate())}
-        {btn(mode === "blocks" ? "▶ Play blocks" : "▶ Play", () => void doPlay(), dirty.size === 0)}
-        {btn("🪄 Layout", () => void openRegen())}
+        {btn(
+          validating ? "Validating…" : "✓ Validate",
+          () => void doValidate(),
+          false,
+          room ? ROOM_REASONS.validate : undefined,
+        )}
+        {btn(
+          mode === "blocks" ? "▶ Play blocks" : "▶ Play",
+          () => void doPlay(),
+          !room && dirty.size === 0,
+          room ? ROOM_REASONS.play : undefined,
+        )}
+        {/* 🪄 Layout: the platformer opens the LLM regenerate modal; a room
+            re-carves its maze with `grid roll --step layout` — code only,
+            $0, no spend card (doctrine 3). */}
+        {btn(
+          "🪄 Layout",
+          () => void (room ? doRoll("layout") : openRegen()),
+          false,
+          undefined,
+          room ? `Re-carve the maze · ${ROLL_COST_NOTE}` : undefined,
+        )}
         <button
           className="btn"
           style={{ marginLeft: 8 }}
-          disabled={neverBuilt}
+          disabled={room || neverBuilt}
           title={
-            neverBuilt
-              ? "This level is still an empty scaffold — generate a layout first"
-              : "Re-author the layout from an instruction, keeping its size and axis"
+            room
+              ? ROOM_REASONS.improve
+              : neverBuilt
+                ? "This level is still an empty scaffold — generate a layout first"
+                : "Re-author the layout from an instruction, keeping its size and axis"
           }
           onClick={() => void openImprove()}
         >
           ✨ Improve
         </button>
-        {btn("🎵 Music", () => setMusicOpen(true))}
-        {btn("🎲 Enemies", () => void doPlace("enemies"))}
-        {btn("🎲 Items", () => void doPlace("items"))}
-        <select
-          value={placeBackend}
-          onChange={(e) => setPlaceBackend(e.target.value as "fake" | "anthropic")}
-          title="Backend for 🎲 placement"
-          style={{ fontSize: 11, marginLeft: 6 }}
-        >
-          <option value="fake">fake ($0)</option>
-          <option value="anthropic">paid</option>
-        </select>
-        <div className="segmented">
+        {btn("🎵 Music", () => setMusicOpen(true), false, room ? ROOM_REASONS.music : undefined)}
+        {room ? (
+          <>
+            {tabs.map((t) =>
+              btn(
+                `🎲 ${t.label}`,
+                () => void doRoll(`${t.kind}s`),
+                false,
+                undefined,
+                `Re-place every ${t.label.toLowerCase()} in this room · ${ROLL_COST_NOTE}`,
+              ),
+            )}
+            {monsterTypeId &&
+              btn(
+                "🎲 Monsters",
+                () => void doRoll("monsters"),
+                false,
+                selectedEventId === null
+                  ? "select an encounter on the canvas first — a monsters roll re-rolls ONE encounter's roster"
+                  : undefined,
+                `Re-roll encounter ${selectedEventId}'s monsters · ${ROLL_COST_NOTE}`,
+              )}
+            {btn(
+              "⟳ Whole room",
+              () => void doRoll("whole"),
+              false,
+              undefined,
+              `Re-carve and re-place everything, then re-designate the gate · ${ROLL_COST_NOTE}`,
+            )}
+            <span
+              className="chip"
+              title="Room rolls are pure code — no model, no provider, no spend card"
+              style={{ marginLeft: 6, fontSize: 11 }}
+            >
+              {ROLL_COST_NOTE}
+            </span>
+          </>
+        ) : (
+          <>
+            {btn("🎲 Enemies", () => void doPlace("enemies"))}
+            {btn("🎲 Items", () => void doPlace("items"))}
+            <select
+              value={placeBackend}
+              onChange={(e) => setPlaceBackend(e.target.value as "fake" | "anthropic")}
+              title="Backend for 🎲 placement"
+              style={{ fontSize: 11, marginLeft: 6 }}
+            >
+              <option value="fake">fake ($0)</option>
+              <option value="anthropic">paid</option>
+            </select>
+          </>
+        )}
+        {/* The view switch: a room has no tilesheet, so blocks is the only
+            honest mode — the other two stay visible, disabled with the reason. */}
+        <div className="segmented" title={room ? ROOM_REASONS.mode : undefined}>
           {MODES.map((m) => (
             <button
               key={m.id}
               onClick={() => setMode(m.id)}
               className={mode === m.id ? "seg-btn active" : "seg-btn"}
+              disabled={room && m.id !== "blocks"}
+              title={room && m.id !== "blocks" ? ROOM_REASONS.mode : undefined}
+              aria-pressed={mode === m.id}
             >
               {m.label}
             </button>
@@ -966,14 +1291,17 @@ export function LevelDetail({ levelId }: { levelId: string }) {
               } as React.CSSProperties
             }
           >
+            {/* Read-only: no edit callbacks and no brush — the canvas is the
+                pan/zoom viewer it already is without them; select still
+                reaches the tray. Bounds are gravity chrome and stay off. */}
             <LevelCanvas
               bundle={bundle}
               scale={26}
               mode={mode}
               showGrid={showGrid}
               showLabels={showLabels}
-              showBounds={showBounds}
-              showRulers={showBounds}
+              showBounds={!room && showBounds}
+              showRulers={!room && showBounds}
               selection={selection}
               brush={brush}
               tool={tool}
@@ -993,12 +1321,13 @@ export function LevelDetail({ levelId }: { levelId: string }) {
             <ToolRail
               tool={tool}
               onTool={setTool}
-              showBounds={showBounds}
-              onToggleBounds={() => setShowBounds((v) => !v)}
+              showBounds={!room && showBounds}
+              onToggleBounds={() => !room && setShowBounds((v) => !v)}
               showMinimap={showMinimap}
               onToggleMinimap={() => setShowMinimap((v) => !v)}
-              onOpenMusic={() => setAudioOpen((v) => !v)}
+              onOpenMusic={() => !room && setAudioOpen((v) => !v)}
               audioOpen={audioOpen}
+              disabled={room ? RAIL_ROOM : undefined}
             />
           </div>
           <div
@@ -1013,27 +1342,40 @@ export function LevelDetail({ levelId }: { levelId: string }) {
             {/* The interaction hint moved into the dock's armed-brush pane,
                 where it sits beside the thing it describes. */}
             <span style={{ flex: 1, minWidth: 120 }} />
-            <label style={{ fontSize: 12, color: "var(--fg-dim)" }}>
+            <label
+              style={{ fontSize: 12, color: "var(--fg-dim)" }}
+              title={room ? ROOM_REASONS.resize : undefined}
+            >
               W{" "}
               <input
                 type="number"
                 value={resizeW}
                 min={8}
+                disabled={room}
                 onChange={(e) => setResizeW(parseInt(e.target.value || "0", 10))}
                 style={{ width: 58 }}
               />
             </label>
-            <label style={{ fontSize: 12, color: "var(--fg-dim)" }}>
+            <label
+              style={{ fontSize: 12, color: "var(--fg-dim)" }}
+              title={room ? ROOM_REASONS.resize : undefined}
+            >
               H{" "}
               <input
                 type="number"
                 value={resizeH}
                 min={8}
+                disabled={room}
                 onChange={(e) => setResizeH(parseInt(e.target.value || "0", 10))}
                 style={{ width: 58 }}
               />
             </label>
-            {btn("Resize", () => applyResize(resizeW, resizeH))}
+            {btn(
+              "Resize",
+              () => applyResize(resizeW, resizeH),
+              false,
+              room ? ROOM_REASONS.resize : undefined,
+            )}
             {isDraft && (
               <>
                 <input
@@ -1061,7 +1403,13 @@ export function LevelDetail({ levelId }: { levelId: string }) {
               bundle={bundle}
               brush={brush}
               onBrush={setBrush}
-              onReplaceArt={replaceArt}
+              onReplaceArt={room ? undefined : replaceArt}
+              room={room}
+              placements={room ? tabs : undefined}
+              rows={roomDb}
+              monsterTypeId={monsterTypeId}
+              selection={selection}
+              onSelect={setSelection}
               tray={
                 selection ? (
                   <Inspector
@@ -1074,7 +1422,11 @@ export function LevelDetail({ levelId }: { levelId: string }) {
                     onDelete={() => deleteSelection(selection)}
                     onReplaceArt={replaceArt}
                     onSwitch={(newId) => onSwitch(selection, newId)}
+                    room={room}
+                    placements={tabs}
                   />
+                ) : room ? (
+                  <RoomFacts bundle={bundle} />
                 ) : undefined
               }
             />
@@ -1118,6 +1470,88 @@ export function LevelDetail({ levelId }: { levelId: string }) {
   );
 }
 
+/** The tray with nothing selected in a room: the room's own facts
+ *  (P0 paper P.6.4 — environment, gate link, quest ids, the monsters bucket)
+ *  and every warning the export named, each id an EntityLink to its row. */
+function RoomFacts({ bundle }: { bundle: LevelBundle }) {
+  const room = bundle.room;
+  const row = (k: string, v: React.ReactNode) => (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "2px 0" }}>
+      <span style={{ color: "var(--fg-dim)" }}>{k}</span>
+      <span style={{ fontFamily: "var(--mono)", textAlign: "right" }}>{v}</span>
+    </div>
+  );
+  if (!room) {
+    return (
+      <div className="dock-tray-empty">
+        <div className="dock-sect">Room</div>
+        <p>This bundle carries no room block.</p>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <Header title={room.environment_name || bundle.level_id} sub={`room · ${room.environment}`} />
+      {row("id", bundle.level_id)}
+      {row("environment", room.environment)}
+      {row("door", room.door_revealed ? "revealed" : "hidden")}
+      {row(
+        "gate",
+        room.gate_encounter_id !== null && room.gate_encounter_id !== undefined ? (
+          <EntityLink typeId="events" id={String(room.gate_encounter_id)} />
+        ) : (
+          "—"
+        ),
+      )}
+      {row(
+        "quests",
+        room.quest_ids.length ? (
+          <span
+            style={{ display: "inline-flex", flexWrap: "wrap", gap: 4, justifyContent: "flex-end" }}
+          >
+            {room.quest_ids.map((q) => (
+              <EntityLink key={String(q)} typeId="quests" id={String(q)} />
+            ))}
+          </span>
+        ) : (
+          "—"
+        ),
+      )}
+      {row(
+        "monsters",
+        room.monsters.length ? (
+          <span
+            style={{ display: "inline-flex", flexWrap: "wrap", gap: 4, justifyContent: "flex-end" }}
+          >
+            {room.monsters.map((m, i) => (
+              <EntityLink
+                key={`${m.entity_id ?? i}`}
+                typeId="monsters"
+                id={String(m.entity_id ?? "")}
+                fallbackLabel={m.name}
+              />
+            ))}
+          </span>
+        ) : (
+          "—"
+        ),
+      )}
+      {(bundle.warnings?.length ?? 0) > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <div className="dock-sect">Warnings</div>
+          <ul style={{ margin: "4px 0 0", paddingLeft: 16 }}>
+            {bundle.warnings!.map((w, i) => (
+              <li key={i} style={{ color: "var(--warn)", fontSize: 11, margin: "2px 0" }}>
+                {w}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Inspector({
   bundle,
   selection,
@@ -1128,6 +1562,8 @@ function Inspector({
   onDelete,
   onReplaceArt,
   onSwitch,
+  room = false,
+  placements = [],
 }: {
   bundle: LevelBundle;
   selection: Selection;
@@ -1138,11 +1574,27 @@ function Inspector({
   onDelete: () => void;
   onReplaceArt: (target: string) => void;
   onSwitch: (newId: string) => void;
+  /** A dungeon room placement: the row link and delete are live (row P0-8);
+   *  sprite replacement and the definition switcher stay platformer verbs. */
+  room?: boolean;
+  /** The pack's placements — resolves the placed row's type id for the link. */
+  placements?: PlacementTab[];
 }) {
   const row = (k: string, v: React.ReactNode) => (
     <div style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "2px 0" }}>
       <span style={{ color: "var(--fg-dim)" }}>{k}</span>
       <span style={{ fontFamily: "var(--mono)", textAlign: "right" }}>{v}</span>
+    </div>
+  );
+  /** The cradle type id behind a selection kind, from the pack's placements
+   *  (a room's `enemy` handles are NPCs); the platformer's literal ids else. */
+  const typeIdFor = (kind: Selection["kind"], fallback: string) => {
+    const wire = Object.entries(SEL_KIND_BY_WIRE).find(([, k]) => k === kind)?.[0];
+    return placements.find((p) => p.wire === wire)?.typeId ?? fallback;
+  };
+  const link = (kind: Selection["kind"], fallback: string, id: string, label?: string) => (
+    <div style={{ marginTop: 10 }}>
+      <EntityLink typeId={typeIdFor(kind, fallback)} id={id} fallbackLabel={label} />
     </div>
   );
   const actionBtn = (label: string, onClick: () => void, danger = false) => (
@@ -1186,22 +1638,32 @@ function Inspector({
 
   if (selection.kind === "enemy") {
     const e = selected as LevelBundle["entities"][number];
+    const noun = room ? (placements.find((p) => p.wire === "entities")?.kind ?? "enemy") : "enemy";
     return (
       <div>
         <Header
           title={e.name}
-          sub="enemy placement"
+          sub={`${noun} placement`}
           sprite={e.sprite_path_abs}
           color={e.placeholder_color}
         />
-        {row("enemy", e.enemy_id)}
-        {row("variant", e.variant ?? "—")}
-        {row("size", `${e.size}`)}
+        {row(noun, e.enemy_id)}
+        {room ? row("type", e.archetype ?? "—") : row("variant", e.variant ?? "—")}
+        {!room && row("size", `${e.size}`)}
         {row("cell", `${e.x}, ${e.y}`)}
-        {switcher(e.enemy_id, enemyIds)}
-        {actionBtn("replace sprite…", () => onReplaceArt(`enemy:${e.enemy_id}`))}
-        {actionBtn("open enemy →", () => onOpenEntity("enemies", e.enemy_id))}
-        {actionBtn("delete", onDelete, true)}
+        {room ? (
+          <>
+            {link("enemy", "enemies", e.enemy_id, e.name)}
+            {actionBtn("delete", onDelete, true)}
+          </>
+        ) : (
+          <>
+            {switcher(e.enemy_id, enemyIds)}
+            {actionBtn("replace sprite…", () => onReplaceArt(`enemy:${e.enemy_id}`))}
+            {actionBtn("open enemy →", () => onOpenEntity("enemies", e.enemy_id))}
+            {actionBtn("delete", onDelete, true)}
+          </>
+        )}
       </div>
     );
   }
@@ -1217,26 +1679,59 @@ function Inspector({
         />
         {row("item", it.item_id)}
         {row("kind", it.kind ?? "—")}
-        {row("source", it.source ?? "—")}
+        {!room && row("source", it.source ?? "—")}
         {row("cell", `${it.x}, ${it.y}`)}
-        {switcher(it.item_id, itemIds)}
-        {actionBtn("replace sprite…", () => onReplaceArt(`item:${it.item_id}`))}
-        {actionBtn("open item →", () => onOpenEntity("items", it.item_id))}
-        {actionBtn("delete", onDelete, true)}
+        {room ? (
+          <>
+            {link("item", "items", it.item_id, it.name)}
+            {actionBtn("delete", onDelete, true)}
+          </>
+        ) : (
+          <>
+            {switcher(it.item_id, itemIds)}
+            {actionBtn("replace sprite…", () => onReplaceArt(`item:${it.item_id}`))}
+            {actionBtn("open item →", () => onOpenEntity("items", it.item_id))}
+            {actionBtn("delete", onDelete, true)}
+          </>
+        )}
       </div>
     );
   }
   if (selection.kind === "trigger") {
     const t = selected as LevelBundle["triggers"][number];
     const room = (t.params?.room_id as string | undefined) ?? null;
+    // A room's event tile (P.6.2 row 6 / row 13's read side): the event row,
+    // its gate flags and the monsters its encounter carries — all links.
+    const eventId = t.params?.event_id;
+    const monsterIds = Array.isArray(t.params?.monster_ids)
+      ? (t.params!.monster_ids as (number | string)[])
+      : [];
     return (
       <div>
-        <Header title={t.type === "room_entrance" ? "door" : t.type} sub="trigger" />
+        <Header
+          title={t.type === "room_entrance" ? "door" : t.type}
+          sub={eventId !== undefined ? "event placement" : "trigger"}
+        />
         {row("type", t.type)}
         {row("cell", `${t.x}, ${t.y}`)}
         {room && row("room", room)}
         {t.params?.verb ? row("verb", String(t.params.verb)) : null}
-        {deletable && t.type === "checkpoint" && actionBtn("delete", onDelete, true)}
+        {eventId !== undefined && row("event", String(eventId))}
+        {eventId !== undefined && row("gate", t.params?.is_gate ? "yes — guards the door" : "no")}
+        {eventId !== undefined && t.params?.is_climax_boss ? row("climax boss", "yes") : null}
+        {eventId !== undefined && monsterIds.length > 0 && (
+          <div style={{ marginTop: 6 }}>
+            <div style={{ color: "var(--fg-dim)", fontSize: 11 }}>monsters</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 2 }}>
+              {monsterIds.map((m) => (
+                <EntityLink key={String(m)} typeId="monsters" id={String(m)} />
+              ))}
+            </div>
+          </div>
+        )}
+        {eventId !== undefined && link("trigger", "events", String(eventId))}
+        {room && deletable && actionBtn("delete", onDelete, true)}
+        {!room && deletable && t.type === "checkpoint" && actionBtn("delete", onDelete, true)}
       </div>
     );
   }

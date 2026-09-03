@@ -23,7 +23,7 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["**"]
+        "scope": ["$RESOURCE/**", "$HOME/CradleProjects/**"]
       }
     }
   },
@@ -38,7 +38,9 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "../bibles/mazeworld_5_room_demo": "demo"
+      "../bibles/mazeworld_5_room_demo": "demo",
+      "resources/runtime": "runtime",
+      "resources/notices": "notices"
     },
     "macOS": {
       "signingIdentity": "Developer ID Application: WOLFGANG JUSTICE BLACK (VRM57L6S3D)"

@@ -3,6 +3,10 @@ export type ValidationStatus = "validated" | "warn" | "failed" | "bundled";
 export type RecentProject = {
   path: string;
   name: string;
+  /** canon's `pack_type` for this pack (`WorldSummary.world_kind`), saved so a
+   *  card can label its counts without guessing. Absent on entries saved
+   *  before P0-3 — those fall back to sniffing which count fields they carry. */
+  world_kind?: string;
   storyTitle?: string;
   synopsis?: string;
   seed?: string | number;

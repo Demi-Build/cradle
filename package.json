@@ -19,7 +19,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "fetch-demo": "bash scripts/fetch-demo.sh"
+    "fetch-demo": "bash scripts/fetch-demo.sh",
+    "fetch-runtime": "bash scripts/fetch-runtime.sh",
+    "gen-notices": "bash scripts/gen-notices.sh"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.0.0",

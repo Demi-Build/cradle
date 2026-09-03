@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55;--stage:#08090b;--cta-bg:#f3efe3;--cta-fg:#15171c}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a;--stage:#e6e3d9;--cta-bg:#1a1916;--cta-fg:#f7f6f2}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select{font-family:inherit}
+</style>
+</helmet>
+
+<div style="min-width:1440px;height:100vh;overflow:hidden">
+<div data-theme="{{ theme }}" data-screen-label="K · history and lineage" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center;white-space:nowrap">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>mazeworld-5-room-demo</span><span style="color:var(--fg-dim)">/</span><span>heron-salvager</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">history</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);color:var(--fg-dim)">every write in this package lands here</span>
+    <button onClick="{{ toggleTheme }}" style="font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:10px;border:1px dashed var(--border-hi);background:transparent;color:var(--fg-dim);cursor:pointer">theme</button>
+  </header>
+
+  <div style="display:grid;grid-template-columns:208px minmax(0,1fr) 372px;overflow:hidden;min-height:0">
+
+    <aside style="border-right:1px solid var(--border);background:var(--bg-raised);padding:10px 0;overflow:hidden">
+      <button style="display:block;width:100%;text-align:left;background:none;color:var(--fg);border:0;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">Mazeworld · 5-room demo</button>
+      <div style="padding:11px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Actors</div>
+      <button style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:4px 14px 4px 26px;font-size:12px;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)"><span style="width:12px;height:12px;background:var(--accent);opacity:.5;border-radius:2px"></span>Heron salvager</button>
+      <div style="padding:11px 14px 3px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim)">Filter</div>
+      <button style="display:flex;align-items:center;gap:7px;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:4px 14px 4px 22px;font-size:11.5px;text-align:left;cursor:pointer"><span style="flex:1">Everything</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">34</span></button>
+      <button style="display:flex;align-items:center;gap:7px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 22px;font-size:11.5px;text-align:left;cursor:pointer"><span style="flex:1">Generated</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">19</span></button>
+      <button style="display:flex;align-items:center;gap:7px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 22px;font-size:11.5px;text-align:left;cursor:pointer"><span style="flex:1">Hand edits</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--special)">7</span></button>
+      <button style="display:flex;align-items:center;gap:7px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 22px;font-size:11.5px;text-align:left;cursor:pointer"><span style="flex:1">Tuning</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">5</span></button>
+      <button style="display:flex;align-items:center;gap:7px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 22px;font-size:11.5px;text-align:left;cursor:pointer"><span style="flex:1">Schema / bands</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">2</span></button>
+      <button style="display:flex;align-items:center;gap:7px;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 22px;font-size:11.5px;text-align:left;cursor:pointer"><span style="flex:1">Imports</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--info)">1</span></button>
+    </aside>
+
+    <main style="display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0">
+      <div style="display:flex;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">Character</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">Animation</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">PixEd</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 13px;font-size:12px;cursor:pointer;margin-bottom:-1px">3D</button>
+        <button style="background:none;color:var(--fg);border:0;border-bottom:2px solid var(--accent);padding:8px 13px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">History</button>
+        <div style="flex:1"></div>
+        <div style="display:inline-flex;align-self:center;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px">
+          <button style="background:var(--bg-hover);color:var(--fg);border:0;padding:2px 10px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500">Timeline</button>
+          <button style="background:none;color:var(--fg-muted);border:0;padding:2px 10px;font-size:11px;border-radius:3px;cursor:pointer">Lineage graph</button>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:9px;padding:7px 20px;border-bottom:1px solid var(--border);background:oklch(72% .14 45/.06)">
+        <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--warn);flex:none">paused plan</span>
+        <span style="font-size:11.5px;color:var(--fg-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Re-anchor cascade · 2 of 4 steps done · <span style="font-family:var(--mono);font-size:11px">$0.31 spent of $0.46–$1.75</span></span>
+        <div style="flex:1;min-width:8px"></div>
+        <button style="flex:none;padding:3px 9px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Discard plan</button>
+        <button style="flex:none;padding:3px 9px;border:1px solid var(--warn);border-radius:var(--radius-sm);background:oklch(72% .14 45/.12);color:var(--warn);font-size:11.5px;cursor:pointer">Resume · $0.15–$0.60</button>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:12px 20px 20px">
+
+        <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:8px">today</div>
+
+        <div style="display:flex;gap:10px;margin-bottom:2px">
+          <div style="width:2px;background:var(--border);flex:none;margin:0 10px"></div>
+          <div style="flex:1;min-width:0">
+            <div style="border:1.5px solid var(--accent);border-radius:var(--radius);background:var(--bg-raised);padding:9px 11px;margin-bottom:8px;position:relative">
+              <span style="position:absolute;left:-23px;top:14px;width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)"></span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">art.save</span>
+                <span style="font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:99px;border:1px solid var(--ok);background:oklch(68% .13 150/.14);color:var(--ok)">current</span>
+                <span style="font-size:11.5px;color:var(--fg-muted);flex:1">jump · frames 3, 5 repainted by hand</span>
+                <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid color-mix(in oklch,var(--special) 45%,var(--border));color:var(--special)">hand edit</span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">14:22</span>
+              </div>
+              <div style="display:flex;gap:5px;margin-top:7px;align-items:center">
+                <div style="width:38px;height:38px;border:1px solid var(--border);border-radius:2px;background:var(--bg-sunken)"></div>
+                <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">→</span>
+                <div style="width:38px;height:38px;border:1px solid var(--accent);border-radius:2px;background:var(--bg-hover)"></div>
+                <div style="flex:1"></div>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">palette 98% · alpha pass</span>
+                <button style="padding:3px 8px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">Restore</button>
+                <button style="padding:3px 8px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">Open in PixEd</button>
+              </div>
+              <p style="margin:7px 0 0;font-size:10.5px;color:var(--fg-dim);line-height:1.45">Hand edits are marked, because they are the versions a cascade would overwrite — the plan card lists them separately for exactly this reason.</p>
+            </div>
+
+            <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px 11px;margin-bottom:8px;position:relative">
+              <span style="position:absolute;left:-23px;top:14px;width:9px;height:9px;border-radius:50%;background:var(--info);border:2px solid var(--bg)"></span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">art.generate</span>
+                <span style="font-size:11.5px;color:var(--fg-muted);flex:1">moods · 3 of 6 · angry, afraid, grieving</span>
+                <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));color:var(--info)">running</span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">$0.15–$0.60</span>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px 11px;margin-bottom:8px;position:relative">
+              <span style="position:absolute;left:-23px;top:14px;width:9px;height:9px;border-radius:50%;background:var(--fg-dim);border:2px solid var(--bg)"></span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">tune.set</span>
+                <span style="font-size:11.5px;color:var(--fg-muted);flex:1">l1r2 · jump_height 2.80 → 3.20 · gravity 32.0 → 38.0</span>
+                <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">level override</span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">13:04</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:7px;margin-top:6px">
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--ok)">validator ok · swapped into pygame in 180 ms</span>
+                <div style="flex:1"></div>
+                <button style="padding:3px 8px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">Restore values</button>
+              </div>
+            </div>
+
+            <div style="border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));border-radius:var(--radius);background:oklch(72% .14 45/.05);padding:9px 11px;margin-bottom:8px;position:relative">
+              <span style="position:absolute;left:-23px;top:14px;width:9px;height:9px;border-radius:50%;background:var(--warn);border:2px solid var(--bg)"></span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">registry.set</span>
+                <span style="font-size:11.5px;color:var(--fg-muted);flex:1">band widened · jump_height 1.5–4.5 → 1.5–6.0</span>
+                <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--warn);color:var(--warn)">schema</span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">12:47</span>
+              </div>
+              <p style="margin:6px 0 0;font-size:10.5px;color:var(--fg-muted);line-height:1.45">Pack-wide, and it affects every level and every future edit — which is why it is its own row and not folded into the tune above it.</p>
+            </div>
+
+            <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px 11px;margin-bottom:8px;position:relative">
+              <span style="position:absolute;left:-23px;top:14px;width:9px;height:9px;border-radius:50%;background:var(--ok);border:2px solid var(--bg)"></span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">anchor.lock</span>
+                <span style="font-size:11.5px;color:var(--fg-muted);flex:1">turnaround v3 locked · 4 views</span>
+                <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));color:var(--ok)">gate</span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">11:30</span>
+              </div>
+              <div style="display:flex;gap:4px;margin-top:7px">
+                <div style="width:34px;height:34px;border:1px solid var(--border);border-radius:2px;background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 4px,var(--bg-hover) 4px 8px)"></div>
+                <div style="width:34px;height:34px;border:1px solid var(--border);border-radius:2px;background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 4px,var(--bg-hover) 4px 8px)"></div>
+                <div style="width:34px;height:34px;border:1px solid var(--border);border-radius:2px;background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 4px,var(--bg-hover) 4px 8px)"></div>
+                <div style="width:34px;height:34px;border:1px solid var(--border);border-radius:2px;background:repeating-linear-gradient(135deg,var(--bg-sunken) 0 4px,var(--bg-hover) 4px 8px)"></div>
+                <div style="flex:1"></div>
+                <button style="align-self:center;padding:3px 8px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:11px;cursor:pointer">Compare with v2</button>
+              </div>
+            </div>
+
+            <div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin:14px 0 8px">12 aug</div>
+
+            <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px 11px;margin-bottom:8px;position:relative">
+              <span style="position:absolute;left:-23px;top:14px;width:9px;height:9px;border-radius:50%;background:var(--special);border:2px solid var(--bg)"></span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">art.skin</span>
+                <span style="font-size:11.5px;color:var(--fg-muted);flex:1">skin · rust · coat ramp remapped</span>
+                <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid color-mix(in oklch,var(--special) 45%,var(--border));color:var(--special)">free</span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">16:10</span>
+              </div>
+              <p style="margin:6px 0 0;font-size:10.5px;color:var(--fg-dim);line-height:1.45">Stored as a colour map, so this row is 400 bytes and survives every future anchor change.</p>
+            </div>
+
+            <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:9px 11px;position:relative">
+              <span style="position:absolute;left:-23px;top:14px;width:9px;height:9px;border-radius:50%;background:var(--info);border:2px solid var(--bg)"></span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">library.import</span>
+                <span style="font-size:11.5px;color:var(--fg-muted);flex:1">from <span style="font-family:var(--mono);font-size:11px;color:var(--info)">heron-salvager@v3</span> · palette adapted, 5 of 5 roles</span>
+                <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));color:var(--info)">origin</span>
+                <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">09:02</span>
+              </div>
+              <p style="margin:6px 0 0;font-size:10.5px;color:var(--fg-dim);line-height:1.45">The first row of this entity's lineage. Nothing above it — an imported asset knows where it came from, and says so forever.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside style="border-left:1px solid var(--border);background:var(--bg-raised);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+      <div style="padding:9px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+        <span style="font-size:12.5px;font-weight:600">art.save</span>
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">14:22 · selected</span>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:11px">
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">what changed</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <div style="flex:1;text-align:center"><div style="height:88px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);margin-top:3px">before</div></div>
+            <div style="flex:1;text-align:center"><div style="height:88px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:var(--bg-hover)"></div><div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:3px">after</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+            <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">42 pixels differ</span>
+            <div style="flex:1"></div>
+            <label style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--fg-muted)"><span style="width:11px;height:11px;border:1px solid var(--accent);border-radius:2px;background:var(--accent)"></span>highlight diff</label>
+          </div>
+        </div>
+
+        <div style="height:1px;background:var(--border)"></div>
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">provenance chain</div>
+          <div style="display:flex;flex-direction:column;gap:0">
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="width:7px;height:7px;border-radius:50%;background:var(--info);margin-top:5px;flex:none"></span><div style="min-width:0;padding-bottom:8px"><div style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">library.import</div><div style="font-size:10.5px;color:var(--fg-dim)">heron-salvager@v3 · 12 Aug</div></div></div>
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="width:7px;height:7px;border-radius:50%;background:var(--ok);margin-top:5px;flex:none"></span><div style="min-width:0;padding-bottom:8px"><div style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">anchor.lock v3</div><div style="font-size:10.5px;color:var(--fg-dim)">turnaround · today 11:30</div></div></div>
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="width:7px;height:7px;border-radius:50%;background:var(--fg-dim);margin-top:5px;flex:none"></span><div style="min-width:0;padding-bottom:8px"><div style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">art.generate jump</div><div style="font-size:10.5px;color:var(--fg-dim)">img2img · guided by jump_arc</div></div></div>
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="width:7px;height:7px;border-radius:50%;background:var(--special);margin-top:5px;flex:none"></span><div style="min-width:0"><div style="font-family:var(--mono);font-size:10.5px;color:var(--fg)">art.save · frames 3, 5</div><div style="font-size:10.5px;color:var(--fg-dim)">you · today 14:22</div></div></div>
+          </div>
+          <p style="margin:7px 0 0;font-size:10.5px;color:var(--fg-muted);line-height:1.5">Read downward: where it came from, what it was conditioned on, what generated it, what you did to it. Two facts live on every row and they are independent: <strong style="color:var(--fg);font-weight:600">sequence</strong> — a later generation is always newer — and <strong style="color:var(--fg);font-weight:600">current</strong>, a pointer at whichever version you chose. Restoring an older row moves the pointer; it never reorders the sequence and never deletes what came after.</p>
+        </div>
+
+        <div>
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:6px">downstream</div>
+          <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:8px 9px">
+            <div style="font-family:var(--mono);font-size:10.5px;color:var(--fg-muted);line-height:1.7">
+              <div>used in · <span style="color:var(--fg)">l1r2, l1r3</span></div>
+              <div>frame map · <span style="color:var(--fg)">jump 3, 5</span></div>
+              <div>skins inheriting · <span style="color:var(--special)">3</span></div>
+            </div>
+            <p style="margin:6px 0 0;font-size:10.5px;color:var(--fg-dim);line-height:1.45">Restoring this version repaints all three skins, because a skin is a map over these pixels.</p>
+          </div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);background:var(--bg-sunken);padding:8px 12px;display:flex;align-items:center;gap:7px">
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim);flex:1">restore moves <span style="color:var(--ok)">current</span> · sequence is untouched</span>
+        <button style="padding:5px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:12px;cursor:pointer">Export version</button>
+        <button style="padding:5px 12px;border:0;border-radius:var(--radius-sm);background:var(--cta-bg);color:var(--cta-fg);font-size:12px;font-weight:600;cursor:pointer">Restore</button>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-top:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--fg-muted)">
+    <span>heron-salvager · history · 34 rows</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span style="color:var(--special)">7 hand edits</span>
+    <span style="color:var(--fg-dim)">|</span>
+    <span style="color:var(--warn)">1 paused plan</span>
+    <div style="flex:1"></div>
+    <span style="color:var(--fg-dim)">nothing in cradle is deleted · every write is a version</span>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { theme: "dark" };
+  renderVals() {
+    return {
+      theme: this.state.theme,
+      toggleTheme: () => this.setState((p) => ({ theme: p.theme === "dark" ? "light" : "dark" })),
+    };
+  }
+}
+</script>
+</body>
+</html>

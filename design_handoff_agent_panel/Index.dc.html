@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{--ui:"Inter",-apple-system,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;--radius:6px;--radius-sm:4px;--accent:oklch(72% 0.13 78);--accent-ink:oklch(28% 0.05 78)}
+[data-theme="dark"]{--bg:#0e0f12;--bg-raised:#15171c;--bg-sunken:#0a0b0e;--bg-hover:#1b1e24;--border:#23262d;--border-hi:#2e323b;--fg:#e8e6df;--fg-muted:#9a988e;--fg-dim:#5e5d55}
+[data-theme="light"]{--bg:#f7f6f2;--bg-raised:#ffffff;--bg-sunken:#efede6;--bg-hover:#edebe2;--border:#e0dccf;--border-hi:#c9c2af;--fg:#1a1916;--fg-muted:#6a6860;--fg-dim:#95928a}
+html,body{margin:0;padding:0}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button{font-family:inherit}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" style="min-height:100vh;background:var(--bg);color:var(--fg);font-family:var(--ui)">
+  <header style="display:flex;align-items:center;gap:10px;height:36px;padding:0 14px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <span style="font-family:var(--mono);font-size:11px;color:var(--fg-muted)">cradle <span style="color:var(--fg-dim)">/</span> <span style="color:var(--fg)">agent panel handoff</span></span>
+    <div style="flex:1"></div>
+    <button onClick="{{ toggleTheme }}" style="width:26px;height:22px;display:grid;place-items:center;color:var(--fg-muted);background:none;border:0;cursor:pointer">
+      <svg width="14" height="14" viewBox="0 0 16 16" style="stroke:currentColor;fill:none;stroke-width:1.4"><path d="M13 9.5A5.5 5.5 0 1 1 6.5 3a4.5 4.5 0 0 0 6.5 6.5z"></path></svg>
+    </button>
+  </header>
+
+  <div style="max-width:760px;margin:0 auto;padding:44px 24px 60px">
+    <h1 style="margin:0;font-size:26px;font-weight:600;letter-spacing:-.015em">Agent panel</h1>
+    <p style="margin:8px 0 0;color:var(--fg-muted);max-width:56ch;text-wrap:pretty">A docked third column for Wick, the foreman agent. It reads the whole project, routes work to specialists, and asks before it changes or spends anything. Seven screens, both themes, plus the spec and the build map.</p>
+
+    <div style="display:flex;gap:16px;margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--fg-dim)">
+      <span>412px default width</span><span>·</span><span>dark-first</span><span>·</span><span>theme toggle on every screen</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);margin-top:28px;overflow:hidden">
+      <a href="./01 Panel in the editor.dc.html" style="display:flex;gap:14px;padding:13px 14px;background:var(--bg-raised);color:var(--fg);align-items:baseline">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim);width:20px">01</span>
+        <span style="flex:1"><span style="font-weight:600">Panel in the editor</span><br /><span style="font-size:11.5px;color:var(--fg-muted)">The column in context — expanded, resizing, collapsed rail. Click the panel icon in the top bar to cycle.</span></span>
+        <span style="color:var(--fg-dim)">↗</span>
+      </a>
+      <a href="./02 Tool-call cards.dc.html" style="display:flex;gap:14px;padding:13px 14px;background:var(--bg-raised);color:var(--fg);align-items:baseline">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim);width:20px">02</span>
+        <span style="flex:1"><span style="font-weight:600">Tool-call cards</span><br /><span style="font-size:11.5px;color:var(--fg-muted)">Read, write and paid at three visual weights; three diff shapes; four permission-chip states.</span></span>
+        <span style="color:var(--fg-dim)">↗</span>
+      </a>
+      <a href="./03 Plan mode.dc.html" style="display:flex;gap:14px;padding:13px 14px;background:var(--bg-raised);color:var(--fg);align-items:baseline">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim);width:20px">03</span>
+        <span style="flex:1"><span style="font-weight:600">Plan mode</span><br /><span style="font-size:11.5px;color:var(--fg-muted)">Proposed, running, halted mid-plan, and the change feed a finished batch collapses into.</span></span>
+        <span style="color:var(--fg-dim)">↗</span>
+      </a>
+      <a href="./04 Sessions, errors and stop.dc.html" style="display:flex;gap:14px;padding:13px 14px;background:var(--bg-raised);color:var(--fg);align-items:baseline">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim);width:20px">04</span>
+        <span style="flex:1"><span style="font-weight:600">Sessions, errors and stop</span><br /><span style="font-size:11.5px;color:var(--fg-muted)">Tabs and history, first run, mode + priced model picker, four failure states, stop in three places.</span></span>
+        <span style="color:var(--fg-dim)">↗</span>
+      </a>
+      <a href="./05 Start page.dc.html" style="display:flex;gap:14px;padding:13px 14px;background:var(--bg-raised);color:var(--fg);align-items:baseline">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim);width:20px">05</span>
+        <span style="flex:1"><span style="font-weight:600">Start page</span><br /><span style="font-size:11.5px;color:var(--fg-muted)">No project open. Create is a conversation; Allow mode is off and says why.</span></span>
+        <span style="color:var(--fg-dim)">↗</span>
+      </a>
+      <a href="./06 Cost and attribution.dc.html" style="display:flex;gap:14px;padding:13px 14px;background:var(--bg-raised);color:var(--fg);align-items:baseline">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim);width:20px">06</span>
+        <span style="flex:1"><span style="font-weight:600">Cost and attribution</span><br /><span style="font-size:11.5px;color:var(--fg-muted)">Every generation — image, video, animation, code — by kind and by who launched it, agent or human. Plus the three places a change says who made it.</span></span>
+        <span style="color:var(--fg-dim)">↗</span>
+      </a>
+      <a href="./07 Conversation and coexistence.dc.html" style="display:flex;gap:14px;padding:13px 14px;background:var(--bg-raised);color:var(--fg);align-items:baseline">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--fg-dim);width:20px">07</span>
+        <span style="flex:1"><span style="font-weight:600">Conversation and coexistence</span><br /><span style="font-size:11.5px;color:var(--fg-muted)">A plain multi-turn conversation with no tool calls, the @-context picker, and how the column shares the right edge with notes and a narrow window.</span></span>
+        <span style="color:var(--fg-dim)">↗</span>
+      </a>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:22px">
+      <a href="./README.md" style="flex:1;border:1px solid var(--border-hi);border-radius:var(--radius);padding:12px 14px;background:var(--bg-raised);color:var(--fg)">
+        <div style="font-weight:600">README.md</div>
+        <div style="font-size:11.5px;color:var(--fg-muted)">Interaction spec — every state and transition, with the real copy.</div>
+      </a>
+      <a href="./PLAN.md" style="flex:1;border:1px solid var(--border-hi);border-radius:var(--radius);padding:12px 14px;background:var(--bg-raised);color:var(--fg)">
+        <div style="font-weight:600">PLAN.md</div>
+        <div style="font-size:11.5px;color:var(--fg-muted)">Components, mount points, store slices, build order, backend changes needed.</div>
+      </a>
+    </div>
+
+    <div style="margin-top:30px;border-top:1px solid var(--border);padding-top:16px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);margin-bottom:8px">The four rules the design holds to</div>
+      <ol style="margin:0;padding-left:18px;color:var(--fg-muted);font-size:12.5px;display:flex;flex-direction:column;gap:5px">
+        <li>Paid reads as paid before any confirm — price and model on the card, price in the button.</li>
+        <li>Grants are per project, and every label says “in this project”.</li>
+        <li>Stop always means: start nothing new, keep what landed, say what it cost.</li>
+        <li>The user never picks a specialist. The run card is how routing becomes visible.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { theme: "dark" };
+  renderVals() {
+    return { theme: this.state.theme, toggleTheme: () => this.setState(s => ({ theme: s.theme === "dark" ? "light" : "dark" })) };
+  }
+}
+</script>
+</body>
+</html>

@@ -2,12 +2,14 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { api, type WorldMap, type WorldMapEdge } from "../../lib/invoke";
 import { useStore } from "../../store";
+import { confirmAction } from "../agent/confirmGateState";
 import { countProblems } from "../../lib/validation";
 import { readCanvasTheme } from "../../lib/canvasTheme";
 import { inTextField, kbd } from "../../lib/keys";
 import { Icon } from "../start/Icons";
 import { Tooltip } from "../Tooltip";
-import { WorldToolRail, TOOL_KEYS, type WorldTool } from "./WorldToolRail";
+import { WorldToolRail, type WorldTool } from "./WorldToolRail";
+import { TOOL_KEYS } from "./worldToolKeys";
 import { WorldInspector, type InspectorActions } from "./WorldInspector";
 import {
   areaHull,
@@ -54,7 +56,13 @@ export function WorldMapView() {
   // `setTheme` publishes `data-theme` synchronously, so this never reads a
   // stale palette. Memoised so a wheel-tick redraw isn't a getComputedStyle.
   const theme = useStore((st) => st.theme);
-  const canvasTheme = useMemo(() => readCanvasTheme(), [theme]);
+  const canvasTheme = useMemo(() => {
+    // `theme` is the TRIGGER, not an argument: the tokens are read back off
+    // the DOM, which `setTheme` has already restamped. Referencing it keeps
+    // the memo honest — drop it and the palette goes stale on a theme flip.
+    void theme;
+    return readCanvasTheme();
+  }, [theme]);
 
   const [err, setErr] = useState<string | null>(null);
   const [mode, setMode] = useState<WorldMode>("schematic");
@@ -123,7 +131,6 @@ export function WorldMapView() {
     const ro = new ResizeObserver(syncSize);
     ro.observe(box);
     return () => ro.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const resolveImage = async (hint: string): Promise<HTMLImageElement | null> => {
@@ -519,11 +526,14 @@ export function WorldMapView() {
       setNote("nothing hand-placed — the layout is already the generator's");
       return;
     }
+    // Not a spend — the confirm card, not the paid card (row P1-A5 replaced
+    // every window.confirm in the editor).
     if (
-      !window.confirm(
-        `Hand ${manual.length} hand-placed level${manual.length > 1 ? "s" : ""} back to the generator?\n\n` +
-          "Their positions are recomputed from the seed on the next run. Paths you authored are kept.",
-      )
+      !(await confirmAction({
+        title: `Hand ${manual.length} hand-placed level${manual.length > 1 ? "s" : ""} back to the generator?`,
+        body: "Their positions are recomputed from the seed on the next run. Paths you authored are kept.",
+        confirmLabel: "Hand back",
+      }))
     )
       return;
     try {

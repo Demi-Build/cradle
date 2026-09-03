@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px; --radius-lg:10px;
+  --accent:oklch(72% 0.13 78); --accent-ink:oklch(28% 0.05 78);
+  --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45); --err:oklch(62% 0.18 25);
+  --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+}
+[data-theme="dark"]{
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b;
+  --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55; --stage:#08090b;
+}
+html,body{margin:0;padding:0;height:100%}
+body{background:#0a0a0c;font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+button,input,select,textarea{font-family:inherit}
+</style>
+</helmet>
+<div data-theme="dark" style="display:grid;grid-template-rows:36px 1fr 24px;height:100vh;background:var(--bg);color:var(--fg);position:relative;font-family:var(--ui)">
+
+  <header style="display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--bg-raised);border-bottom:1px solid var(--border)">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--fg-muted);display:flex;gap:8px;align-items:center;white-space:nowrap">
+      <span>cradle</span><span style="color:var(--fg-dim)">/</span><span>the-chain-of-orbit</span><span style="color:var(--fg-dim)">/</span><span>q_whisper_signal</span><span style="color:var(--fg-dim)">/</span><span style="color:var(--fg)">dialogue</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;border:1px solid var(--border);background:var(--bg-sunken);color:var(--fg-muted);letter-spacing:.06em;text-transform:uppercase">quest scope · 3 NPCs · 1 scene</span>
+  </header>
+
+  <div style="display:grid;grid-template-columns:208px 1fr;overflow:hidden;min-height:0">
+
+    <aside style="border-right:1px solid var(--border);background:var(--bg-raised);overflow-y:auto;padding:10px 0">
+      <button style="display:block;width:100%;text-align:left;background:none;color:var(--fg);border:0;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">The Chain of Orbit</button>
+      <div style="margin-top:4px">
+        <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:5px 14px;font-size:10.5px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;cursor:pointer"><span style="width:10px;color:var(--fg-dim);font-size:9px">▶</span><span style="flex:1">NPCs</span><span style="color:var(--fg-dim);font-size:10px">(79)</span></button>
+        <button style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:5px 14px;font-size:10.5px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent)">
+          <span style="width:10px;color:var(--fg-dim);font-size:9px">▼</span><span style="flex:1">Quests</span><span style="color:var(--fg-dim);font-size:10px">(24)</span>
+        </button>
+        <ul style="list-style:none;margin:0;padding:0 0 6px 0">
+          <li><button style="display:block;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 36px;font-size:12px;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Jorik's Request</button></li>
+          <li><button style="display:block;width:100%;background:var(--bg-hover);color:var(--fg);border:0;padding:4px 14px 4px 36px;font-size:12px;text-align:left;cursor:pointer;box-shadow:inset 2px 0 0 var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Signal in the Bonefield</button></li>
+          <li><button style="display:block;width:100%;background:none;color:var(--fg-muted);border:0;padding:4px 14px 4px 36px;font-size:12px;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Brother's Request</button></li>
+        </ul>
+        <button style="display:flex;align-items:center;gap:8px;width:100%;background:none;color:var(--fg-muted);border:0;padding:5px 14px;font-size:10.5px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;text-align:left;cursor:pointer"><span style="width:10px;color:var(--fg-dim);font-size:9px">▶</span><span style="flex:1">Events</span><span style="color:var(--fg-dim);font-size:10px">(72)</span></button>
+      </div>
+    </aside>
+
+    <main style="display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0;min-height:0">
+      <div style="display:flex;padding:0 20px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0">
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Overview</button>
+        <button style="background:none;color:var(--fg);border:0;border-bottom:2px solid var(--accent);padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Dialogue</button>
+        <button style="background:none;color:var(--fg-muted);border:0;border-bottom:2px solid transparent;padding:8px 14px;font-size:12px;font-weight:500;cursor:pointer;margin-bottom:-1px">Raw JSON</button>
+      </div>
+
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;padding:10px 14px 12px 20px;gap:9px;overflow:auto">
+
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="display:inline-flex;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:2px">
+            <button style="background:none;color:var(--fg-muted);border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500">View</button>
+            <button style="background:var(--bg-hover);color:var(--fg);border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500;box-shadow:inset 0 -2px 0 var(--accent)">Edit</button>
+            <button style="background:none;color:var(--fg-muted);border:0;padding:3px 11px;font-size:11px;border-radius:3px;cursor:pointer;font-weight:500">Test</button>
+          </div>
+          <span style="width:1px;height:18px;background:var(--border)"></span>
+          <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">participants</span>
+          <div style="display:flex;align-items:center;gap:4px">
+            <img src="assets/npc_1023.png" alt="Whisper-Tam" title="Whisper-Tam · 4 beats" width="22" height="22" style="border-radius:3px;border:1px solid var(--accent);object-fit:cover;image-rendering:pixelated" />
+            <span style="width:22px;height:22px;border-radius:3px;border:1px solid var(--border-hi);background:var(--bg-sunken);display:grid;place-items:center;font-family:var(--mono);font-size:8px;color:var(--fg-dim)">RK</span>
+            <span style="width:22px;height:22px;border-radius:3px;border:1px solid var(--border-hi);background:var(--bg-sunken);display:grid;place-items:center;font-family:var(--mono);font-size:8px;color:var(--fg-dim)">KI</span>
+            <button onClick="{{ showNpc }}" title="Add an NPC to this quest's conversation" style="width:22px;height:22px;border-radius:3px;border:1px dashed var(--accent);background:none;color:var(--accent);cursor:pointer;font-size:11px">＋</button>
+          </div>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">7 beats · 4 gated · 1 group scene</span>
+          <div style="flex:1"></div>
+          <span style="display:inline-flex;align-items:center;background:oklch(72% .14 45/.12);color:var(--warn);border:1px solid color-mix(in oklch,var(--warn) 55%,var(--border));font-size:10px;padding:2px 8px;border-radius:10px;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase">2 unsaved · 2 NPCs</span>
+          <button style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid transparent;border-radius:var(--radius-sm);background:var(--accent);color:var(--accent-ink);font-size:11.5px;font-weight:500;cursor:pointer">Save<span style="display:inline-block;padding:1px 5px;border:1px solid oklch(28% .05 78/.35);border-bottom-width:2px;border-radius:3px;font-family:var(--mono);font-size:10px">⌘S</span></button>
+        </div>
+
+        <div style="flex:1;min-height:540px;min-width:1180px;display:grid;grid-template-columns:218px minmax(430px,1fr) 300px;grid-template-rows:1fr 186px;gap:9px">
+
+          <aside style="grid-column:1;grid-row:1;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+            <div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+              <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">quest beats</span>
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">7</span>
+              <span style="margin-left:auto;display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);color:var(--fg-muted);font-family:var(--mono);font-size:9.5px">⌘P</span>
+            </div>
+            <div style="flex:1;min-height:0;overflow-y:auto;padding:6px 0 8px">
+
+              <div style="padding:7px 10px 3px;font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">offered</div>
+              <button style="display:flex;align-items:center;gap:7px;width:100%;text-align:left;background:none;border:0;color:var(--fg-muted);padding:4px 10px;font-size:11.5px;cursor:pointer">
+                <img src="assets/npc_1023.png" alt="" width="15" height="15" style="border-radius:2px;object-fit:cover;image-rendering:pixelated;flex:none" /><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Tam offers the shard</span>
+              </button>
+
+              <div style="padding:9px 10px 3px;font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">active</div>
+              <button style="display:flex;align-items:center;gap:7px;width:100%;text-align:left;background:none;border:0;color:var(--fg-muted);padding:4px 10px;font-size:11.5px;cursor:pointer">
+                <span style="width:15px;height:15px;border-radius:2px;background:var(--bg-sunken);border:1px solid var(--border);display:grid;place-items:center;font-family:var(--mono);font-size:7px;color:var(--fg-dim);flex:none">RK</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Kell names the gantry</span>
+              </button>
+              <button style="display:flex;align-items:center;gap:7px;width:100%;text-align:left;background:none;border:0;color:var(--fg-muted);padding:4px 10px;font-size:11.5px;cursor:pointer">
+                <span style="width:15px;height:15px;border-radius:2px;background:var(--bg-sunken);border:1px solid var(--border);display:grid;place-items:center;font-family:var(--mono);font-size:7px;color:var(--fg-dim);flex:none">KI</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Kess sells the rumour</span>
+              </button>
+              <button style="display:flex;align-items:center;gap:7px;width:100%;text-align:left;background:none;border:0;color:var(--fg-muted);padding:4px 10px;font-size:11.5px;cursor:pointer">
+                <svg width="11" height="11" viewBox="0 0 16 16" style="stroke:var(--info);fill:none;stroke-width:1.5;stroke-linecap:square;flex:none"><path d="M3 2v12M3 2.5h10l-2 3 2 3H3"></path></svg>
+                <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Bonefield Confession</span><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">3◍</span>
+              </button>
+
+              <div style="padding:9px 10px 3px;font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">turn-in</div>
+              <button style="display:flex;align-items:center;gap:7px;width:100%;text-align:left;background:var(--bg-hover);border:0;box-shadow:inset 2px 0 0 var(--accent);color:var(--fg);padding:4px 10px;font-size:11.5px;cursor:pointer">
+                <img src="assets/npc_1023.png" alt="" width="15" height="15" style="border-radius:2px;object-fit:cover;image-rendering:pixelated;flex:none" /><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Tam takes the shard</span><span style="font-family:var(--mono);font-size:9px;color:var(--ok)">⊳2</span>
+              </button>
+
+              <div style="padding:9px 10px 3px;font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">complete</div>
+              <button style="display:flex;align-items:center;gap:7px;width:100%;text-align:left;background:none;border:0;color:var(--fg-muted);padding:4px 10px;font-size:11.5px;cursor:pointer">
+                <img src="assets/npc_1023.png" alt="" width="15" height="15" style="border-radius:2px;object-fit:cover;image-rendering:pixelated;flex:none" /><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Tam after the truth</span>
+              </button>
+
+              <div style="padding:9px 10px 3px;font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">failed</div>
+              <div style="padding:3px 10px;font-family:var(--mono);font-size:9px;color:var(--fg-dim);font-style:italic;line-height:1.5">no beats — falls back to the quest's failure line</div>
+            </div>
+            <div style="border-top:1px solid var(--border);background:var(--bg-sunken);padding:7px 9px">
+              <button onClick="{{ showNpc }}" style="width:100%;background:none;border:1px dashed var(--accent);color:var(--accent);font-size:11px;padding:4px 8px;border-radius:var(--radius-sm);cursor:pointer;text-align:left">＋ Beat — pick NPC and quest state</button>
+            </div>
+          </aside>
+
+          <div style="grid-column:2;grid-row:1;position:relative;overflow:auto;background:var(--stage);border:1px solid var(--border);border-top:2px solid var(--accent);border-radius:var(--radius)">
+
+            <div style="position:absolute;left:10px;top:10px;z-index:4;display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--accent);background:color-mix(in srgb,var(--bg-raised) 93%,transparent);border:1px solid var(--accent);border-radius:99px;padding:3px 10px;backdrop-filter:blur(12px)">
+              <span style="width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>quest lanes · edit mode
+            </div>
+
+            <div style="position:absolute;left:14px;top:44px;transform:scale(.54);transform-origin:top left;width:1150px;height:450px">
+
+              <div style="position:absolute;left:150px;top:0;width:1000px;height:450px;display:grid;grid-template-columns:repeat(4,250px)">
+                <div style="border-left:1px solid var(--border);height:100%"></div>
+                <div style="border-left:1px solid var(--border);height:100%"></div>
+                <div style="border-left:1px solid var(--border);height:100%"></div>
+                <div style="border-left:1px solid var(--border);border-right:1px solid var(--border);height:100%"></div>
+              </div>
+
+              <div style="position:absolute;left:390px;top:36px;width:250px;height:400px;background:oklch(70% .12 260/.07);border:1px dashed color-mix(in oklch,var(--info) 60%,var(--border));border-radius:var(--radius)"></div>
+              <div style="position:absolute;left:398px;top:44px;display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--info)">
+                <svg width="12" height="12" viewBox="0 0 16 16" style="stroke:var(--info);fill:none;stroke-width:1.5;stroke-linecap:square"><path d="M3 2v12M3 2.5h10l-2 3 2 3H3"></path></svg>
+                scene · bonefield confession · 3 actors
+              </div>
+
+              <div style="position:absolute;left:150px;top:6px;width:1000px;display:grid;grid-template-columns:repeat(4,250px);font-family:var(--mono);font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">
+                <span style="padding-left:10px">offered</span>
+                <span style="padding-left:10px;color:var(--warn)">active</span>
+                <span style="padding-left:10px">turn-in</span>
+                <span style="padding-left:10px;color:var(--ok)">complete</span>
+              </div>
+
+              <div style="position:absolute;left:0;top:80px;width:140px;display:flex;align-items:center;gap:8px">
+                <img src="assets/npc_1023.png" alt="Whisper-Tam" width="30" height="30" style="border-radius:var(--radius-sm);border:1px solid var(--accent);object-fit:cover;image-rendering:pixelated;flex:none" />
+                <span style="font-size:12px;font-weight:600;line-height:1.2">Whisper-Tam</span>
+              </div>
+              <div style="position:absolute;left:0;top:210px;width:140px;display:flex;align-items:center;gap:8px">
+                <span style="width:30px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--border-hi);background:var(--bg-sunken);display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--fg-dim);flex:none">RK</span>
+                <span style="font-size:12px;font-weight:600;line-height:1.2">Rust-Kell</span>
+              </div>
+              <div style="position:absolute;left:0;top:340px;width:140px;display:flex;align-items:center;gap:8px">
+                <span style="width:30px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--border-hi);background:var(--bg-sunken);display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--fg-dim);flex:none">KI</span>
+                <span style="font-size:12px;font-weight:600;line-height:1.2">Kess Ironwhisper</span>
+              </div>
+
+              <svg width="1150" height="450" style="position:absolute;inset:0;overflow:visible;pointer-events:none">
+                <path d="M392 116 C420 116 420 246 400 246" stroke="var(--warn)" stroke-width="2" fill="none"></path>
+                <path d="M642 246 C670 246 670 116 650 116" stroke="var(--accent)" stroke-width="2" fill="none"></path>
+                <path d="M642 376 C700 376 700 130 650 130" stroke="var(--fg-dim)" stroke-width="1.5" stroke-dasharray="4 4" fill="none"></path>
+                <path d="M892 116 L900 116" stroke="var(--ok)" stroke-width="2" fill="none"></path>
+                <text x="404" y="180" fill="var(--warn)" font-size="11" font-family="Inter">gives_quest</text>
+                <text x="656" y="180" fill="var(--accent)" font-size="11" font-family="Inter">has_item + active</text>
+              </svg>
+
+              <div style="position:absolute;left:158px;top:66px;width:226px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">voices</span>
+                  <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--warn)">gives_quest</span>
+                </div>
+                <div style="font-size:11.5px;line-height:1.5">Bring me the shard that hums at seven-seven. The Prophet buried it in the Bonefield.</div>
+              </div>
+
+              <div style="position:absolute;left:408px;top:196px;width:226px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">gantry_hint</span>
+                  <span style="margin-left:auto;display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9px;color:var(--ok)">⊳1<span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span></span>
+                </div>
+                <div style="font-size:11.5px;line-height:1.5">Third gantry sings before it gives. Whatever you're digging for is under it.</div>
+              </div>
+
+              <div style="position:absolute;left:408px;top:326px;width:226px;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);padding:9px 11px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">rumour</span>
+                  <span style="margin-left:auto;display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9px;color:var(--warn)">⊳2<span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--warn)"></span></span>
+                </div>
+                <div style="font-size:11.5px;line-height:1.5">Forty scrip and I'll tell you who else is looking for it. Cheaper before midnight.</div>
+              </div>
+
+              <div style="position:absolute;left:658px;top:60px;width:226px;background:var(--bg-raised);border:1px solid var(--accent);border-radius:var(--radius);padding:9px 11px;box-shadow:0 0 0 2px oklch(72% .13 78/.28),0 8px 24px rgba(0,0,0,.5)">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg)">voices[3] → reward</span>
+                  <span style="margin-left:auto;display:inline-flex;align-items:center;gap:3px;font-family:var(--mono);font-size:9px;color:var(--ok)">⊳2<span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span></span>
+                </div>
+                <div style="font-size:11.5px;line-height:1.5">The shard sings its way home. You have heard what the Prophet buried.</div>
+                <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:3px;font-family:var(--mono);font-size:9px">
+                  <span style="color:var(--err);background:var(--bg-sunken);border:1px solid var(--border);border-radius:99px;padding:1px 6px">takes_item</span>
+                  <span style="color:var(--ok);background:var(--bg-sunken);border:1px solid var(--border);border-radius:99px;padding:1px 6px">advance_quest</span>
+                  <span style="color:var(--special);background:var(--bg-sunken);border:1px solid var(--border);border-radius:99px;padding:1px 6px">set_flag</span>
+                </div>
+              </div>
+
+              <div style="position:absolute;left:908px;top:66px;width:226px;background:var(--bg-raised);border:1px solid color-mix(in oklch,var(--ok) 55%,var(--border));border-radius:var(--radius);padding:9px 11px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                  <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-muted)">complete · start</span>
+                  <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--ok)">tree · 3</span>
+                </div>
+                <div style="font-size:11.5px;line-height:1.5">The frequency thanks you in a register you cannot hear. Sit. Listen with me.</div>
+              </div>
+
+              <div style="position:absolute;left:908px;top:196px;width:226px;height:74px;border:1px dashed var(--border-hi);border-radius:var(--radius);display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--fg-dim);cursor:pointer">＋ beat for Rust-Kell</div>
+              <div style="position:absolute;left:158px;top:326px;width:226px;height:74px;border:1px dashed var(--border-hi);border-radius:var(--radius);display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--fg-dim);cursor:pointer">＋ beat for Kess</div>
+            </div>
+          </div>
+
+          <aside style="grid-column:3;grid-row:1 / span 2;background:var(--bg-raised);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+            <div style="padding:9px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px">
+              <img src="assets/npc_1023.png" alt="Whisper-Tam" width="22" height="22" style="border-radius:3px;border:1px solid var(--accent);object-fit:cover;image-rendering:pixelated;flex:none" />
+              <span style="font-family:var(--mono);font-size:12px;color:var(--fg);font-weight:500">voices[3]</span>
+              <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--fg-dim)">turn-in</span>
+            </div>
+
+            <div style="flex:1;min-height:0;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:12px">
+
+              <div style="display:flex;align-items:flex-start;gap:8px;background:oklch(70% .12 260/.1);border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));border-radius:var(--radius-sm);padding:7px 9px">
+                <span style="font-family:var(--mono);font-size:10px;color:var(--info);flex:none">↗</span>
+                <span style="font-size:10.5px;color:var(--fg-muted);line-height:1.5">You are editing Whisper-Tam's <span style="font-family:var(--mono);color:var(--fg)">default</span> tree from the quest. Same data, same buffer. <a href="01 Editor.dc.html" style="color:var(--info);text-decoration:underline">Open her tree →</a></span>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">choice text</span>
+                <input value="I recovered your resonance shard." style="background:var(--bg-sunken);border:1px solid var(--border-hi);color:var(--fg);border-radius:var(--radius-sm);padding:4px 7px;font-size:11px" />
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">npc reply</span>
+                <textarea rows="3" style="background:var(--bg-sunken);border:1px solid var(--border);color:var(--fg);border-radius:var(--radius-sm);padding:6px 8px;font-size:11.5px;line-height:1.5;resize:vertical">The shard sings its way home. You have heard what the Prophet buried.</textarea>
+              </div>
+
+              <div style="height:1px;background:var(--border)"></div>
+
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">conditions</span>
+                  <span style="display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;color:var(--ok)"><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span>engine ok</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 5px">
+                  <span style="width:5px;height:5px;border-radius:50%;background:var(--ok);flex:none"></span>
+                  <select style="background:var(--bg-raised);border:1px solid var(--border);color:var(--accent);border-radius:3px;padding:1px 3px;font-size:10px;font-family:var(--mono)"><option>has_item</option><option>quest</option></select>
+                  <select style="flex:1;min-width:0;background:var(--bg-raised);border:1px solid var(--border);color:var(--fg);border-radius:3px;padding:1px 3px;font-size:10px;font-family:var(--mono)"><option>resonance shard</option></select>
+                  <button style="background:none;border:0;color:var(--fg-dim);cursor:pointer;font-size:10px">×</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 5px">
+                  <span style="width:5px;height:5px;border-radius:50%;background:var(--ok);flex:none"></span>
+                  <select style="background:var(--bg-raised);border:1px solid var(--border);color:var(--accent);border-radius:3px;padding:1px 3px;font-size:10px;font-family:var(--mono)"><option>quest</option></select>
+                  <span style="flex:1;min-width:0;font-family:var(--mono);font-size:10px;color:var(--fg-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">this quest</span>
+                  <select style="background:var(--bg-raised);border:1px solid var(--border);color:var(--fg);border-radius:3px;padding:1px 3px;font-size:10px;font-family:var(--mono)"><option>active</option><option>offered</option></select>
+                  <button style="background:none;border:0;color:var(--fg-dim);cursor:pointer;font-size:10px">×</button>
+                </div>
+                <div style="font-family:var(--mono);font-size:9px;color:var(--fg-dim);line-height:1.5">In quest scope the quest id is implied — the picker defaults to <span style="color:var(--fg-muted)">this quest</span>.</div>
+                <button style="background:none;border:1px dashed var(--border-hi);color:var(--fg-muted);font-size:10px;padding:3px 7px;border-radius:var(--radius-sm);font-family:var(--mono);cursor:pointer;text-align:left">＋ condition</button>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">effects</span>
+                <div style="display:flex;align-items:center;gap:5px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 6px;font-family:var(--mono);font-size:10px"><span style="color:var(--err)">takes_item</span><span style="flex:1;color:var(--fg);font-family:var(--ui);font-size:10.5px">resonance shard</span><button style="background:none;border:0;color:var(--fg-dim);cursor:pointer">×</button></div>
+                <div style="display:flex;align-items:center;gap:5px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 6px;font-family:var(--mono);font-size:10px"><span style="color:var(--ok)">advance_quest</span><span style="flex:1;color:var(--fg);font-family:var(--ui);font-size:10.5px">this quest</span><button style="background:none;border:0;color:var(--fg-dim);cursor:pointer">×</button></div>
+                <div style="display:flex;align-items:center;gap:5px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 6px;font-family:var(--mono);font-size:10px"><span style="color:var(--special)">set_flag</span><span style="flex:1;color:var(--fg)">heard_true_signal</span><button style="background:none;border:0;color:var(--fg-dim);cursor:pointer">×</button></div>
+              </div>
+
+              <div style="height:1px;background:var(--border)"></div>
+
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">quest coverage</span>
+                <div style="display:flex;align-items:center;gap:7px;font-size:11px;background:var(--bg-sunken);border-radius:var(--radius-sm);padding:4px 7px"><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span><span style="flex:1;color:var(--fg-muted)">offered</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1 beat</span></div>
+                <div style="display:flex;align-items:center;gap:7px;font-size:11px;background:var(--bg-sunken);border-radius:var(--radius-sm);padding:4px 7px"><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span><span style="flex:1;color:var(--fg-muted)">active</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3 beats</span></div>
+                <div style="display:flex;align-items:center;gap:7px;font-size:11px;background:var(--bg-sunken);border-radius:var(--radius-sm);padding:4px 7px"><span style="width:5px;height:5px;border-radius:50%;background:var(--ok)"></span><span style="flex:1;color:var(--fg-muted)">turn-in</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1 beat</span></div>
+                <div style="display:flex;align-items:center;gap:7px;font-size:11px;background:oklch(72% .14 45/.1);border-radius:var(--radius-sm);padding:4px 7px"><span style="width:5px;height:5px;border-radius:50%;background:var(--warn)"></span><span style="flex:1;color:var(--warn)">failed</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">no beats</span></div>
+                <span style="font-size:10px;color:var(--fg-dim);line-height:1.5">A quest state with no dialogue is a warning, not an error — the engine uses the quest's own one-liner.</span>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid var(--border);background:var(--bg-sunken);padding:6px 11px;display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">
+              <span>⌘Z undo</span><span style="margin-left:auto">⌘I hide</span>
+            </div>
+          </aside>
+
+          <div style="grid-column:1 / span 2;grid-row:2;background:var(--bg-raised);border:1px solid var(--border);border-top:2px solid var(--info);border-radius:var(--radius);display:flex;flex-direction:column;min-height:0;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:9px;padding:6px 11px;border-bottom:1px solid var(--border);background:color-mix(in oklch,var(--info) 7%,var(--bg-raised));flex-wrap:wrap">
+              <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--info)"><span style="width:6px;height:6px;border-radius:50%;background:var(--info)"></span>test the whole quest</span>
+              <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">walks every NPC in order · crossing lanes as the state advances</span>
+              <div style="flex:1"></div>
+              <span style="display:inline-flex;align-items:center;background:oklch(72% .14 45/.12);color:var(--warn);border:1px solid color-mix(in oklch,var(--warn) 50%,var(--border));font-size:9.5px;padding:1px 7px;border-radius:99px;font-family:var(--mono)">quest active</span>
+              <span style="display:inline-flex;align-items:center;background:var(--bg-sunken);color:var(--fg-muted);border:1px solid var(--border);font-size:9.5px;padding:1px 7px;border-radius:99px;font-family:var(--mono)">shard held</span>
+              <button style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Expand <span style="display:inline-block;padding:0 4px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:9px">⌃↑</span></button>
+            </div>
+
+            <div style="flex:1;min-height:0;overflow-y:auto;padding:9px 11px;display:flex;flex-direction:column;gap:7px">
+              <div style="display:flex;gap:8px;opacity:.6">
+                <img src="assets/npc_1023.png" alt="" width="20" height="20" style="border-radius:3px;border:1px solid var(--border);object-fit:cover;image-rendering:pixelated;flex:none" />
+                <div style="flex:1;min-width:0"><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">Whisper-Tam · offered</span><div style="font-size:11px;line-height:1.5">Bring me the shard that hums at seven-seven.</div><div style="font-family:var(--mono);font-size:9px;color:var(--ok);margin-top:2px">+ gives_quest → quest is now active</div></div>
+              </div>
+              <div style="display:flex;gap:8px;opacity:.75">
+                <span style="width:20px;height:20px;border-radius:3px;background:var(--bg-sunken);border:1px solid var(--border);display:grid;place-items:center;font-family:var(--mono);font-size:7px;color:var(--fg-dim);flex:none">RK</span>
+                <div style="flex:1;min-width:0"><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">Rust-Kell · active</span><div style="font-size:11px;line-height:1.5">Third gantry sings before it gives.</div><div style="font-family:var(--mono);font-size:9px;color:var(--ok);margin-top:2px">+ gives_item:item_resonance_shard</div></div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <img src="assets/npc_1023.png" alt="" width="20" height="20" style="border-radius:3px;border:1px solid var(--accent);object-fit:cover;image-rendering:pixelated;flex:none" />
+                <div style="flex:1;min-width:0">
+                  <span style="font-family:var(--mono);font-size:9px;color:var(--accent)">Whisper-Tam · turn-in · current</span>
+                  <div style="font-size:11px;line-height:1.5">Signal-pattern-seven-seven... the metal whispers truth.</div>
+                  <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">
+                    <span style="display:inline-flex;align-items:center;gap:5px;background:var(--bg-sunken);border:1px solid color-mix(in oklch,var(--ok) 50%,var(--border));border-radius:var(--radius-sm);padding:3px 7px;font-size:10.5px"><span style="font-family:var(--mono);color:var(--ok)">✓</span>I recovered your resonance shard.</span>
+                    <span style="display:inline-flex;align-items:center;gap:5px;background:var(--bg-sunken);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px 7px;font-size:10.5px;color:var(--fg-muted)"><span style="font-family:var(--mono);color:var(--ok)">✓</span>Not yet.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <footer style="display:flex;align-items:center;gap:14px;padding:0 12px;border-top:1px solid var(--border);background:var(--bg-raised);font-size:10.5px;color:var(--fg-muted);font-family:var(--mono);white-space:nowrap;overflow:hidden">
+    <span style="color:var(--accent)">MODE EDIT</span>
+    <span style="color:var(--info)">SCOPE QUEST</span>
+    <span>q_whisper_signal · 3 NPCs · beat <span style="color:var(--fg)">voices[3]</span></span>
+    <span style="color:var(--warn)">2 unsaved across 2 NPCs</span>
+    <span style="color:var(--fg-dim);font-style:italic">(⌘S writes one canon dialogue update per NPC, in one batch)</span>
+    <span style="margin-left:auto;display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);color:var(--fg-muted);font-size:10px">⌘K</span>
+  </footer>
+
+  <sc-if value="{{ isNpc }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ showLanes }}" style="position:absolute;inset:0;background:rgba(0,0,0,.28);z-index:1000"></div>
+    <div style="position:absolute;left:50%;top:104px;transform:translateX(-50%);width:420px;background:var(--bg-raised);border:1px solid var(--border-hi);border-radius:var(--radius-lg);box-shadow:0 14px 38px rgba(0,0,0,.6);overflow:hidden;z-index:1001;display:flex;flex-direction:column;max-height:74vh">
+      <div style="padding:11px 13px;border-bottom:1px solid var(--border)">
+        <div style="font-size:13.5px;font-weight:600">Add a beat to this quest</div>
+        <div style="margin-top:3px;font-size:11.5px;color:var(--fg-muted);line-height:1.5">Pick who speaks and when. This creates a node in that NPC's tree and a lane for them here — one thing, two views.</div>
+      </div>
+
+      <div style="padding:9px 13px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;background:var(--bg-sunken)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);width:64px">quest state</span>
+          <div style="display:flex;gap:3px;flex-wrap:wrap">
+            <button style="background:var(--bg-raised);color:var(--fg-muted);border:1px solid var(--border-hi);font-size:9.5px;padding:1px 8px;border-radius:99px;font-family:var(--mono);cursor:pointer">offered</button>
+            <button style="background:oklch(72% .14 45/.14);color:var(--warn);border:1px solid var(--warn);font-size:9.5px;padding:1px 8px;border-radius:99px;font-family:var(--mono);cursor:pointer">active</button>
+            <button style="background:var(--bg-raised);color:var(--fg-muted);border:1px solid var(--border-hi);font-size:9.5px;padding:1px 8px;border-radius:99px;font-family:var(--mono);cursor:pointer">turn-in</button>
+            <button style="background:var(--bg-raised);color:var(--fg-muted);border:1px solid var(--border-hi);font-size:9.5px;padding:1px 8px;border-radius:99px;font-family:var(--mono);cursor:pointer">complete</button>
+            <button style="background:var(--bg-raised);color:var(--fg-dim);border:1px dashed var(--border-hi);font-size:9.5px;padding:1px 8px;border-radius:99px;font-family:var(--mono);cursor:pointer">failed · 0</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);width:64px">kind</span>
+          <div style="display:flex;gap:3px;flex-wrap:wrap">
+            <button style="background:oklch(72% .13 78/.1);color:var(--accent);border:1px solid var(--accent);font-size:9.5px;padding:1px 8px;border-radius:99px;font-family:var(--mono);cursor:pointer">one NPC</button>
+            <button style="background:var(--bg-raised);color:var(--fg-muted);border:1px solid var(--border-hi);font-size:9.5px;padding:1px 8px;border-radius:99px;font-family:var(--mono);cursor:pointer">group scene</button>
+            <button style="background:var(--bg-raised);color:var(--fg-muted);border:1px solid var(--border-hi);font-size:9.5px;padding:1px 8px;border-radius:99px;font-family:var(--mono);cursor:pointer">existing event</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:8px 11px;border-bottom:1px solid var(--border)">
+        <input value="" placeholder="Search NPCs by name, job or room…" style="width:100%;background:var(--bg-sunken);border:1px solid var(--border-hi);color:var(--fg);border-radius:var(--radius-sm);padding:5px 8px;font-size:12px;outline:none" />
+      </div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:6px">
+        <div style="padding:6px 8px 3px;font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">already in this quest · 3</div>
+
+        <button style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:6px 8px;border:0;border-radius:var(--radius-sm);background:var(--bg-hover);box-shadow:inset 2px 0 0 var(--accent);color:var(--fg);cursor:pointer">
+          <img src="assets/npc_1023.png" alt="" width="26" height="26" style="border-radius:3px;border:1px solid var(--border-hi);object-fit:cover;image-rendering:pixelated;flex:none" />
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Whisper-Tam</span>
+            <span style="display:block;font-family:var(--mono);font-size:9px;color:var(--fg-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">npc_1023 · 4 beats · 9 trees</span>
+          </span>
+          <span style="display:inline-block;padding:1px 5px;border:1px solid var(--border-hi);border-bottom-width:2px;border-radius:3px;background:var(--bg-sunken);font-family:var(--mono);font-size:9px;color:var(--fg-muted);flex:none">↵</span>
+        </button>
+
+        <button style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:6px 8px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--fg);cursor:pointer">
+          <span style="width:26px;height:26px;border-radius:3px;border:1px solid var(--border-hi);background:var(--bg-sunken);display:grid;place-items:center;font-family:var(--mono);font-size:8px;color:var(--fg-dim);flex:none">RK</span>
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Rust-Kell</span>
+            <span style="display:block;font-family:var(--mono);font-size:9px;color:var(--fg-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">npc_1041 · 1 beat · gantry welder</span>
+          </span>
+        </button>
+
+        <button style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:6px 8px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--fg);cursor:pointer">
+          <span style="width:26px;height:26px;border-radius:3px;border:1px solid var(--border-hi);background:var(--bg-sunken);display:grid;place-items:center;font-family:var(--mono);font-size:8px;color:var(--fg-dim);flex:none">KI</span>
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Kess Ironwhisper</span>
+            <span style="display:block;font-family:var(--mono);font-size:9px;color:var(--fg-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">npc_1002 · 1 beat · scrap-broker</span>
+          </span>
+        </button>
+
+        <div style="padding:9px 8px 3px;font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">in the quest's rooms · 5</div>
+
+        <button style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:6px 8px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--fg);cursor:pointer">
+          <span style="width:26px;height:26px;border-radius:3px;border:1px solid var(--border-hi);background:var(--bg-sunken);display:grid;place-items:center;font-family:var(--mono);font-size:8px;color:var(--fg-dim);flex:none">BT</span>
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Brother Thane the Hollow</span>
+            <span style="display:block;font-family:var(--mono);font-size:9px;color:var(--fg-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">npc_1003 · room_2 · story NPC · no beats yet</span>
+          </span>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--special);flex:none">new lane</span>
+        </button>
+
+        <button style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:6px 8px;border:0;border-radius:var(--radius-sm);background:transparent;color:var(--fg);cursor:pointer">
+          <span style="width:26px;height:26px;border-radius:3px;border:1px solid var(--border-hi);background:var(--bg-sunken);display:grid;place-items:center;font-family:var(--mono);font-size:8px;color:var(--fg-dim);flex:none">VI</span>
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Vex Ironhollow</span>
+            <span style="display:block;font-family:var(--mono);font-size:9px;color:var(--fg-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">npc_1007 · room_2 · gantry foreman</span>
+          </span>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--special);flex:none">new lane</span>
+        </button>
+
+        <div style="padding:9px 8px 3px;font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">elsewhere · 71 more, search to find them</div>
+        <div style="padding:3px 8px 6px;font-family:var(--mono);font-size:9px;color:var(--warn);line-height:1.5">An NPC outside the quest's rooms gets a room: gate added automatically, so the beat can't fire somewhere the player can't be.</div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);background:var(--bg-sunken);padding:9px 12px;display:flex;align-items:center;gap:8px">
+        <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">lands unsaved · ⌘S writes</span>
+        <div style="flex:1"></div>
+        <button onClick="{{ showLanes }}" style="padding:4px 10px;border:1px solid var(--border-hi);border-radius:var(--radius-sm);background:transparent;color:var(--fg-muted);font-size:11.5px;cursor:pointer">Cancel</button>
+        <button onClick="{{ showLanes }}" style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border:1px solid transparent;border-radius:var(--radius-sm);background:var(--accent);color:var(--accent-ink);font-size:11.5px;font-weight:500;cursor:pointer">Add beat for Whisper-Tam · active</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="position:absolute;left:12px;bottom:30px;font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim);border:1px dashed var(--border-hi);border-radius:99px;padding:3px 9px;background:var(--bg-sunken);z-index:1200">{{ badge }}</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { view: "lanes" };
+  renderVals() {
+    const npc = this.state.view === "npc";
+    return {
+      isNpc: npc,
+      showNpc: () => this.setState({ view: "npc" }),
+      showLanes: () => this.setState({ view: "lanes" }),
+      badge: npc
+        ? "screen 07b · add an npc to this quest's conversation"
+        : "screen 07 · quest-scoped dialogue · cross-npc lanes",
+    };
+  }
+}
+</script>
+</body>
+</html>

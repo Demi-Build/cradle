@@ -1,0 +1,61 @@
+# The vendored Python runtime payload — pins and checksums (row P0-11, W3.3).
+#
+# THIS FILE IS THE PIN. `scripts/fetch-runtime.sh` reads every value from
+# here; nothing is buried in the script, so bumping the runtime is a diff on
+# this file (plus whatever CI cache keys quote it).
+#
+# Grammar — one record per line, `<key> <value...>`; `#` starts a comment.
+#   release       python-build-standalone release tag (a date).
+#   python        CPython version inside that release.
+#   canon_source  Where the canon wheel comes from. A relative path is
+#                 resolved against the CRADLE REPO ROOT; anything that is not
+#                 an existing path or .whl is handed to pip as a requirement
+#                 source (`canon-ai[extras] @ <value>`). `CANON_SPEC` in the
+#                 environment overrides it (CI sets it to its own checkout).
+#   canon_ref     Which canon-ai ref CI checks out before handing the checkout
+#                 to the fetch as `CANON_SPEC`. A branch, tag, or full sha.
+#                 It lives HERE and not in the workflows because it is the one
+#                 input that decides the app's actual behaviour, and a release
+#                 tag that names a moving branch bundles whatever that branch
+#                 happened to be at build time. Both workflows read this line.
+#                 Bumping it also busts the runtime cache, which keys on this
+#                 file's hash.
+#
+#                 !! RELEASE BLOCKER, 2026-09-02: `main` does NOT yet carry the
+#                 September work this row's bundle needs — the `agent` and
+#                 `openai` extras are absent from canon-ai's pyproject on main,
+#                 and so are `canon/agent/service.py` (A2's sidecar) and
+#                 `canon/packs/platformer/play.py` (the play harness). A v* tag
+#                 pushed today therefore CANNOT build: `fetch-runtime.sh` fails
+#                 by name at its extras precheck. Point this line at the ref
+#                 that carries them (a sha is best) once it lands upstream.
+#   canon_extras  The extras the BUNDLE installs. Decided 2026-09-01:
+#                 `agent` is in (the agent panel is dead in a bundled app
+#                 without fastapi/uvicorn) and `openai` is in (pure python,
+#                 and what makes the kimi backend work). The torch extras
+#                 (`huggingface`, `images-local`) stay out — gigabytes for a
+#                 path the desktop app never takes.
+#   sha256        <target-triple> <hex> — one line per supported platform.
+#                 The triple is Rust's target triple, which is also
+#                 python-build-standalone's own triple and the directory name
+#                 under `src-tauri/resources/runtime/`. One vocabulary.
+#
+# Asset name:  cpython-<python>+<release>-<triple>-install_only.tar.gz
+# Asset URL:   https://github.com/astral-sh/python-build-standalone/releases/download/<release>/<asset>
+# Checksums come from that release's own SHA256SUMS asset.
+#
+# CPython 3.12 is the pin because every wheel the bundle installs — numpy,
+# Pillow, pygame, fal-client, the provider SDKs — ships a 3.12 wheel today.
+# canon itself needs >=3.11 (pyproject `requires-python`).
+
+release      20260901
+python       3.12.14
+canon_source ../canon-ai
+canon_ref    main
+canon_extras cli,platformer,play,anthropic,images,audio,agent,openai
+
+sha256 aarch64-apple-darwin       3ee3ee547cedfeb7c2b16b2b7156039f7b470bb8f857e226fd3d2eb11db83c76
+sha256 x86_64-apple-darwin        2e31b23f3f1319f707d0e620b48847a0046577541d357276821f9f1b5492e0ba
+sha256 x86_64-unknown-linux-gnu   936c246dfdbbfa7cb22dd01814a21f582a892689fae96b06071a5e433baffa22
+sha256 aarch64-unknown-linux-gnu  b61b856c3e1a4fc65b8f6e6b0495ef975dd0924f90c59f3ea61b38a079173b84
+sha256 x86_64-pc-windows-msvc     e90c1b6419da3bd812dd73bb3de40287a21abf153438147639ec5e20375ea93f

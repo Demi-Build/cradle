@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b; --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55;
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;color:var(--fg)}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+</style>
+</helmet>
+
+<div data-screen-label="P4 · tileset joins" style="min-width:1440px;padding:26px 30px 34px;background:var(--bg)">
+  <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:14px">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">flow board · P4</div>
+      <h1 style="margin:4px 0 0;font-size:21px;font-weight:600;letter-spacing:-.01em">Tileset joins</h1>
+    </div>
+    <div style="flex:1"></div>
+    <p style="margin:0;max-width:540px;font-size:11.5px;color:var(--fg-muted);line-height:1.55;text-wrap:pretty">Generated tilesets repeat because the generator fills 16 autotile cases from three distinct bases. The fix is more variants at the joins — and the loop has to end on the level canvas, where the repetition was visible in the first place.</p>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">entry: level canvas ▸ repetition chip, or PixEd ▸ Tileset ▸ Joins</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">exit: approved variants in the autotile rotation</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));background:oklch(72% .14 45/.1);color:var(--warn)">spend $0.06–$0.22 per batch of 4</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:96px repeat(5,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+    <div style="background:var(--bg-sunken);padding:8px 10px"></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1</div><div style="font-size:11.5px;font-weight:600">Spot the repetition</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">2</div><div style="font-size:11.5px;font-weight:600">Choose join kinds</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3</div><div style="font-size:11.5px;font-weight:600">Generate variants</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4</div><div style="font-size:11.5px;font-weight:600">Hand-edit</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">5</div><div style="font-size:11.5px;font-weight:600">Approve · canvas updates</div></div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)">user</span><span style="font-size:10.5px;color:var(--fg-dim)">decides, approves</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Notices the wallpaper effect, or clicks the repetition chip that says it first.</p>
+      <div style="height:52px;border:1px solid var(--border);border-radius:3px;background:var(--bg-sunken);position:relative;overflow:hidden">
+        <div style="position:absolute;inset:0;background-image:linear-gradient(to right,color-mix(in oklch,var(--border) 80%,transparent) 1px,transparent 1px);background-size:14px 100%"></div>
+        <div style="position:absolute;left:14px;top:10px;width:112px;height:14px;background:oklch(62% .18 25/.22);border:1px solid color-mix(in oklch,var(--err) 45%,transparent)"></div>
+        <div style="position:absolute;left:56px;top:30px;width:98px;height:12px;background:oklch(72% .14 45/.2);border:1px solid color-mix(in oklch,var(--warn) 45%,transparent)"></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--warn)">floor · 24 cells in 2 runs</span>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Picks which cases to fill. Edges first is the cheap win.</p>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px"><span style="width:11px;height:11px;border:1px solid var(--accent);border-radius:2px;background:var(--accent)"></span><span style="flex:1">edges · 4</span></label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--fg-muted)"><span style="width:11px;height:11px;border:1px solid var(--border-hi);border-radius:2px"></span><span style="flex:1">corners · 4</span></label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--fg-muted)"><span style="width:11px;height:11px;border:1px solid var(--border-hi);border-radius:2px"></span><span style="flex:1">cracks and debris · 4</span></label>
+      </div>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">bounds stay frozen · collision cannot move</span>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">One confirm, with the estimate on the button.</p>
+      <button style="padding:5px 8px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.12);color:var(--accent);font-size:11.5px;cursor:pointer">Generate 4 · $0.06–$0.22</button>
+      <div style="display:flex;gap:3px">
+        <div style="flex:1;height:32px;border:1px solid var(--ok);border-radius:2px;background:oklch(58% .04 250/.3)"></div>
+        <div style="flex:1;height:32px;border:1px solid var(--ok);border-radius:2px;background:oklch(58% .04 250/.3)"></div>
+        <div style="flex:1;height:32px;border:1px solid var(--info);border-radius:2px;background:var(--bg-sunken)"></div>
+        <div style="flex:1;height:32px;border:1px dashed var(--border-hi);border-radius:2px;background:transparent"></div>
+      </div>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">2 landed · 1 running · 1 queued</span>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Fixes the seam on one variant — a few pixels at the tile edge.</p>
+      <div style="height:52px;border:1px solid var(--border);border-radius:3px;background:var(--bg-sunken);position:relative">
+        <div style="position:absolute;inset:0;background-image:linear-gradient(to right,color-mix(in oklch,var(--border-hi) 55%,transparent) 1px,transparent 1px),linear-gradient(to bottom,color-mix(in oklch,var(--border-hi) 55%,transparent) 1px,transparent 1px);background-size:7px 7px;opacity:.6"></div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--info)"></div>
+        <div style="position:absolute;right:0;top:0;bottom:0;width:2px;background:var(--info)"></div>
+        <span style="position:absolute;right:4px;bottom:2px;font-family:var(--mono);font-size:8.5px;color:var(--info)">seam guides</span>
+      </div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Approves three of four. The level redraws with the rotation, and the repetition chip clears.</p>
+      <div style="display:flex;align-items:center;gap:6px"><span style="font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid color-mix(in oklch,var(--ok) 45%,var(--border));background:oklch(68% .13 150/.12);color:var(--ok)">repetition normal</span></div>
+      <div style="height:44px;border:1px solid var(--border);border-radius:3px;background:var(--bg-sunken);position:relative;overflow:hidden">
+        <div style="position:absolute;inset:0;background-image:linear-gradient(to right,color-mix(in oklch,var(--border) 80%,transparent) 1px,transparent 1px);background-size:14px 100%"></div>
+        <div style="position:absolute;left:14px;top:12px;width:14px;height:14px;background:oklch(58% .04 250/.5)"></div>
+        <div style="position:absolute;left:42px;top:12px;width:14px;height:14px;background:oklch(60% .05 250/.5)"></div>
+        <div style="position:absolute;left:70px;top:12px;width:14px;height:14px;background:oklch(56% .04 250/.5)"></div>
+        <div style="position:absolute;left:98px;top:12px;width:14px;height:14px;background:oklch(62% .05 250/.5)"></div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info)">cradle</span><span style="font-size:10.5px;color:var(--fg-dim)">does the work</span></div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">A free pass over each level counts runs of one variant and reports them as a diagnostic overlay plus a chip. It runs after any tileset save and after layout generation.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Reads the slot's autotile case table and offers only cases that are missing distinct art. Cases already distinct are shown as satisfied, so the batch is never padded.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">img2img seeded with the slot's own pixels, palette-constrained, one request per case. Results land as variant slots with the frozen bounds enforced — a result that changed the silhouette outside the slot is rejected before it reaches the strip.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Opens the variant in tileset mode with seam guides on both edges and the neighbouring case rendered adjacent, so the join is edited in context rather than in isolation.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Approval writes one journaled tileset version, updates the autotile table, and re-runs the repetition pass on every level using the tileset — the chip that started the flow is what closes it.</div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn)">spend</span><span style="font-size:10.5px;color:var(--fg-dim)">&amp; QA gates</span></div>
+    <div style="background:var(--bg-raised);padding:10px;font-family:var(--mono);font-size:10px;color:var(--ok);display:flex;align-items:center">free</div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--fg-dim)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Each checkbox moves the estimate on the button, so twelve variants never happen by accident.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--warn)">$0.06–$0.22</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Bounds check is a hard gate: a result that moves geometry is discarded and re-requested once, then reported.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Palette conformance and alpha gate per variant, as chips.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Unapproved variants stay on disk unused — no cost to leaving them, no clutter in the picker.</span></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px">
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--err);margin-bottom:5px">failure · every result rejected</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">“All four results changed the tile silhouette past the slot bounds. Nothing was saved and nothing was charged twice — the retry is on us.” Then offer hand-authoring a variant from a duplicate of the base.</p></div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ok);margin-bottom:5px">settled</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">The agent <strong style="color:var(--fg);font-weight:600">may</strong> raise this as a suggestion card on its own when the repetition pass fires — with the estimate on the card and a per-step confirm, like any plan card. Suggesting is free; accepting is the paid act, and it is always yours.</p></div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info);margin-bottom:5px">scope note</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Joins beyond floor are in scope: wall edges, water lips, hazard borders. Same flow, same case table — the only difference is which cases the slot declares.</p></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}"></script>
+</body>
+</html>

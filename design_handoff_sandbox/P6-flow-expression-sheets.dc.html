@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ui:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:6px; --radius-sm:4px;
+  --accent:oklch(72% 0.13 78); --ok:oklch(68% 0.13 150); --warn:oklch(72% 0.14 45);
+  --err:oklch(62% 0.18 25); --info:oklch(70% 0.12 260); --special:oklch(74% 0.12 300);
+  --bg:#0e0f12; --bg-raised:#15171c; --bg-sunken:#0a0b0e; --bg-hover:#1b1e24;
+  --border:#23262d; --border-hi:#2e323b; --fg:#e8e6df; --fg-muted:#9a988e; --fg-dim:#5e5d55;
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);font-family:var(--ui);font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;color:var(--fg)}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--fg)}
+</style>
+</helmet>
+
+<div data-screen-label="P6 · expression sheets" style="min-width:1440px;padding:26px 30px 34px;background:var(--bg)">
+  <div style="display:flex;align-items:flex-end;gap:12px;margin-bottom:14px">
+    <div>
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--fg-dim)">flow board · P6</div>
+      <h1 style="margin:4px 0 0;font-size:21px;font-weight:600;letter-spacing:-.01em">Expression sheets for dialogue</h1>
+    </div>
+    <div style="flex:1"></div>
+    <p style="margin:0;max-width:540px;font-size:11.5px;color:var(--fg-muted);line-height:1.55;text-wrap:pretty">Moods are a closed enum, exactly like animation states — that is what makes portraits generateable in a batch and assignable from a dropdown instead of a text field. The flow ends in the tester and the live scene, where a wrong mood is obvious.</p>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">entry: NPC ▸ Dialogue, or the batch in P1 step 4</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid var(--border);color:var(--fg-muted)">exit: portraits in tester, live scene and game</span>
+    <span style="font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:99px;border:1px solid color-mix(in oklch,var(--warn) 45%,var(--border));background:oklch(72% .14 45/.1);color:var(--warn)">spend $0.18–$0.70 for six moods</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:96px repeat(5,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+    <div style="background:var(--bg-sunken);padding:8px 10px"></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">1</div><div style="font-size:11.5px;font-weight:600">Confirm the mood enum</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">2</div><div style="font-size:11.5px;font-weight:600">Generate the sheet</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">3</div><div style="font-size:11.5px;font-weight:600">QA the six</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">4</div><div style="font-size:11.5px;font-weight:600">Assign per line</div></div>
+    <div style="background:var(--bg-sunken);padding:8px 10px"><div style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">5</div><div style="font-size:11.5px;font-weight:600">See it in the scene</div></div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)">user</span><span style="font-size:10.5px;color:var(--fg-dim)">decides, approves</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Accepts the pack's mood set, or trims it. Adding a mood is a schema edit, journaled like a band widen.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:3px">
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--accent);color:var(--accent)">neutral</span>
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--accent);color:var(--accent)">wary</span>
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--accent);color:var(--accent)">pleased</span>
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--accent);color:var(--accent)">angry</span>
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--accent);color:var(--accent)">afraid</span>
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--special);color:var(--special)">grieving</span>
+        <span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px dashed var(--border-hi);color:var(--fg-dim)">+ add</span>
+      </div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">One batch off the locked anchor, priced once.</p>
+      <button style="padding:5px 8px;border:1px solid var(--accent);border-radius:var(--radius-sm);background:oklch(72% .13 78/.12);color:var(--accent);font-size:11.5px;cursor:pointer">Generate 6 portraits · $0.18–$0.70</button>
+      <span style="font-family:var(--mono);font-size:9.5px;color:var(--fg-dim)">portrait crop · 48×48 · same palette</span>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Reads six faces side by side — the test is whether they read as the same person.</p>
+      <div style="display:flex;gap:3px;flex-wrap:wrap">
+        <div style="width:30px;height:30px;border:1px solid var(--ok);border-radius:2px;background:oklch(52% .07 300/.4)"></div>
+        <div style="width:30px;height:30px;border:1px solid var(--ok);border-radius:2px;background:oklch(52% .07 300/.4)"></div>
+        <div style="width:30px;height:30px;border:1px solid var(--ok);border-radius:2px;background:oklch(52% .07 300/.4)"></div>
+        <div style="width:30px;height:30px;border:1px solid var(--warn);border-radius:2px;background:oklch(52% .07 300/.25);position:relative"><span style="position:absolute;left:1px;bottom:0;font-family:var(--mono);font-size:7px;color:var(--warn)">drift</span></div>
+        <div style="width:30px;height:30px;border:1px solid var(--ok);border-radius:2px;background:oklch(52% .07 300/.4)"></div>
+        <div style="width:30px;height:30px;border:1px solid var(--ok);border-radius:2px;background:oklch(52% .07 300/.4)"></div>
+      </div>
+      <div style="display:flex;gap:5px"><button style="flex:1;padding:3px 6px;border:1px solid var(--border-hi);border-radius:3px;background:transparent;color:var(--fg-muted);font-size:10.5px;cursor:pointer">Re-roll angry · $0.04</button><button style="flex:1;padding:3px 6px;border:1px solid color-mix(in oklch,var(--info) 45%,var(--border));border-radius:3px;background:oklch(70% .12 260/.1);color:var(--info);font-size:10.5px;cursor:pointer">Fix by hand</button></div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Sets the mood on the lines that need one. Unset means neutral — no busywork.</p>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:6px 7px">
+        <p style="margin:0 0 5px;font-size:10.5px;color:var(--fg-muted);line-height:1.45">“Bring me the shard and I will point you at the source.”</p>
+        <div style="display:flex;align-items:center;gap:5px"><span style="font-family:var(--mono);font-size:9px;color:var(--fg-dim)">mood</span><span style="font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:99px;border:1px solid var(--special);background:oklch(74% .12 300/.12);color:var(--special)">wary ▾</span></div>
+      </div>
+    </div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:6px">
+      <p style="margin:0;font-size:11.5px;line-height:1.5">Walks the branch in the tester with the session live — the portrait changes as the line plays.</p>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-sunken);padding:6px 7px;display:flex;gap:6px;align-items:center">
+        <span style="width:26px;height:26px;flex:none;border-radius:2px;background:oklch(52% .07 300/.5);border:1px solid var(--border-hi)"></span>
+        <span style="font-size:10.5px;color:var(--fg-muted);line-height:1.45;flex:1">portrait + line, in the room, in game</span>
+      </div>
+    </div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info)">cradle</span><span style="font-size:10.5px;color:var(--fg-dim)">does the work</span></div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Reads the mood enum from the pack registry — the same spec machinery that produces animation states and tuning bands. Moods with no portrait are usable in the editor and greyed with a reason in the picker.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">img2img per mood on the locked anchor, cropped to the portrait frame. Each portrait is written as it lands and is visible in the line editor within 100 ms of hitting disk.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Runs identity drift against the anchor and palette conformance per portrait, and shows them as chips. Fixing one by hand opens the pixel editor with the portrait as the frame.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">Stores the mood on the line, not on the character, so the same portrait set serves every tree. The graph node shows the mood chip so a scene can be read without opening lines.</div>
+    <div style="background:var(--bg-raised);padding:10px;font-size:11px;color:var(--fg-muted);line-height:1.5">The tester feeds the live session the mood along with the line; the scene view renders the portrait in the dialogue box the engine already draws. Missing portrait falls back to neutral and says so in the tester, not in the game.</div>
+
+    <div style="background:var(--bg-sunken);padding:10px;display:flex;flex-direction:column;justify-content:center;gap:3px"><span style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn)">spend</span><span style="font-size:10.5px;color:var(--fg-dim)">&amp; QA gates</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Adding a mood is journaled and free; it just means one more portrait to generate later.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--warn)">$0.18–$0.70</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Generating only the moods the dialogue actually uses is offered as the cheaper default when a character has lines already.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Drift chip warns; a portrait that fails is still assignable. QA never blocks writing dialogue.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Assignment is an ordinary dialogue edit — same save path, same validator.</span></div>
+    <div style="background:var(--bg-raised);padding:10px;display:flex;flex-direction:column;gap:4px"><span style="font-family:var(--mono);font-size:10px;color:var(--ok)">free</span><span style="font-size:10.5px;color:var(--fg-dim);line-height:1.45">Re-injecting state into a running session is free and instant; it is the tester's existing verb.</span></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px">
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);margin-bottom:5px">the P1 question, answered</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">Moods should NOT auto-batch with animation states for every character. Generate them when the character has dialogue, or on demand — an enemy with no lines never needs six faces. P1's board shows the combined batch; this is the recommendation.</p></div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--err);margin-bottom:5px">empty state</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">No sheet yet: the mood picker shows the full enum greyed, each with “no portrait — generate the expression sheet”, and one button that does it. The dialogue is fully authorable before any portrait exists.</p></div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-raised);padding:10px 11px"><div style="font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--info);margin-bottom:5px">reuses</div><p style="margin:0;font-size:11px;color:var(--fg-muted);line-height:1.55">The dialogue package's line editor and tester, the animation state selector's chip vocabulary, and the pixel editor for hand fixes. The portrait slot is the one new component.</p></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}"></script>
+</body>
+</html>

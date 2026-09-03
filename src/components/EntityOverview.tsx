@@ -10,8 +10,10 @@ import { RoomStory } from "./room/RoomStory";
 import { MonsterStatBlock, MonsterAbilities } from "./monster/MonsterStatBlock";
 import { AudioPlayer } from "./AudioPlayer";
 import { useStore } from "../store";
-import { api, type AnimPreviewMode } from "../lib/invoke";
-import { fmtRange, fmtUsd } from "../lib/cost";
+import { confirmAction, confirmSpend } from "./agent/confirmGateState";
+import { api, type CostEstimate, type AnimPreviewMode } from "../lib/invoke";
+import { fmtRange } from "../lib/cost";
+import { firstKeyVarFor, missingKeysFor, openProviderKeys } from "../lib/providerKeys";
 import { enqueueJob } from "../lib/jobs";
 import { Icon } from "./start/Icons";
 import { PromptOverride } from "./PromptOverride";
@@ -904,14 +906,21 @@ function StageAudioReroll({ worldPath, stageId }: { worldPath: string; stageId: 
       setNote("pick a music and/or sfx backend first");
       return;
     }
-    const paid = music === "lyria" || sfx === "elevenlabs";
+    // The paid card gates a paid backend (row P1-A5); all-fake runs at once.
     if (
-      !window.confirm(
-        `Regenerate stage audio for ${stageId}?\n\n` +
+      !(await confirmSpend({
+        title: `regenerate stage audio for ${stageId}`,
+        body:
           (music !== "none" ? `music: ${music}\n` : "") +
           (sfx !== "none" ? `sfx: ${sfx}\n` : "") +
-          `${paid ? `Est. ${fmtUsd(est)}` : "$0 (fake)"} · replaces the current tracks. Proceed?`,
-      )
+          "Replaces the current tracks.",
+        backends: { music, sfx },
+        model: [music !== "none" ? music : null, sfx !== "none" ? sfx : null]
+          .filter(Boolean)
+          .join(" + "),
+        fixedUsd: est,
+        unitLabel: "1 stage bundle",
+      }))
     )
       return;
     setBusy(true);
@@ -984,38 +993,6 @@ function StageAudioReroll({ worldPath, stageId }: { worldPath: string; stageId: 
 
 /** Generation actions for platformer DB entities (canon-backed, confirm-gated
  * — these spend real money on paid backends). */
-/** The env-var each paid backend needs, by the backend id the ops take. */
-const BACKEND_KEYS: Record<string, string> = {
-  fal: "FAL_KEY",
-  anthropic: "ANTHROPIC_API_KEY",
-  lyria: "GOOGLE_API_KEY",
-  elevenlabs: "ELEVENLABS_API_KEY",
-  pixellab: "PIXELLAB_API_KEY",
-  retro: "RD_API_KEY",
-};
-
-/** A human explanation when a job's backends need keys cradle can't supply,
- *  or null when it's good to go. Free backends (fake/none) never need one. */
-async function missingKeysFor(backends: Record<string, string>): Promise<string | null> {
-  const needed = [...new Set(Object.values(backends))]
-    .map((b) => BACKEND_KEYS[b])
-    .filter((k): k is string => Boolean(k));
-  if (!needed.length) return null;
-  try {
-    const { env_file, keys } = await api.providerKeys();
-    const absent = needed.filter((k) => !keys.includes(k));
-    if (!absent.length) return null;
-    return (
-      `missing ${absent.join(", ")} — ` +
-      (env_file
-        ? `not found in ${env_file}`
-        : "cradle found no env file; set CANON_ENV_FILE, or put a .env beside the canon repo")
-    );
-  } catch {
-    return null; // can't tell (browser mock) — let the job try.
-  }
-}
-
 function GenActions({
   typeId,
   data,
@@ -1030,6 +1007,12 @@ function GenActions({
   const lastCompletedJob = useStore((s) => s.lastCompletedJob);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  //: Which env var a missing-key refusal named, so its Settings link
+  //: lands on that row rather than merely opening the screen (P0-12).
+  //: The NOTE it belongs to is carried with it: every other `setNote` in this
+  //: component leaves this state alone, so without the pairing the deep link
+  //: outlived its refusal and attached itself to unrelated errors.
+  const [keyGate, setKeyGate] = useState<{ note: string; var: string | null } | null>(null);
   // Hooks stay ABOVE the `!id` early return (Rules of Hooks).
   const [editing, setEditing] = useState(false);
   // Per-call prompt overrides ("✎ Edit prompt"): one for the sprite IMAGE
@@ -1077,8 +1060,25 @@ function GenActions({
 
   // Synchronous, non-generation actions (publish snapshot, LLM re-complete a
   // single row) — these return their result inline and refresh on completion.
-  const run = async (label: string, confirmText: string, fn: () => Promise<unknown>) => {
-    if (!window.confirm(confirmText)) return;
+  // `spend` names the backends when the action bills (LLM re-complete);
+  // absent = free, and the confirm card asks instead of the paid card.
+  const run = async (
+    label: string,
+    confirmText: string,
+    fn: () => Promise<unknown>,
+    spend?: { backends: Record<string, string>; model?: string; fixedUsd?: number },
+  ) => {
+    const ok = spend
+      ? await confirmSpend({
+          title: label,
+          body: confirmText,
+          backends: spend.backends,
+          model: spend.model,
+          fixedUsd: spend.fixedUsd,
+          unitLabel: "1 completion",
+        })
+      : await confirmAction({ title: label, body: confirmText, confirmLabel: label });
+    if (!ok) return;
     setBusy(label);
     setNote(null);
     try {
@@ -1098,7 +1098,12 @@ function GenActions({
   const runJob = async (
     label: string,
     confirmText: string,
-    meta: { op: string; backends: Record<string, string> },
+    meta: {
+      op: string;
+      backends: Record<string, string>;
+      estimate?: CostEstimate | null;
+      fixedUsd?: number;
+    },
     fire: (jobId: string) => Promise<unknown>,
   ) => {
     // Pre-flight the provider keys. Without this the job is queued, spends a
@@ -1106,10 +1111,23 @@ function GenActions({
     // says nothing about WHERE cradle looked for it.
     const missing = await missingKeysFor(meta.backends);
     if (missing) {
+      // Row P0-12: the refusal now DEEP LINKS. `keyGateVar` is the variable
+      // the gate is complaining about, so Settings opens on that row.
       setNote(missing);
+      setKeyGate({ note: missing, var: await firstKeyVarFor(meta.backends) });
       return;
     }
-    if (!window.confirm(confirmText)) return;
+    // The paid card gates the spend (row P1-A5); a free selection runs at once.
+    if (
+      !(await confirmSpend({
+        title: `${label} for ${id}`,
+        body: confirmText,
+        backends: meta.backends,
+        estimate: meta.estimate,
+        fixedUsd: meta.fixedUsd,
+      }))
+    )
+      return;
     setBusy(label);
     setNote(null);
     await enqueueJob(
@@ -1164,7 +1182,7 @@ function GenActions({
           runJob(
             "generate sprite",
             `Generate a new sprite for ${id}?\n\nBackend: fal (nano-banana). Rough cost ~$0.04/image. The current sprite is replaced (original stays recoverable in the object store).`,
-            { op: "sprite", backends: { image: "fal" } },
+            { op: "sprite", backends: { image: "fal" }, fixedUsd: 0.04 },
             (jobId) =>
               api.generateAsset(worldPath, target, jobId, {
                 imageBackend: "fal",
@@ -1192,6 +1210,7 @@ function GenActions({
                   undefined,
                   rowPrompt,
                 ),
+              { backends: { llm: "anthropic" }, model: "cheap tier (Haiku)", fixedUsd: 0.01 },
             )
           }
         >
@@ -1219,7 +1238,7 @@ function GenActions({
               `Animate ${id}?\n\n` +
                 `${o.reuseSpec ? "Re-rendering the stored motion spec" : "New motion spec + one sheet per state"}\n` +
                 `Estimated ${fmtRange(o.estimate?.total_usd)} · replaces the current frames (recoverable in the object store). Proceed?`,
-              { op: "animate", backends: o.backends },
+              { op: "animate", backends: o.backends, estimate: o.estimate },
               (jobId) =>
                 api.animateAsset(worldPath, target, jobId, {
                   imageBackend: o.imageBackend,
@@ -1314,7 +1333,26 @@ function GenActions({
           {busy === "sandbox" ? "…" : "🏃 Sandbox"}
         </button>
       )}
-      {note && <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>{note}</span>}
+      {note && (
+        <span style={{ fontSize: 11, color: "var(--fg-dim)" }}>
+          {note}
+          {/* Only while the note ON SCREEN is the refusal this link explains —
+              a later validation error or success must not inherit it. */}
+          {keyGate?.note === note && (
+            <>
+              {" "}
+              <button
+                className="btn-link"
+                data-testid="entity-key-gate-link"
+                data-focus-var={keyGate.var ?? undefined}
+                onClick={() => openProviderKeys(keyGate.var)}
+              >
+                Settings → API keys
+              </button>
+            </>
+          )}
+        </span>
+      )}
       {/* Per-call prompt editors for the two generators above. Each applies to
           the NEXT run of its own button; collapsed = the built-in default. */}
       <div style={{ flexBasis: "100%" }}>

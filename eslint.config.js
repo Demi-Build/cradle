@@ -6,7 +6,7 @@ import globals from "globals";
 
 export default tseslint.config(
   {
-    ignores: ["dist", "node_modules", "src-tauri/target", "coverage"],
+    ignores: ["dist", "node_modules", "src-tauri/target", "coverage", "design_handoff_*"], // design_handoff_*: Claude Design prototype scripts, not app code
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

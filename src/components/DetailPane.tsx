@@ -5,21 +5,27 @@ import { Tabs } from "./Tabs";
 import { EntityOverview } from "./EntityOverview";
 import { EntityTable } from "./EntityTable";
 import { DialogueTab } from "./dialogue/DialogueTab";
-import type { DialogueTree } from "./dialogue/types";
+import type { NpcRow } from "./dialogue/model";
+import { isSceneRow } from "./dialogue/scene";
+import { vocabOf } from "./dialogue/grammar";
 import { PuzzleTab } from "./event/PuzzleTab";
+import { SceneTab } from "./event/SceneTab";
 import { hasTreeView, type PuzzleEvent } from "./event/types";
 import { QuestDetail } from "./quest/QuestDetail";
+import { QuestDialogueTab } from "./quest/QuestDialogueTab";
 import { LevelDetail } from "./level/LevelDetail";
 import { LibraryPanel } from "./db/LibraryPanel";
 import { AnimationTab } from "./anim/AnimationTab";
 import { WorldMapView } from "./world/WorldMapView";
-import { LineagePanel } from "./db/LineagePanel";
+import { LineagePanel, RoomHistory } from "./db/LineagePanel";
+import { kindForTypeId, typeIdForKind } from "../lib/placements";
 import { WorldBibleView } from "./WorldBibleView";
 
 type Json = Record<string, unknown>;
 
 export function DetailPane() {
   const { selection, worldPath, world, error } = useStore();
+  const select = useStore((s) => s.select);
   const [payload, setPayload] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
   const [localErr, setLocalErr] = useState<string | null>(null);
@@ -57,9 +63,19 @@ export function DetailPane() {
   const entityTabs = useMemo(() => {
     if (selection.kind !== "entity" || !payload) return null;
     const data = payload as Json;
+    // A room is a grid too (P0 paper P.6.3a): the SAME level editor renders it
+    // from the one `grid export`, and since row P0-8 it edits it too. Which
+    // type ids are grids comes from `pack info` — ids are data. The
+    // platformer's `level` grid is the one with a tilesheet and gravity;
+    // every other declared grid renders through the room path (blocks mode,
+    // placements from the registry, the maze cell palette).
+    const gridKinds = Object.keys(world?.pack_info?.grids ?? {});
+    const gridKind =
+      gridKinds.find((k) => typeIdForKind(k) === selection.typeId) ??
+      (selection.typeId === "levels" ? "level" : selection.typeId === "rooms" ? "room" : null);
     const overviewContent =
-      selection.typeId === "levels" ? (
-        <LevelDetail levelId={selection.id} />
+      gridKind !== null ? (
+        <LevelDetail levelId={selection.id} room={gridKind !== "level"} />
       ) : selection.typeId === "quests" ? (
         <QuestDetail
           data={data as Parameters<typeof QuestDetail>[0]["data"]}
@@ -75,29 +91,72 @@ export function DetailPane() {
         content: overviewContent,
       },
     ];
+    if (gridKind !== null && gridKind !== "level") {
+      // The room's story, contents and index row stay one tab over — the
+      // maze took the overview, nothing was hidden.
+      tabs.push({
+        id: "details",
+        label: "Details",
+        content: <EntityOverview data={data} typeId={selection.typeId} entityId={selection.id} />,
+      });
+    }
+    // Cross-surface entry (README Q9): a beat is reachable from its NPC, its
+    // quest and its scene, and every rail deep-links to the others. All three
+    // land on the same DetailPane, opened on the right tab.
+    const openNpc = (npcId: string) =>
+      select({ kind: "entity", typeId: "npcs", id: npcId, tab: "dialogue" });
+    const openQuest = (questId: string) =>
+      select({ kind: "entity", typeId: "quests", id: questId, tab: "dialogue" });
+    const openScene = (sceneId: string) =>
+      select({ kind: "entity", typeId: "events", id: sceneId, tab: "scene" });
+
     if (selection.typeId === "npcs") {
-      const asNpc = data as {
-        dialogue_tree?: DialogueTree;
-        opening_greeting?: string;
-        exhausted_dialogue?: string;
-        quest_id?: number | string | null;
-        max_exchanges?: number;
-      };
-      const hasAny =
-        !!(
-          asNpc.dialogue_tree &&
-          asNpc.dialogue_tree.nodes &&
-          Object.keys(asNpc.dialogue_tree.nodes).length > 0
-        ) ||
-        typeof asNpc.opening_greeting === "string" ||
-        typeof asNpc.exhausted_dialogue === "string";
-      if (hasAny) {
-        tabs.push({
-          id: "dialogue",
-          label: "Dialogue",
-          content: <DialogueTab npc={asNpc} />,
-        });
-      }
+      const asNpc = data as NpcRow;
+      // Row P0-9 widened this from "has any dialogue content" to "is an NPC":
+      // screen 06 needs the tab for a character with NO tree at all, because
+      // authoring one is exactly what you open the tab to do, and a hidden tab
+      // is undiscoverable (doctrine 4). The surface says the greeting-only
+      // fallback is legal rather than rendering an empty canvas.
+      tabs.push({
+        id: "dialogue",
+        label: "Dialogue",
+        content: (
+          <DialogueTab
+            npc={asNpc}
+            npcId={selection.id}
+            onOpenScene={openScene}
+            onOpenQuest={openQuest}
+          />
+        ),
+      });
+    }
+    // Row P0-9 step 11: the QUEST scope — the primary surface for authoring a
+    // quest's conversation across every character in it. Always mounted for a
+    // quest (doctrine 4): a quest with no beats yet says so, and authoring the
+    // first one is exactly what you open the tab to do.
+    if (selection.typeId === "quests") {
+      tabs.push({
+        id: "dialogue",
+        label: "Dialogue",
+        content: (
+          <QuestDialogueTab
+            quest={data as { id?: number | string; title?: string }}
+            questId={selection.id}
+            onOpenNpc={openNpc}
+            onOpenScene={openScene}
+          />
+        ),
+      });
+    }
+    // Step 12: the SCENE scope — a scene is an EVENT of type `scene`, so it
+    // mounts on the event's own tab beside Puzzle/Choices. The event type comes
+    // from the pack's `dialogue.scene.event_type`, never the literal.
+    if (selection.typeId === "events" && isSceneRow(data, vocabOf(world?.pack_info ?? null))) {
+      tabs.push({
+        id: "scene",
+        label: "Scene",
+        content: <SceneTab event={data} sceneId={selection.id} onOpenNpc={openNpc} />,
+      });
     }
     if (selection.typeId === "events" && hasTreeView(data as PuzzleEvent)) {
       const label = (data as PuzzleEvent).type === "puzzle" ? "Puzzle" : "Choices";
@@ -124,30 +183,53 @@ export function DetailPane() {
         content: <AnimationTab target={animTarget} />,
       });
     }
-    // Lineage/History (Library A): platformer asset artifacts whose journal
-    // chains cradle can browse and restore from.
-    const artifactPrefix: Record<string, string> = {
-      enemies: "enemy",
-      items: "item",
-      tilesets: "tileset",
-      backdrops: "backdrop",
-    };
+    // Lineage/History (Library A): every artifact family whose journal chain
+    // cradle can browse and restore from. Row P0-8 made this REGISTRY-driven
+    // rather than a four-entry literal: any kind `pack info` declares
+    // journals as `<kind>:<id>` (the db core's family — npc:1000, quest:4000,
+    // class:warrior …), a grid as `room:<id>/<step>` (P.9 R1), and the
+    // platformer's asset families keep their own prefixes.
+    const assetPrefix: Record<string, string> = { tilesets: "tileset", backdrops: "backdrop" };
+    const declaredKind =
+      selection.typeId in (world?.pack_info?.entities ?? {})
+        ? selection.typeId
+        : Object.keys(world?.pack_info?.entities ?? {}).find(
+            (k) => typeIdForKind(k) === selection.typeId,
+          );
     // The player's artifact id is the BARE string "player" — canon journals it
     // that way (there is no "player:player"), so a prefixed id would look up an
     // empty history.
+    // A single-file grid (the room) journals on TWO steps — `grid` for the
+    // painted cells, `placements` for every drag, encounter and 🎲 roll — so
+    // its History tab offers both chains instead of only asking for `/grid`,
+    // which is where none of the hand edits land.
+    const roomGrid = gridKind !== null && gridKind !== "level" ? gridKind : null;
     const artifactId =
       selection.typeId === "player"
         ? "player"
-        : artifactPrefix[selection.typeId]
-          ? `${artifactPrefix[selection.typeId]}:${selection.id}`
-          : null;
+        : roomGrid !== null
+          ? `${roomGrid}:${selection.id}/placements`
+          : assetPrefix[selection.typeId]
+            ? `${assetPrefix[selection.typeId]}:${selection.id}`
+            : declaredKind
+              ? `${kindForTypeId(world?.pack_info ?? null, selection.typeId)}:${selection.id}`
+              : selection.typeId === "enemies" || selection.typeId === "items"
+                ? `${selection.typeId.replace(/ies$/, "y").replace(/s$/, "")}:${selection.id}`
+                : null;
     if (artifactId) {
       tabs.push({
         id: "history",
         label: "History",
-        content: (
-          <LineagePanel artifactId={artifactId} typeId={selection.typeId} entityId={selection.id} />
-        ),
+        content:
+          roomGrid !== null ? (
+            <RoomHistory gridKind={roomGrid} roomId={selection.id} typeId={selection.typeId} />
+          ) : (
+            <LineagePanel
+              artifactId={artifactId}
+              typeId={selection.typeId}
+              entityId={selection.id}
+            />
+          ),
       });
     }
     tabs.push({
@@ -156,7 +238,7 @@ export function DetailPane() {
       content: <pre className="detail-json">{JSON.stringify(data, null, 2)}</pre>,
     });
     return tabs;
-  }, [selection, payload]);
+  }, [selection, payload, select, world]);
 
   // Tab / Shift+Tab cycles tabs on the focused entity.
   useEffect(() => {

@@ -147,6 +147,27 @@ describe("the guided failure screen", () => {
     expect(screen.queryByText(/The bundled runtime is missing/)).toBeNull();
   });
 
+  it("titles the checkout leg and keeps the numbering the resolver's own", () => {
+    render(
+      <RuntimeFailure
+        status={failure({
+          legs: [
+            { leg: "env", tried: null, found: false, note: "not set." },
+            { leg: "checkout", tried: "/p/canon-ai/.venv", found: false, note: "no virtualenv." },
+            { leg: "bundled", tried: "/r/runtime", found: false, note: "not fetched." },
+            { leg: "path", tried: null, found: false, note: "none." },
+          ],
+        })}
+        checking={false}
+        onRetry={() => {}}
+      />,
+    );
+    expect(screen.getByText(/2 · a canon checkout beside this one/)).toBeInTheDocument();
+    expect(screen.getByText(/3 · the runtime bundled with the app/)).toBeInTheDocument();
+    expect(screen.getByText(/4 · canon on your PATH/)).toBeInTheDocument();
+    expect(screen.getByText("/p/canon-ai/.venv")).toBeInTheDocument();
+  });
+
   it("disables Try again WITH A REASON while a probe is running (doctrine 4)", () => {
     render(<RuntimeFailure status={failure()} checking onRetry={() => {}} />);
     const btn = screen.getByRole("button", { name: /Checking/ });

@@ -2277,9 +2277,13 @@ fn canon_repo_root() -> Result<PathBuf, String> {
             return Ok(PathBuf::from(repo));
         }
     }
-    let bin = std::env::var("CANON_BIN").map_err(|_| {
-        "set CANON_BIN (or CANON_REPO) so cradle can find the play harness".to_string()
-    })?;
+    let Ok(bin) = std::env::var("CANON_BIN") else {
+        // Same checkout the resolver's leg 2 found, so a debug build that
+        // needs neither var for `canon` does not suddenly need one here.
+        return dev_checkout_root().ok_or_else(|| {
+            "set CANON_BIN (or CANON_REPO) so cradle can find the play harness".to_string()
+        });
+    };
     let p = PathBuf::from(&bin);
     p.parent() // bin/
         .and_then(|b| b.parent()) // .venv/
@@ -3338,10 +3342,21 @@ fn get_bundled_demo_path(app: AppHandle) -> Result<String, String> {
 // resolution order W3.3 specifies, and every spawn site goes through it:
 //
 //   1. `CANON_BIN`          the dev override. Set, it WINS — unchanged.
-//   2. the bundled runtime  `<resource_dir>/runtime/<triple>/python/…`, the
+//   2. the sibling checkout DEBUG BUILDS ONLY — `<canon repo>/.venv/bin/canon`,
+//                           found from `CANON_REPO` or beside this checkout.
+//   3. the bundled runtime  `<resource_dir>/runtime/<triple>/python/…`, the
 //                           tree `scripts/fetch-runtime.sh` builds and
 //                           tauri.conf.json's `bundle.resources` ships.
-//   3. `canon` on PATH      an ordinary `pip install canon-ai`.
+//   4. `canon` on PATH      an ordinary `pip install canon-ai`.
+//
+// Why leg 2 exists and why it outranks the bundle: `npm run tauri dev` in a
+// checkout that has run `fetch-runtime` would otherwise spawn the VENDORED
+// canon — a frozen wheel — so a developer editing canon and restarting cradle
+// would see none of their own work, silently. That is the failure `CANON_BIN`
+// was being set by hand to avoid, every session. The leg is compiled out of
+// release builds (`cfg!(debug_assertions)`), so a shipped app cannot pick up
+// a checkout that happens to sit near it, and it reports itself in the legs
+// like every other one — visible in the Environment pane, never magic.
 //
 // EXTENDS, never replaces: `get_bundled_demo_path`'s `resource_dir()`
 // precedent (the dir is remembered once in `.setup` so the plain, non-command
@@ -3370,8 +3385,11 @@ fn get_bundled_demo_path(app: AppHandle) -> Result<String, String> {
 #[derive(Clone, Copy, PartialEq, Eq, Debug, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 enum CanonOrigin {
-    /// `CANON_BIN` — a developer's checkout venv.
+    /// `CANON_BIN` — a developer's checkout venv, named explicitly.
     Env,
+    /// The same thing found without being told: a canon checkout's venv
+    /// beside this one. Debug builds only.
+    Checkout,
     /// The runtime shipped inside the app bundle.
     Bundled,
     /// `canon` found on (or left to) PATH.
@@ -3382,6 +3400,7 @@ impl CanonOrigin {
     fn as_str(self) -> &'static str {
         match self {
             CanonOrigin::Env => "env",
+            CanonOrigin::Checkout => "checkout",
             CanonOrigin::Bundled => "bundled",
             CanonOrigin::Path => "path",
         }
@@ -3475,6 +3494,42 @@ fn bundled_python(resource_dir: &std::path::Path) -> PathBuf {
     }
 }
 
+/// The `canon` executable inside a checkout's virtualenv, if one is there.
+fn checkout_canon_bin(repo: &std::path::Path) -> Option<PathBuf> {
+    let venv = repo.join(".venv");
+    let exe = if cfg!(windows) {
+        venv.join("Scripts").join("canon.exe")
+    } else {
+        venv.join("bin").join("canon")
+    };
+    exe.is_file().then_some(exe)
+}
+
+/// The canon CHECKOUT a debug build should prefer, or `None`.
+///
+/// `CANON_REPO` first — the existing var for "the checkout", so this leg adds
+/// no new vocabulary. Otherwise a sibling of cradle's own source root:
+/// `CARGO_MANIFEST_DIR` is `<cradle>/src-tauri` at compile time, so the repos
+/// share a parent, which is the layout the READMEs already assume. Compiled
+/// out of release builds entirely.
+fn dev_checkout_root() -> Option<PathBuf> {
+    if !cfg!(debug_assertions) {
+        return None;
+    }
+    if let Some(repo) = std::env::var("CANON_REPO")
+        .ok()
+        .map(PathBuf::from)
+        .filter(|p| p.is_dir())
+    {
+        return Some(repo);
+    }
+    let sibling = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()? // <cradle>
+        .parent()? // the directory both checkouts live in
+        .join("canon-ai");
+    sibling.is_dir().then_some(sibling)
+}
+
 /// Executable names to look for when resolving a bare command on PATH.
 fn path_candidates(name: &str) -> Vec<String> {
     if cfg!(windows) {
@@ -3516,11 +3571,13 @@ struct CanonLeg {
 }
 
 /// The resolution order itself. PURE over its inputs so the ordering is unit
-/// testable without a Tauri app: `env_bin` is `CANON_BIN`, `resource_dir` is
-/// the app's resource directory (`None` outside a bundle), `path_canon` is
+/// testable without a Tauri app: `env_bin` is `CANON_BIN`, `checkout` is the
+/// sibling canon repo a debug build found (`None` in release), `resource_dir`
+/// is the app's resource directory (`None` outside a bundle), `path_canon` is
 /// whatever `canon` PATH offers.
 fn resolve_canon_from(
     env_bin: Option<String>,
+    checkout: Option<PathBuf>,
     resource_dir: Option<&std::path::Path>,
     path_canon: Option<PathBuf>,
 ) -> (CanonCommand, Vec<CanonLeg>) {
@@ -3560,7 +3617,52 @@ fn resolve_canon_from(
         }),
     }
 
-    // 2. The runtime inside the bundle.
+    // 2. A canon checkout beside this one (debug builds only). Ahead of the
+    //    bundle on purpose: in a dev checkout the vendored wheel is a frozen
+    //    copy, and preferring it would hide the developer's own canon edits.
+    match checkout.as_deref() {
+        Some(repo) => match checkout_canon_bin(repo) {
+            Some(exe) => {
+                legs.push(CanonLeg {
+                    leg: "checkout".into(),
+                    tried: Some(exe.to_string_lossy().into_owned()),
+                    found: true,
+                    note: format!(
+                        "the canon checkout at {} — a debug build prefers your working tree over \
+                         the vendored wheel, so `CANON_BIN` is not needed to test canon changes.",
+                        repo.display()
+                    ),
+                });
+                chosen.get_or_insert(CanonCommand {
+                    program: exe,
+                    prefix: Vec::new(),
+                    origin: CanonOrigin::Checkout,
+                });
+            }
+            None => legs.push(CanonLeg {
+                leg: "checkout".into(),
+                tried: Some(repo.join(".venv").to_string_lossy().into_owned()),
+                found: false,
+                note: "a canon checkout is there but its virtualenv is not — run `uv sync` in it, \
+                       or set CANON_BIN at the binary you want."
+                    .into(),
+            }),
+        },
+        None => legs.push(CanonLeg {
+            leg: "checkout".into(),
+            tried: None,
+            found: false,
+            note: if cfg!(debug_assertions) {
+                "no canon checkout beside this one and no CANON_REPO (set either, or rely on the \
+                 bundled runtime)."
+                    .into()
+            } else {
+                "release build — a checkout is never used.".to_string()
+            },
+        }),
+    }
+
+    // 3. The runtime inside the bundle.
     let bundled = resource_dir.map(bundled_python);
     match bundled.as_ref() {
         Some(python) if python.is_file() => {
@@ -3596,7 +3698,7 @@ fn resolve_canon_from(
         }),
     }
 
-    // 3. `canon` on PATH.
+    // 4. `canon` on PATH.
     match path_canon {
         Some(exe) => {
             legs.push(CanonLeg {
@@ -3842,6 +3944,7 @@ fn resource_dir() -> Option<&'static std::path::Path> {
 fn canon_command() -> CanonCommand {
     resolve_canon_from(
         std::env::var("CANON_BIN").ok(),
+        dev_checkout_root(),
         resource_dir(),
         find_on_path("canon"),
     )
@@ -3982,6 +4085,7 @@ async fn runtime_status(app: AppHandle) -> Result<Value, String> {
 fn runtime_status_value(resource: Option<&std::path::Path>) -> Value {
     let (resolved, legs) = resolve_canon_from(
         std::env::var("CANON_BIN").ok(),
+        dev_checkout_root(),
         resource,
         find_on_path("canon"),
     );
@@ -4035,10 +4139,28 @@ mod runtime_tests {
         bundled_python(&resources).is_file().then_some(resources)
     }
 
+    /// A throwaway checkout whose venv holds a `canon` file — enough for the
+    /// resolver, which only asks whether the executable is there.
+    fn fake_checkout(name: &str, with_venv: bool) -> PathBuf {
+        let repo = std::env::temp_dir().join(format!("cradle-resolver-{name}"));
+        let bin = repo
+            .join(".venv")
+            .join(if cfg!(windows) { "Scripts" } else { "bin" });
+        std::fs::create_dir_all(&bin).unwrap();
+        let exe = bin.join(if cfg!(windows) { "canon.exe" } else { "canon" });
+        if with_venv {
+            std::fs::write(&exe, b"#!/bin/sh\n").unwrap();
+        } else {
+            let _ = std::fs::remove_file(&exe);
+        }
+        repo
+    }
+
     #[test]
     fn canon_bin_wins_and_is_spawned_exactly_as_given() {
         let (cmd, legs) = resolve_canon_from(
             Some("/venv/bin/canon".into()),
+            Some(fake_checkout("env-wins", true)),
             Some(Path::new("/app/Resources")),
             Some(PathBuf::from("/usr/local/bin/canon")),
         );
@@ -4046,16 +4168,18 @@ mod runtime_tests {
         assert_eq!(cmd.program, PathBuf::from("/venv/bin/canon"));
         assert!(cmd.prefix.is_empty(), "an executable takes no prefix args");
         // Every leg is still reported — the screen shows the whole order.
-        assert_eq!(legs.len(), 3);
+        assert_eq!(legs.len(), 4);
         assert_eq!(legs[0].leg, "env");
-        assert_eq!(legs[1].leg, "bundled");
-        assert_eq!(legs[2].leg, "path");
+        assert_eq!(legs[1].leg, "checkout");
+        assert_eq!(legs[2].leg, "bundled");
+        assert_eq!(legs[3].leg, "path");
     }
 
     #[test]
     fn an_empty_canon_bin_is_not_an_override() {
         let (cmd, legs) = resolve_canon_from(
             Some("   ".into()),
+            None,
             None,
             Some(PathBuf::from("/usr/local/bin/canon")),
         );
@@ -4065,21 +4189,60 @@ mod runtime_tests {
 
     #[test]
     fn path_answers_when_there_is_no_override_and_no_bundle() {
-        let (cmd, legs) =
-            resolve_canon_from(None, None, Some(PathBuf::from("/usr/local/bin/canon")));
+        let (cmd, legs) = resolve_canon_from(
+            None,
+            None,
+            None,
+            Some(PathBuf::from("/usr/local/bin/canon")),
+        );
         assert_eq!(cmd.origin, CanonOrigin::Path);
         assert_eq!(cmd.program, PathBuf::from("/usr/local/bin/canon"));
-        assert!(legs[2].found);
+        assert!(legs[3].found);
     }
 
     #[test]
-    fn nothing_resolving_still_spawns_bare_canon_and_names_all_three_legs() {
-        let (cmd, legs) = resolve_canon_from(None, Some(Path::new("/nope/Resources")), None);
+    fn nothing_resolving_still_spawns_bare_canon_and_names_all_four_legs() {
+        let (cmd, legs) = resolve_canon_from(None, None, Some(Path::new("/nope/Resources")), None);
         assert_eq!(cmd.program, PathBuf::from("canon"));
         assert!(legs.iter().all(|l| !l.found));
         // The screen's whole job: what was tried, in what order.
-        assert!(legs[1].tried.as_deref().unwrap().contains("runtime"));
-        assert!(legs[1].note.contains("fetch-runtime"));
+        assert_eq!(legs.len(), 4);
+        assert!(legs[2].tried.as_deref().unwrap().contains("runtime"));
+        assert!(legs[2].note.contains("fetch-runtime"));
+    }
+
+    /// The reason the leg exists: a dev checkout that has ALSO run
+    /// `fetch-runtime` must still spawn the developer's own canon.
+    #[test]
+    fn a_sibling_checkout_outranks_the_vendored_wheel() {
+        let repo = fake_checkout("prefers-checkout", true);
+        let (cmd, legs) = resolve_canon_from(
+            None,
+            Some(repo.clone()),
+            Some(Path::new("/app/Resources")),
+            Some(PathBuf::from("/usr/local/bin/canon")),
+        );
+        assert_eq!(cmd.origin, CanonOrigin::Checkout);
+        assert!(cmd.program.starts_with(&repo));
+        assert!(
+            cmd.prefix.is_empty(),
+            "a venv console script takes no prefix"
+        );
+        assert!(legs[1].found);
+    }
+
+    #[test]
+    fn a_checkout_without_a_virtualenv_falls_through_and_says_why() {
+        let repo = fake_checkout("no-venv", false);
+        let (cmd, legs) = resolve_canon_from(
+            None,
+            Some(repo),
+            None,
+            Some(PathBuf::from("/usr/local/bin/canon")),
+        );
+        assert_eq!(cmd.origin, CanonOrigin::Path);
+        assert!(!legs[1].found);
+        assert!(legs[1].note.contains("uv sync"), "got {}", legs[1].note);
     }
 
     #[test]
@@ -4088,7 +4251,7 @@ mod runtime_tests {
             eprintln!("skipped: no runtime payload — run `npm run fetch-runtime` to exercise this");
             return;
         };
-        let (cmd, legs) = resolve_canon_from(None, Some(&resources), None);
+        let (cmd, legs) = resolve_canon_from(None, None, Some(&resources), None);
         assert_eq!(cmd.origin, CanonOrigin::Bundled);
         assert_eq!(
             cmd.prefix,
@@ -4100,7 +4263,7 @@ mod runtime_tests {
             "python3"
         };
         assert!(cmd.program.ends_with(interpreter));
-        assert!(legs[1].found);
+        assert!(legs[2].found);
         assert!(cmd.display().contains(runtime_triple()));
     }
 
@@ -4110,14 +4273,14 @@ mod runtime_tests {
             eprintln!("skipped: no runtime payload — run `npm run fetch-runtime` to exercise this");
             return;
         };
-        let (cmd, _) = resolve_canon_from(None, Some(&resources), None);
+        let (cmd, _) = resolve_canon_from(None, None, Some(&resources), None);
         let version = probe_canon(&cmd).expect("the vendored runtime answers --version");
         assert!(version.get("canon_version").is_some(), "got {version}");
     }
 
     #[test]
     fn a_runtime_that_is_not_there_fails_by_name_not_by_hang() {
-        let (cmd, _) = resolve_canon_from(Some("/definitely/not/a/canon".into()), None, None);
+        let (cmd, _) = resolve_canon_from(Some("/definitely/not/a/canon".into()), None, None, None);
         let err = probe_canon(&cmd).unwrap_err();
         assert!(err.contains("/definitely/not/a/canon"), "got {err}");
         assert!(err.contains("could not start"), "got {err}");

@@ -20,8 +20,9 @@ import { type RuntimeStatus } from "../lib/invoke";
  *  here so the Rust side stays a data source, not a copy deck. */
 const LEG_TITLE: Record<string, string> = {
   env: "1 · CANON_BIN (developer override)",
-  bundled: "2 · the runtime bundled with the app",
-  path: "3 · canon on your PATH",
+  checkout: "2 · a canon checkout beside this one (dev builds)",
+  bundled: "3 · the runtime bundled with the app",
+  path: "4 · canon on your PATH",
 };
 
 function legTitle(leg: string, index: number): string {

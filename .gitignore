@@ -32,7 +32,6 @@ bibles/
 **/.DS_Store
 .vscode
 
-docs/
 design_handoff_editor_worldmap_start/
 
 # Browser-mock scaffolding (dev-only: VITE_CRADLE_MOCK): never commit, and the

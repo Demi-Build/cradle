@@ -115,7 +115,9 @@ export function TopBar() {
         </button>
         {/* Row P0-12 / W3.5: the gear. Always available — a machine with no
             project open is exactly the machine that needs to add a key or see
-            why canon will not start. Theme stays to its right, unmoved. */}
+            why canon will not start, so `StartTitleBar` carries the same
+            button for the routes this bar does not mount. Theme stays to its
+            right, unmoved. */}
         <button
           className="icon-btn"
           onClick={() => openSettings("keys")}
@@ -123,7 +125,7 @@ export function TopBar() {
           aria-label="Settings"
           data-testid="topbar-settings"
         >
-          ⚙
+          <Icon id="g-cog" size={14} />
         </button>
         <button
           className="icon-btn"

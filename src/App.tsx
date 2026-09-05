@@ -499,6 +499,11 @@ export default function App() {
         {/* The palette is available with no world loaded too — Open and New
             project are exactly the actions you want on the start screen. */}
         <CommandPalette />
+        {/* Row P0-12: Settings mounts HERE too. `StartTitleBar`'s gear and the
+            palette's always-enabled Settings command are both reachable with
+            no world loaded, and without this the screen they open would not
+            exist — the inversion the master called out, in a new place. */}
+        {settingsOpen && <SettingsScreen />}
         <ConfirmGateHost />
       </>
     );

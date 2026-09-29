@@ -12,14 +12,23 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn(), convertFileSrc: (p: st
 
 const providerRowsFn = vi.fn();
 const providerKeysFn = vi.fn();
-vi.mock("./invoke", () => ({
-  api: {
-    providerRows: (...a: unknown[]) => providerRowsFn(...a),
-    providerKeys: (...a: unknown[]) => providerKeysFn(...a),
-  },
-}));
+// The real `api` with the two reads stubbed, so `createProviderKeyFile` goes
+// through the real command wrapper to the mocked `invoke` above.
+vi.mock("./invoke", async (importActual) => {
+  const actual = await importActual<typeof import("./invoke")>();
+  return {
+    ...actual,
+    api: {
+      ...actual.api,
+      providerRows: (...a: unknown[]) => providerRowsFn(...a),
+      providerKeys: (...a: unknown[]) => providerKeysFn(...a),
+    },
+  };
+});
 
+import { invoke } from "@tauri-apps/api/core";
 import {
+  createProviderKeyFile,
   firstKeyVarFor,
   keyVarFor,
   missingKeysFor,
@@ -77,7 +86,7 @@ beforeEach(() => {
     env_file: "/repo/.env",
     keys: [],
     vars: [],
-    backend: "keychain",
+    backend: "env_file",
     warning: null,
     config_dir: null,
   });
@@ -116,7 +125,7 @@ describe("the PixelLab pair", () => {
       env_file: null,
       keys: ["PIXELLAB_API_KEY"],
       vars: [],
-      backend: "keychain",
+      backend: "env_file",
       warning: null,
       config_dir: null,
     });
@@ -135,11 +144,38 @@ describe("the gate", () => {
     expect(providerKeysFn).not.toHaveBeenCalled();
   });
 
-  it("names the missing var and where cradle looked", async () => {
+  it("names the missing var and the ONE file cradle looked in", async () => {
     const reason = await missingKeysFor({ llm: "anthropic" });
     expect(reason).toContain("ANTHROPIC_API_KEY");
-    expect(reason).toContain("keychain");
-    expect(reason).toContain("/repo/.env");
+    expect(reason).toContain("not in /repo/.env");
+    expect(reason).toContain("Settings → API keys");
+    // The shell and a keychain are not sources, so neither is named.
+    expect(reason).not.toContain("keychain");
+    expect(reason).not.toContain("shell");
+  });
+
+  it("says the key file does not exist yet — the first-use case — by path", async () => {
+    providerKeysFn.mockResolvedValue({
+      env_file: "/cfg/cradle/provider-keys.env",
+      env_file_exists: false,
+      keys: [],
+      vars: [],
+      backend: "env_file",
+      warning: null,
+      config_dir: "/cfg/cradle",
+    });
+    const reason = await missingKeysFor({ llm: "anthropic" });
+    expect(reason).toContain("no key file yet at /cfg/cradle/provider-keys.env");
+  });
+
+  it("creates the key file through its own command, once", async () => {
+    vi.mocked(invoke).mockResolvedValue({
+      env_file: "/cfg/cradle/provider-keys.env",
+      created: true,
+    });
+    const ack = await createProviderKeyFile();
+    expect(invoke).toHaveBeenCalledWith("create_provider_key_file", {});
+    expect(ack).toEqual({ env_file: "/cfg/cradle/provider-keys.env", created: true });
   });
 
   it("cannot tell, and says nothing, when canon is unreachable (the browser mock)", async () => {

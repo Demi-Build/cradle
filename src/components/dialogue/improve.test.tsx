@@ -348,3 +348,211 @@ describe("the polish audit", () => {
     await waitFor(() => expect(screen.queryByTestId("dialogue-inspector")).toBeNull());
   });
 });
+
+// ---------------------------------------------------------------------------
+// The gate reads DISK, not the buffer.
+//
+// THE BUG: `canon dialogue improve` resolves its tree from the PACK and refuses
+// an id that is not there — "npc 1001 has no tree '1001:tree_5'". The gate used
+// to ask the unsaved buffer, so a tree that had only ever been authored in
+// cradle passed it and canon refused AFTER the user had committed to a paid
+// run. Improve is a disk read; its gate has to be one too.
+// ---------------------------------------------------------------------------
+
+/** An NPC with nothing on disk — every tree here can only come from the buffer. */
+const BARE: NpcRow = { id: "1024", name: "Nobody", opening_greeting: "…" };
+
+/** The op `＋ New tree` pushes: a tree that exists ONLY in the buffer. */
+const addTree = (treeId: string) => ({
+  k: "tree.add" as const,
+  tree: treeId,
+  label: "new tree",
+  axis: null,
+  rank: 1,
+  nodes: { start: { node_id: "start", prompt: "" } },
+});
+
+/** The TOOLBAR's Improve. A treeless NPC's empty state carries a second,
+ *  permanently disabled "Draft one with Improve", so a role query on the name
+ *  alone is ambiguous there. */
+const improveBtn = () => document.querySelector("button.dlg-improve") as HTMLButtonElement;
+
+describe("improve is gated on what canon will see on disk", () => {
+  it("a tree that exists only in the unsaved buffer does NOT unlock Improve", async () => {
+    render(<DialogueSurface npc={BARE} npcId="1024" />);
+    await screen.findByTestId("dialogue-surface");
+    // Nothing anywhere: the reason says author one.
+    expect(improveBtn()).toHaveAttribute("aria-disabled", "true");
+    expect(improveBtn().getAttribute("title")).toContain("author a tree");
+
+    act(() => {
+      useStore.getState().pushDialogueOps("npc:1024", [addTree("1024:tree_1")]);
+    });
+
+    // The buffer now has a tree — and the gate still refuses, because the PACK
+    // does not. This is the exact state that used to reach a paid call.
+    await waitFor(() => expect(improveBtn().getAttribute("title")).toContain("save this tree"));
+    expect(improveBtn()).toHaveAttribute("aria-disabled", "true");
+    expect(improveBtn().getAttribute("title")).toContain(kbd("S"));
+    // The reason is actionable and cites no plan document.
+    expect(improveBtn().getAttribute("title")).not.toMatch(/row |phase |P0-|W2\./i);
+
+    // ⌘K says the same thing, from the same computation.
+    const cmd = (useStore.getState().commands.dialogue ?? []).find((c) => c.id === "dlg.improve")!;
+    expect(cmd.enabled).toBe(false);
+    expect(cmd.disabledReason).toContain("save this tree");
+
+    // And clicking it opens nothing and calls nothing.
+    fireEvent.click(improveBtn());
+    expect(screen.queryByTestId("dialogue-improve")).toBeNull();
+    expect(calls.some((c) => c.cmd === "dialogue_improve")).toBe(false);
+  });
+
+  it("the blocked Improve stays focusable and shows its reason on KEYBOARD FOCUS", async () => {
+    render(<DialogueSurface npc={BARE} npcId="1024" />);
+    await screen.findByTestId("dialogue-surface");
+    const btn = improveBtn();
+    // Greyed, but NOT `disabled` — a native disabled button leaves the tab
+    // order and strands its reason on hover only.
+    expect(btn).not.toBeDisabled();
+    expect(btn).toHaveAttribute("aria-disabled", "true");
+    expect(screen.queryByRole("tooltip")).toBeNull();
+    act(() => {
+      btn.focus();
+      fireEvent.focus(btn);
+    });
+    // And it is the app's ONE tooltip (`.tip`, portaled to <body>), not a
+    // second implementation grown beside it.
+    const tip = screen.getByRole("tooltip");
+    expect(tip.className).toContain("tip");
+    expect(tip.parentElement).toBe(document.body);
+    expect(tip.textContent).toContain("author a tree");
+    // Escape dismisses it without moving focus.
+    act(() => {
+      fireEvent.keyDown(btn, { key: "Escape" });
+    });
+    expect(screen.queryByRole("tooltip")).toBeNull();
+    expect(document.activeElement).toBe(btn);
+
+    act(() => {
+      fireEvent.focus(btn);
+    });
+    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+    act(() => {
+      fireEvent.blur(btn);
+    });
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("opens on the scope that CAN run when the open tree is unsaved, and says why", async () => {
+    render(<DialogueSurface npc={NPC} npcId="1023" />);
+    await screen.findByTestId("dialogue-surface");
+    act(() => {
+      useStore.getState().pushDialogueOps("npc:1023", [addTree("1023:tree_2")]);
+      useStore.getState().setActiveDialogueTree("npc:1023", "1023:tree_2");
+    });
+    // `1023:default` IS on disk, so Improve itself stays live…
+    await waitFor(() => expect(improveBtn()).not.toHaveAttribute("aria-disabled"));
+    fireEvent.click(improveBtn());
+    await screen.findByTestId("dialogue-improve");
+
+    // …and the modal opens on the scope canon can serve, with the unsaved
+    // tree's pill greyed and carrying the reason.
+    const treePill = screen.getByTestId("improve-scope-tree");
+    expect(treePill).toHaveAttribute("aria-disabled", "true");
+    expect(treePill.getAttribute("title")).toContain("not in the saved pack yet");
+    expect(screen.getByTestId("improve-scope-npc").className).toContain("active");
+    // Nothing is BLOCKED — the run can go — but it is not the run the click
+    // implied, and that is stated INLINE, not only in the greyed pill's tip.
+    expect(screen.queryByTestId("improve-blocked")).toBeNull();
+    const note = screen.getByTestId("improve-retargeted");
+    expect(note.textContent).toContain("new tree is not in the saved pack yet");
+    expect(note.textContent).toContain("Whisper-Tam's 1 saved tree");
+    expect(note.textContent).toContain(kbd("S"));
+    expect(note.textContent).not.toMatch(/row |phase |P0-|W2\./i);
+    // The cost box says WHAT is being bought, not only how much.
+    expect(screen.getByTestId("dialogue-improve").textContent).toContain(
+      "Re-authors Whisper-Tam's 1 saved tree",
+    );
+
+    // The request that goes out names the SAVED scope — never the buffer tree.
+    fireEvent.click(screen.getByTestId("improve-propose"));
+    await screen.findAllByTestId("improve-row");
+    const sent = invokeMock.mock.calls.find((c) => c[0] === "dialogue_improve")![1] as {
+      scope: string;
+      treeId: string | null;
+    };
+    expect(sent.scope).toBe("npc");
+    expect(sent.treeId).toBeNull();
+  });
+
+  it("the PAID card names the trees the money re-authors, and the switch", async () => {
+    render(<DialogueSurface npc={NPC} npcId="1023" />);
+    await screen.findByTestId("dialogue-surface");
+    act(() => {
+      useStore.getState().pushDialogueOps("npc:1023", [addTree("1023:tree_2")]);
+      useStore.getState().setActiveDialogueTree("npc:1023", "1023:tree_2");
+    });
+    await waitFor(() => expect(improveBtn()).not.toHaveAttribute("aria-disabled"));
+    fireEvent.click(improveBtn());
+    await screen.findByTestId("dialogue-improve");
+    fireEvent.change(screen.getByLabelText("improve backend"), { target: { value: "anthropic" } });
+    fireEvent.click(screen.getByTestId("improve-propose"));
+    await waitFor(() => expect(peekGate()).not.toBeNull());
+
+    const opts = peekGate()!.opts as { title: string; body?: string };
+    // Not "improve Whisper-Tam's dialogue" — the card has to say which trees,
+    // because the tree on screen is NOT one of them.
+    expect(opts.title).toContain("Whisper-Tam's 1 saved tree");
+    expect(opts.body).toContain("Re-authors Whisper-Tam's 1 saved tree");
+    expect(opts.body).toContain("new tree is not in the saved pack yet");
+    // Still nothing sent to a provider.
+    expect(calls.some((c) => c.cmd === "dialogue_improve")).toBe(false);
+    act(() => settleGate(peekGate()!, false));
+  });
+
+  it("names the OPEN tree on the card when that tree is the one being bought", async () => {
+    render(<DialogueSurface npc={NPC} npcId="1023" />);
+    await screen.findByTestId("dialogue-surface");
+    fireEvent.click(await screen.findByText("✨ Improve…"));
+    await screen.findByTestId("dialogue-improve");
+    // `1023:default` is on disk, so the scope stays on the open tree and there
+    // is no switch to warn about.
+    expect(screen.getByTestId("improve-scope-tree").className).toContain("active");
+    expect(screen.queryByTestId("improve-retargeted")).toBeNull();
+    fireEvent.change(screen.getByLabelText("improve backend"), { target: { value: "anthropic" } });
+    fireEvent.click(screen.getByTestId("improve-propose"));
+    await waitFor(() => expect(peekGate()).not.toBeNull());
+    const opts = peekGate()!.opts as { title: string; body?: string };
+    expect(opts.title).toBe("improve Whisper-Tam's default tree");
+    expect(opts.body).not.toContain("saved pack yet");
+    act(() => settleGate(peekGate()!, false));
+  });
+
+  it("states the block inline on Propose — the screen's primary action — with the save that clears it", async () => {
+    render(<DialogueSurface npc={BARE} npcId="1024" />);
+    await screen.findByTestId("dialogue-surface");
+    act(() => {
+      useStore.getState().pushDialogueOps("npc:1024", [addTree("1024:tree_1")]);
+    });
+    // The toolbar refuses, so reach the modal the only other way there is: the
+    // command's own `run`, which is what a stale palette entry would fire.
+    const cmd = (useStore.getState().commands.dialogue ?? []).find((c) => c.id === "dlg.improve")!;
+    act(() => cmd.run());
+    await screen.findByTestId("dialogue-improve");
+
+    expect(screen.getByTestId("improve-blocked").textContent).toContain("is saved yet");
+    expect(screen.getByTestId("improve-blocked").textContent).toContain("then improve can read it");
+    expect(screen.getByTestId("improve-propose")).toHaveAttribute("aria-disabled", "true");
+    // Nothing paid can leave, even on a click.
+    fireEvent.click(screen.getByTestId("improve-propose"));
+    await waitFor(() => expect(peekGate()).toBeNull());
+    expect(calls.some((c) => c.cmd === "dialogue_improve")).toBe(false);
+    expect(wrote()).toBe(false);
+
+    // The refusal carries the way out: save, from inside the refusal.
+    fireEvent.click(screen.getByText("Save this dialogue"));
+    expect(screen.queryByTestId("dialogue-improve")).toBeNull();
+    expect(await screen.findByRole("dialog", { name: "Save dialogue" })).toBeInTheDocument();
+  });
+});

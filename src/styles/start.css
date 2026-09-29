@@ -938,10 +938,14 @@
   color: var(--fg-dim);
 }
 
+/* Container, not a button class — it paints a ground, so it names a
+   foreground too (see App.css's `.view-toggle`). Inert: the children below
+   set their own colour. */
 .start-app .filter {
   display: inline-flex;
   gap: 2px;
   background: var(--bg-sunken);
+  color: var(--fg-muted);
   padding: 2px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -975,6 +979,7 @@
   color: var(--fg);
   font-weight: 500;
 }
+/* Container, not a button class — same pairing as `.filter` above. */
 .start-app .sort-menu {
   position: absolute;
   top: calc(100% + 4px);
@@ -982,6 +987,7 @@
   z-index: 10;
   min-width: 180px;
   background: var(--bg-raised);
+  color: var(--fg);
   border: 1px solid var(--border-hi);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-2);
@@ -1004,10 +1010,14 @@
   color: var(--fg);
 }
 
+/* Same container/foreground pairing as App.css's `.view-toggle`: anything
+   that paints a ground names its text colour, so the class cannot render
+   near-black if it is ever put on a button rather than around one. */
 .start-app .view-toggle {
   display: inline-flex;
   gap: 2px;
   background: var(--bg-sunken);
+  color: var(--fg-muted);
   padding: 2px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);

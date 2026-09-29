@@ -1,10 +1,27 @@
 import { countProblems } from "../lib/validation";
 import { kbd } from "../lib/keys";
 import { specialistLabel } from "../lib/agentState";
-import { agentLabel } from "./agent/agentLabel";
-import { AGENT_ACTOR_PREFIX } from "../lib/actor";
+import { agentMonoLabel } from "./agent/agentLabel";
+import { agentActor } from "../lib/actor";
+import { isRemoteConversation } from "../lib/agentActions";
 import { useShallow } from "zustand/react/shallow";
 import { useStore } from "../store";
+
+/** The actor for a conversation, or null when it cannot honestly be spelled.
+ *
+ *  Two ways it comes back null. The service may not know the conversation yet
+ *  — a tab that has never sent still carries the placeholder id it was minted
+ *  with, and an actor built from THAT matches no journal row, no ledger entry
+ *  and nothing the job tray filters on. And `agentActor` throws on an id it
+ *  refuses to spell; the status bar must not go down for that. */
+function realActor(conversation: string, specialist: string): string | null {
+  if (!isRemoteConversation(conversation)) return null;
+  try {
+    return agentActor(conversation, specialist);
+  } catch {
+    return null;
+  }
+}
 
 export function ValidationBar() {
   const { world, selection, levelValidation } = useStore();
@@ -24,9 +41,20 @@ export function ValidationBar() {
       const busy = active.status === "streaming" || active.status === "awaiting_approval";
       return {
         title: active.title,
-        // The agent's own name, so the segment reads the same identity the
-        // job tray and History use (`agent:wick/<specialist>`, boards 01/07).
-        agent: agentLabel(s.worldStoryTitle ?? s.world?.name).toLowerCase(),
+        // The agent's NAME (`agent/agentLabel` — one definition, pack data or
+        // the constant). It is a label, not an identity: the segment used to
+        // render it as `agent:<name>`, which claimed to be the actor the job
+        // tray and History match on and was not one — actors are
+        // `agent:<conversation>/<specialist>`.
+        agent: agentMonoLabel(s.world?.pack_info),
+        // The real thing, from lib/actor.ts — the ONE constructor, never a
+        // string spelled here. It is present only when the segment's text is
+        // ABOUT the running conversation and the service knows that
+        // conversation, and absent otherwise: with `busy` false the segment
+        // reads "<name> idle +N", where the active conversation is not the one
+        // running and may never have been sent at all. An actor is shown only
+        // when hovering it tells the truth; there is no placeholder string.
+        actor: busy ? realActor(active.id, active.specialist) : null,
         specialist: active.specialist,
         busy,
         others,
@@ -60,12 +88,14 @@ export function ValidationBar() {
             <span
               className="val-item"
               data-testid="status-agent"
+              data-actor={agentStatus.actor ?? undefined}
+              title={agentStatus.actor ?? undefined}
               style={{ color: agentStatus.busy ? "var(--accent)" : "var(--fg-muted)" }}
             >
               ●{" "}
               {agentStatus.busy
-                ? `${AGENT_ACTOR_PREFIX}${agentStatus.agent} — ${specialistLabel(agentStatus.specialist).toLowerCase()} ${agentStatus.status === "awaiting_approval" ? "waiting" : "running"}`
-                : `${AGENT_ACTOR_PREFIX}${agentStatus.agent} idle`}
+                ? `${agentStatus.agent} — ${specialistLabel(agentStatus.specialist).toLowerCase()} ${agentStatus.status === "awaiting_approval" ? "waiting" : "running"}`
+                : `${agentStatus.agent} idle`}
               {agentStatus.others > 0 ? ` +${agentStatus.others}` : ""}
             </span>
           )}

@@ -1,5 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+
+const invokeMock = vi.fn();
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (...args: unknown[]) => invokeMock(...args),
+  convertFileSrc: (s: string) => s,
+}));
+
 import { CreateProgress } from "./CreateProgress";
 import { fmtElapsed, phaseLabel } from "./createProgressCopy";
 import type { JobProgress } from "../../lib/invoke";
@@ -207,6 +214,104 @@ describe("CreateProgress", () => {
       />,
     );
     expect(text()).toContain("2 of 2 steps");
+  });
+});
+
+describe("CreateProgress · post-create asset summary", () => {
+  const finished: JobProgress = {
+    phases: [{ node: "phase:assets", status: "done" }],
+    total: 1,
+    endedAt: Date.now(),
+    ok: true,
+  };
+  const withFailures = {
+    images_succeeded: 43,
+    sfx_succeeded: 4,
+    failures: [
+      {
+        kind: "image",
+        target: "npc:1003",
+        provider: "fal",
+        message: "502 bad gateway",
+        status: 502,
+        retryable: true,
+        attempts: 4,
+        hint: "transient fal failure; repair with `asset generate --target missing`.",
+      },
+    ],
+  };
+
+  it("reads the run's stats once it is over and says what did not land", async () => {
+    invokeMock.mockReset();
+    invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
+      if (cmd === "read_world_json" && args?.name === "generation_stats") {
+        return Promise.resolve(withFailures);
+      }
+      return Promise.reject(new Error(`unexpected ${cmd}`));
+    });
+    render(
+      <CreateProgress progress={finished} startedAt={Date.now()} paid ended packDir="/p" />,
+    );
+    const summary = await screen.findByTestId("cp-asset-summary");
+    expect(summary.textContent).toContain("44 images · 43 landed · 1 failed");
+    expect(summary.textContent).toContain("4 sfx · all landed — see list");
+    // the list is right there, one click away
+    expect(screen.getByText("npc:1003")).toBeInTheDocument();
+    expect(screen.getByText(/repair with/)).toBeInTheDocument();
+    expect(invokeMock).toHaveBeenCalledWith("read_world_json", { path: "/p", name: "generation_stats" });
+  });
+
+  it("says every asset landed when the stats carry no failures", async () => {
+    invokeMock.mockReset();
+    invokeMock.mockResolvedValue({ images_succeeded: 50, failures: [] });
+    render(
+      <CreateProgress progress={finished} startedAt={Date.now()} paid ended packDir="/p" />,
+    );
+    const summary = await screen.findByTestId("cp-asset-summary");
+    expect(summary.textContent).toBe("50 images · all landed");
+    expect(screen.queryByTestId("asset-failures")).toBeNull();
+  });
+
+  it("never says all landed for a stats file that carries no failure list", async () => {
+    // The real paid pack's shape: no `failures` key, 26 assets short. The
+    // line reads what the file knows and shows the 0/8 music lane.
+    invokeMock.mockReset();
+    invokeMock.mockResolvedValue({
+      images_attempted: 50,
+      images_succeeded: 43,
+      music_attempted: 8,
+      music_succeeded: 0,
+      sfx_attempted: 15,
+      sfx_succeeded: 4,
+    });
+    render(
+      <CreateProgress progress={finished} startedAt={Date.now()} paid ended packDir="/p" />,
+    );
+    const summary = await screen.findByTestId("cp-asset-summary");
+    expect(summary.textContent).toBe(
+      "43 images landed of 50 attempted / 0 music landed of 8 attempted / 4 sfx landed of 15 attempted",
+    );
+    expect(summary.textContent).not.toContain("all landed");
+  });
+
+  it("reads nothing while the run is still going, and nothing without a folder", () => {
+    invokeMock.mockReset();
+    invokeMock.mockResolvedValue(withFailures);
+    const running: JobProgress = { phases: [{ node: "phase:assets", status: "running" }], total: 1 };
+    render(<CreateProgress progress={running} startedAt={Date.now()} paid packDir="/p" />);
+    render(<CreateProgress progress={finished} startedAt={Date.now()} paid ended />);
+    expect(invokeMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("cp-asset-summary")).toBeNull();
+  });
+
+  it("stays silent about assets when the stats cannot be read", async () => {
+    invokeMock.mockReset();
+    invokeMock.mockRejectedValue(new Error("no such file"));
+    render(
+      <CreateProgress progress={finished} startedAt={Date.now()} paid ended packDir="/p" />,
+    );
+    await screen.findByText("Finished");
+    expect(screen.queryByTestId("cp-asset-summary")).toBeNull();
   });
 });
 

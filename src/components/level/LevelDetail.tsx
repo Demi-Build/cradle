@@ -213,6 +213,19 @@ function useRoomDb(typeIds: string[], enabled: boolean): Record<string, Record<s
 type DirtyLayer = "grids" | "entities" | "items" | "triggers" | "markers";
 type SaveState = { status: "idle" | "saving" | "saved" | "error"; msg?: string };
 
+/** The header's one-line note — and, when the verb that set it returned any,
+ *  the WARNING LINES that came with it.
+ *
+ *  Widened from a bare string rather than given a second state: every caller
+ *  that only has a sentence still passes a sentence, and the one caller with
+ *  warnings (`grid roll`) hands over the whole list instead of dropping all but
+ *  `warnings[0]`. The chip renders `text` and only `text`, so the note keeps
+ *  its fixed place in a bar that already wraps badly; the lines render below
+ *  it, where a full sentence fits. */
+type PlayNote = string | { text: string; warnings: string[] };
+const noteText = (n: PlayNote): string => (typeof n === "string" ? n : n.text);
+const noteWarnings = (n: PlayNote): string[] => (typeof n === "string" ? [] : n.warnings);
+
 export function LevelDetail({
   levelId,
   room = false,
@@ -280,7 +293,7 @@ export function LevelDetail({
   const setLevelValidation = useStore((s) => s.setLevelValidation);
   const [valReport, setValReport] = useState<ValidationReport | null>(null);
   const [validating, setValidating] = useState(false);
-  const [playNote, setPlayNote] = useState<string | null>(null);
+  const [playNote, setPlayNote] = useState<PlayNote | null>(null);
   const [placeBackend, setPlaceBackend] = useState<"fake" | "anthropic">("fake");
   const [regenOpen, setRegenOpen] = useState(false);
   const [improveOpen, setImproveOpen] = useState(false);
@@ -622,11 +635,16 @@ export function LevelDetail({
       });
       await reload();
       setSave({ status: "saved" });
-      const warning = result.warnings?.[0];
-      setPlayNote(
-        `${step} rolled — ${result.changed ? "updated ✓" : "no change"}` +
-          (warning ? ` · ${warning}` : ""),
-      );
+      // EVERY warning, not `warnings[0]`. A whole-room roll emits several, and
+      // taking the first hid the ones behind it — "door moved from (3,0) to
+      // (0,4)" sitting under "dropped 2 monsters" is the user's door being
+      // relocated without them being told. They go BELOW the bar, not into it:
+      // the bar is one wrapping row of chips and these are variable-length
+      // sentences.
+      setPlayNote({
+        text: `${step} rolled — ${result.changed ? "updated ✓" : "no change"}`,
+        warnings: result.warnings ?? [],
+      });
     } catch (e) {
       setSave({ status: "error", msg: String(e) });
     }
@@ -1134,7 +1152,8 @@ export function LevelDetail({
                 : "var(--ok)",
             "validation",
           )}
-        {playNote && chip(playNote.slice(0, 70), "var(--special)", "play-note")}
+        {playNote &&
+          chip(noteText(playNote).slice(0, 70), "var(--special)", "play-note", noteText(playNote))}
         <span style={{ flex: 1 }} />
         {btn(
           validating ? "Validating…" : "✓ Validate",
@@ -1262,6 +1281,69 @@ export function LevelDetail({
         )}
         {btn(save.status === "saving" ? "Saving…" : "Save", () => void doSave(), dirty.size > 0)}
       </div>
+
+      {/* Every warning the last roll returned, stacked BELOW the bar.
+          Why here and not in the bar: canon returns several at once and each is
+          a full sentence ("door moved from (3,0) to (0,4)"), and the bar is one
+          wrapping row of fixed-ish chips that already reflows badly — adding
+          variable-length prose to it would make that worse. And why not a
+          collapsed count: the line most worth reading is the one that says the
+          user's DOOR MOVED, and a warning you must see should not need a click.
+          The list uses the same treatment as the room's own Warnings list, so
+          two kinds of warning read the same way. */}
+      {playNote && noteWarnings(playNote).length > 0 && (
+        <div
+          data-testid="roll-warnings"
+          // It appears in response to an action the user just took, so it is
+          // announced rather than only drawn.
+          role="status"
+          style={{
+            margin: "8px 2px 0",
+            padding: "6px 10px",
+            border: "1px solid var(--warn)",
+            borderRadius: 6,
+            background: "var(--bg-hover)",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+          }}
+        >
+          {/* A pathological roll could return a dozen lines; the list scrolls
+              inside its own box rather than pushing the canvas off screen. */}
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: 16,
+              flex: 1,
+              minWidth: 0,
+              maxHeight: 96,
+              overflowY: "auto",
+            }}
+          >
+            {noteWarnings(playNote).map((w, i) => (
+              <li
+                key={i}
+                style={{
+                  color: "var(--warn)",
+                  fontSize: 11,
+                  margin: "2px 0",
+                  overflowWrap: "anywhere",
+                }}
+              >
+                {w}
+              </li>
+            ))}
+          </ul>
+          <button
+            className="btn"
+            style={{ flex: "none" }}
+            title="Dismiss these warnings — the roll they describe already happened"
+            onClick={() => setPlayNote(noteText(playNote))}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {valReport && <ValidationPanel report={valReport} />}
 

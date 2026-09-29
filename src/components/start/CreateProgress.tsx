@@ -1,7 +1,9 @@
 import { fmtElapsed } from "./createProgressCopy";
 import { useEffect, useState } from "react";
-import type { JobProgress } from "../../lib/invoke";
+import { api, type JobProgress } from "../../lib/invoke";
 import { phaseLabel, type PackTemplate } from "../../lib/packTemplates";
+import { AssetFailureList } from "../AssetFailureList";
+import { assetSummaryLine, type AssetStats } from "../assetFailureSummary";
 
 /** The live display for a generation run: what canon is doing right now, what
  *  it already finished, and how long it has been at it.
@@ -24,13 +26,22 @@ export function CreateProgress({
   startedAt,
   paid,
   error,
+  ended = false,
   templates = [],
   onStop,
+  packDir,
 }: {
   progress?: JobProgress;
   startedAt: number;
   paid: boolean;
   error?: string | null;
+  /** The run is OVER, as the thing that owns the run knows it — not as the
+   *  step log happens to have reported it. `run_end` is the usual signal, but
+   *  a run can end without one reaching this component (a create whose card
+   *  was unmounted while the last events arrived), and a clock still ticking
+   *  under a finished run is a display that lies. Defaults to false, so a
+   *  caller with no such fact behaves exactly as it did before. */
+  ended?: boolean;
   /** The templates whose label maps this run may be named by — normally just
    *  the one being created. Empty = every phase renders its humanized id. */
   templates?: PackTemplate[];
@@ -38,8 +49,18 @@ export function CreateProgress({
    *  — start nothing new, keep what landed, say what it cost. Absent = no
    *  button (a run that is already over). */
   onStop?: () => void;
+  /** The folder the run wrote. Once the run is over, its
+   *  `generation_stats.json` is read from here for the post-create asset
+   *  summary — `50 images · 43 landed · 7 failed — see list` — so a run
+   *  that lost assets never reads as a clean "Finished". Absent = no line. */
+  packDir?: string;
 }) {
-  const elapsed = useElapsed(startedAt, !error && !progress?.endedAt);
+  // Over, however it got there: the step log's own `run_end`, or the caller
+  // telling us the run is finished. Everything that must not outlive the run
+  // — the clock, the spinners, ⏹ Stop, "don't close cradle" — reads this.
+  const over = ended || !!progress?.endedAt;
+  const elapsed = useElapsed(startedAt, !error && !over);
+  const assets = useAssetStats(packDir, over && !error);
   const phases = progress?.phases ?? [];
   const done = phases.filter((p) => p.status === "done" || p.status === "skipped").length;
   const total = progress?.total ?? 0;
@@ -53,8 +74,11 @@ export function CreateProgress({
   const dead = !!error || !!failed;
 
   // Before the first event: canon is starting up (importing the pack, reading
-  // schemas). Say that, rather than showing a 0% bar that looks stuck.
-  const waiting = phases.length === 0 && !error;
+  // schemas). Say that, rather than showing a 0% bar that looks stuck. A run
+  // that is already OVER is never "starting" — reported no steps is a
+  // different fact from about to report some, and saying the second one for a
+  // finished run is the lie this guard removes.
+  const waiting = phases.length === 0 && !error && !over;
 
   return (
     <div className="cp">
@@ -70,6 +94,10 @@ export function CreateProgress({
                   ? `Stopped after ${phaseLabel(headline.node, templates)}`
                   : "Stopped before the first step"}
             </span>
+          ) : ended ? (
+            // The owner of the run says it is finished. That outranks the step
+            // log, which may have stopped reaching us before its last event.
+            "Finished"
           ) : waiting ? (
             "Starting canon…"
           ) : progress?.endedAt ? (
@@ -83,7 +111,7 @@ export function CreateProgress({
         <span className="cp-clock" aria-label="elapsed">
           {fmtElapsed(elapsed)}
         </span>
-        {onStop && !dead && !progress?.endedAt && (
+        {onStop && !dead && !over && (
           <button
             className="ag-stop sm"
             onClick={onStop}
@@ -99,7 +127,7 @@ export function CreateProgress({
       {/* The sub-phase line: the one thing that keeps moving during the long
           art/animation phases, where a whole phase can take many minutes. */}
       <div className="cp-item">
-        {current?.item && !dead ? (
+        {current?.item && !dead && !over ? (
           <>
             <span className="cp-spin" aria-hidden="true" />
             <span className="cp-item-name">{current.item}</span>
@@ -112,7 +140,10 @@ export function CreateProgress({
           </>
         ) : (
           <span className="cp-item-idle">
-            {!dead && <span className="cp-spin" aria-hidden="true" />}
+            {/* The spinner is the "still alive" signal. A finished run has
+                nothing to be alive for, so it loses the spinner exactly as a
+                dead one does. */}
+            {!dead && !over && <span className="cp-spin" aria-hidden="true" />}
             <span className="cp-item-name dim">
               {dead ? "stopped" : waiting ? "no output yet" : " "}
             </span>
@@ -128,8 +159,8 @@ export function CreateProgress({
         aria-valuemax={total || undefined}
       >
         <div
-          className={`cp-bar-fill${dead ? " err" : ""}${total > 0 || dead ? "" : " idle"}`}
-          style={total > 0 ? { width: `${pct}%` } : dead ? { width: "100%" } : undefined}
+          className={`cp-bar-fill${dead ? " err" : ""}${total > 0 || dead || over ? "" : " idle"}`}
+          style={total > 0 ? { width: `${pct}%` } : dead || over ? { width: "100%" } : undefined}
         />
       </div>
       <div className="cp-meta">
@@ -138,9 +169,16 @@ export function CreateProgress({
             ? `${done} of ${total} steps`
             : dead
               ? "no steps completed"
-              : "counting steps…"}
+              : over
+                ? // Over, with no step total ever announced. "counting steps…"
+                  // would promise a number that is never coming.
+                  "no step counts were reported"
+                : "counting steps…"}
         </span>
-        {paid && !dead && <span className="cp-paid">paid backends — don't close cradle</span>}
+        {/* The warning is about a run in flight; a finished one may be closed. */}
+        {paid && !dead && !over && (
+          <span className="cp-paid">paid backends — don't close cradle</span>
+        )}
       </div>
 
       {/* The finished phases, newest first: proof of what actually happened,
@@ -170,8 +208,57 @@ export function CreateProgress({
         </ol>
       )}
       {error && <div className="cp-err">{error}</div>}
+      <AssetSummary stats={assets} />
     </div>
   );
+}
+
+/** The post-create asset line. Failures are acceptable; silence is not: a
+ *  finished run with assets that did not land says so here, in the same
+ *  card that says "Finished", with the list one click away. A run that
+ *  lost nothing gets the tally too — `50 images · all landed` — so the line
+ *  is a fact about every run, not a badge of shame on some. */
+function AssetSummary({ stats }: { stats: AssetStats | null }) {
+  const line = assetSummaryLine(stats);
+  if (!line) return null;
+  const failures = stats?.failures ?? [];
+  if (failures.length === 0) {
+    return (
+      <div className="cp-assets cp-meta" data-testid="cp-asset-summary">
+        <span>{line}</span>
+      </div>
+    );
+  }
+  return (
+    <details className="cp-assets cp-assets-failed" data-testid="cp-asset-summary">
+      <summary style={{ cursor: "pointer", fontSize: 12, color: "var(--err)", marginTop: 6 }}>
+        {line}
+      </summary>
+      <AssetFailureList failures={failures} compact />
+    </details>
+  );
+}
+
+/** Read the run's `generation_stats.json` once it is over. Never throws: a
+ *  missing or unreadable file means no line, not a broken card. */
+function useAssetStats(packDir: string | undefined, ready: boolean): AssetStats | null {
+  const [stats, setStats] = useState<AssetStats | null>(null);
+  useEffect(() => {
+    if (!packDir || !ready) return;
+    let live = true;
+    api
+      .readWorldJson(packDir, "generation_stats")
+      .then((s) => {
+        if (live) setStats((s ?? null) as AssetStats | null);
+      })
+      .catch(() => {
+        if (live) setStats(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [packDir, ready]);
+  return stats;
 }
 
 /** Wall-clock since `from`, ticking while `live`. The clock is the honest

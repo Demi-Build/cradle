@@ -222,3 +222,123 @@ export function summarizeJournal(events: JournalEvent[], today?: string): Journa
     today: day,
   };
 }
+
+/** One conversation as the ⏱ history menu reads it: what the calls cost, what
+ *  they WERE, on what model, who fired them, and when it last did anything.
+ *
+ *  This is the by-conversation roll-up DECORATED, not a second one. Every
+ *  figure that is money comes straight off `summarizeJournal(...).byConversation`
+ *  — the same rows the dashboard's by-conversation table prints — so the menu
+ *  and the dashboard cannot disagree about a number: there is still only one
+ *  place cents are added up. The pass below adds the facts a roll-up of money
+ *  cannot carry (which kinds, which backend·model, the last timestamp), each
+ *  read from the event field that already holds it.
+ *
+ *  Keyed by conversation id. Conversations whose events were ALL uncosted
+ *  still appear — a conversation canon could not price must be visible as
+ *  exactly that, never as an absent row that reads like $0. */
+export type ConversationDigest = {
+  session: string;
+  /** From the roll-up row (0 when it has none): the dashboard's own sums. */
+  tokensCents: number;
+  generationCents: number;
+  totalCents: number;
+  /** Costed runs — events that carried `costCents`, the roll-up's `runs`. */
+  runs: number;
+  /** Every journal event in this conversation, costed or not. */
+  events: number;
+  /** Runs a paid backend billed but canon could not price (`detail.cost_error`)
+   *  — surfaced, because they are the one case where $0 would be a lie. */
+  unpriced: number;
+  /** The newest `ts` seen in this conversation. */
+  lastTs?: string;
+  /** What the calls were, most-run first. `genKind` is an OPEN vocabulary —
+   *  these strings are grouped by value and rendered verbatim, so a kind
+   *  nobody has seen yet arrives as its own entry. Conversation `tokens` rows
+   *  are not "calls" and stay out of this list; their money is `tokensCents`. */
+  kinds: { genKind: string; runs: number }[];
+  /** backend·model pairs, most-run first — over EVERY event, so the model the
+   *  conversation itself ran on sits beside the ones its generations used. */
+  models: { backend: string; model: string; runs: number }[];
+  /** Who fired the costed calls, in cents (these two sum to `totalCents`) … */
+  youCents: number;
+  agentCents: number;
+  /** … and whether each fired anything at all, costed or not: a conversation a
+   *  person drove reads differently from one the agent ran on its own, and
+   *  that stays true when nothing was priced. */
+  byYou: boolean;
+  byAgent: boolean;
+};
+
+export function digestConversations(events: JournalEvent[]): Map<string, ConversationDigest> {
+  const money = new Map(
+    summarizeJournal(events).byConversation.map((r) => [r.session, r] as const),
+  );
+  const out = new Map<string, ConversationDigest>();
+  const kindRuns = new Map<string, Map<string, number>>();
+  const modelRuns = new Map<string, Map<string, number>>();
+
+  for (const e of events) {
+    const identity = identityOf(e);
+    const { isAgent, conversation } = parseIdentity(identity);
+    const session = e.session || conversation;
+    if (!session) continue;
+    let d = out.get(session);
+    if (!d) {
+      const row = money.get(session);
+      d = {
+        session,
+        tokensCents: row?.tokensCents ?? 0,
+        generationCents: row?.generationCents ?? 0,
+        totalCents: row?.totalCents ?? 0,
+        runs: row?.runs ?? 0,
+        events: 0,
+        unpriced: 0,
+        kinds: [],
+        models: [],
+        youCents: 0,
+        agentCents: 0,
+        byYou: false,
+        byAgent: false,
+      };
+      out.set(session, d);
+      kindRuns.set(session, new Map());
+      modelRuns.set(session, new Map());
+    }
+    d.events += 1;
+    if (isAgent) d.byAgent = true;
+    else d.byYou = true;
+    if (e.detail && typeof e.detail.cost_error === "string") d.unpriced += 1;
+    if (e.ts && (!d.lastTs || e.ts > d.lastTs)) d.lastTs = e.ts;
+    if (typeof e.costCents === "number") {
+      if (isAgent) d.agentCents += e.costCents;
+      else d.youCents += e.costCents;
+    }
+    const kind = e.genKind || "";
+    if (kind && kind !== "tokens") {
+      const seen = kindRuns.get(session)!;
+      seen.set(kind, (seen.get(kind) ?? 0) + 1);
+    }
+    const gen = (e.gen ?? {}) as Record<string, unknown>;
+    // Joined on a separator no id can contain, so a model carrying a dot, a
+    // slash or a middot still splits back into exactly two parts.
+    const pair = `${String(gen.backend ?? "")}\u0000${String(gen.model ?? "")}`;
+    if (pair !== "\u0000") {
+      const seen = modelRuns.get(session)!;
+      seen.set(pair, (seen.get(pair) ?? 0) + 1);
+    }
+  }
+
+  for (const d of out.values()) {
+    d.kinds = [...(kindRuns.get(d.session) ?? new Map<string, number>()).entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([genKind, runs]) => ({ genKind, runs }));
+    d.models = [...(modelRuns.get(d.session) ?? new Map<string, number>()).entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([pair, runs]) => {
+        const [backend, model] = pair.split("\u0000");
+        return { backend, model, runs };
+      });
+  }
+  return out;
+}

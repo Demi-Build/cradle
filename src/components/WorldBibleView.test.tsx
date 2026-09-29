@@ -279,6 +279,101 @@ describe("WorldBibleView", () => {
     expect(screen.getByText("42")).toBeInTheDocument();
   });
 
+  it("renders the landed counts and the failure list from a stats fixture with failures", async () => {
+    useStore.setState({
+      worldPath: "/w",
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
+    });
+    setupInvoke({
+      bible: { story: { title: "Wounded" } },
+      manifest: null,
+      stats: {
+        images_succeeded: 43,
+        music_succeeded: 0,
+        sfx_succeeded: 4,
+        total_cost_usd: 3.0,
+        failures: [
+          {
+            kind: "image",
+            target: "npc:1003",
+            provider: "fal",
+            message: "502 bad gateway",
+            status: 502,
+            retryable: true,
+            attempts: 4,
+            hint: "transient fal failure; repair with `asset generate --target missing`.",
+          },
+          {
+            kind: "music",
+            target: "music:combat",
+            provider: "lyria",
+            message: "PERMISSION_DENIED",
+            status: 403,
+            retryable: false,
+            attempts: 1,
+            hint: "check the lyria key and plan.",
+          },
+        ],
+      },
+    });
+    render(<WorldBibleView />);
+    expect(
+      await screen.findByRole("heading", { name: "Assets that did not land" }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByTestId("asset-failure-row")).toHaveLength(2);
+    expect(screen.getByText("npc:1003")).toBeInTheDocument();
+    expect(screen.getByText("PERMISSION_DENIED")).toBeInTheDocument();
+    expect(screen.getByText(/check the lyria key/)).toBeInTheDocument();
+    // the counts, landed / planned — 43 of 44 is not a clean 43
+    expect(screen.getByText("43 / 44 · 1 failed")).toBeInTheDocument();
+    expect(screen.getByText("0 / 1 · 1 failed")).toBeInTheDocument();
+    expect(screen.getByText("4 / 4")).toBeInTheDocument();
+  });
+
+  it("reads a stats file with NO failure list as attempts vs landed, never as clean", async () => {
+    // The first paid run's own generation_stats: no `failures` key, images
+    // 43/50, sfx 4/15, music 0/8. Before this the grid read `43 / 43`.
+    useStore.setState({
+      worldPath: "/w",
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
+    });
+    setupInvoke({
+      bible: { story: { title: "Legacy" } },
+      manifest: null,
+      stats: {
+        images_attempted: 50,
+        images_succeeded: 43,
+        music_attempted: 8,
+        music_succeeded: 0,
+        sfx_attempted: 15,
+        sfx_succeeded: 4,
+      },
+    });
+    render(<WorldBibleView />);
+    expect(await screen.findByText("43 / 50 attempted")).toBeInTheDocument();
+    expect(screen.getByText("0 / 8 attempted")).toBeInTheDocument();
+    expect(screen.getByText("4 / 15 attempted")).toBeInTheDocument();
+    expect(screen.queryByText("43 / 43")).toBeNull();
+    // no list to render, so no list section — the tallies carry the fact
+    expect(screen.queryByRole("heading", { name: "Assets that did not land" })).toBeNull();
+  });
+
+  it("renders the counts alone when every asset landed", async () => {
+    useStore.setState({
+      worldPath: "/w",
+      world: { path: "/w", name: "w", world_kind: "dungeon", entity_counts: [] },
+    });
+    setupInvoke({
+      bible: { story: { title: "Whole" } },
+      manifest: null,
+      stats: { images_succeeded: 50, sfx_succeeded: 15, failures: [] },
+    });
+    render(<WorldBibleView />);
+    expect(await screen.findByText("50 / 50")).toBeInTheDocument();
+    expect(screen.getByText("15 / 15")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Assets that did not land" })).toBeNull();
+  });
+
   it("omits Generation section when generation_stats fetch fails", async () => {
     useStore.setState({
       worldPath: "/w",

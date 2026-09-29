@@ -1,13 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-/** Hover tooltip for icon buttons — the design gives every tool-rail button
- *  one, because a 30×30 glyph is otherwise unidentifiable.
+/** Tooltip for icon buttons — the design gives every tool-rail button one,
+ *  because a 30×30 glyph is otherwise unidentifiable.
  *
  *  Spec: 260ms delay, placed to the element's RIGHT, flipped left when it
  *  would overflow, vertically centered and clamped to the viewport. Rendered
  *  in a portal so an `overflow: hidden` ancestor (the canvas frame, the dock)
  *  can't clip it — a floating rail lives inside exactly such containers.
+ *
+ *  IT OPENS ON KEYBOARD FOCUS TOO, not on hover alone. A tooltip is often the
+ *  only place a control's reason for being unavailable is written, and a
+ *  pointer-only tip strands a keyboard user on a dead control with nothing on
+ *  screen. Focus opens it WITHOUT the delay: the delay exists to stop tips
+ *  flashing as a pointer sweeps a rail, and landing on a control by keyboard is
+ *  a deliberate arrival, not a sweep. `Escape` dismisses it without moving
+ *  focus, and does not stop propagating — an enclosing sheet still gets its own
+ *  `Escape`.
  *
  *  Surface styling is `.tip` / `.tip-title` / `.tip-desc` in App.css.
  */
@@ -35,15 +44,21 @@ export function Tooltip({
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
+  const place = () => {
+    const r = wrapRef.current?.getBoundingClientRect();
+    if (!r) return;
+    // Provisional: to the right, vertically centered. Measured and corrected
+    // in the layout effect below, once the panel has a real width.
+    setPos({ x: r.right + GAP, y: r.top + r.height / 2, flipped: false });
+  };
   const show = () => {
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => {
-      const r = wrapRef.current?.getBoundingClientRect();
-      if (!r) return;
-      // Provisional: to the right, vertically centered. Measured and corrected
-      // in the layout effect below, once the panel has a real width.
-      setPos({ x: r.right + GAP, y: r.top + r.height / 2, flipped: false });
-    }, DELAY_MS);
+    timer.current = window.setTimeout(place, DELAY_MS);
+  };
+  /** Focus arrives on purpose, so it opens at once — see the note above. */
+  const showNow = () => {
+    window.clearTimeout(timer.current);
+    place();
   };
   const hide = () => {
     window.clearTimeout(timer.current);
@@ -79,6 +94,15 @@ export function Tooltip({
         // A click means the user found it; keeping the tip up just covers
         // whatever they're about to look at.
         onPointerDown={hide}
+        // React maps these to focusin/focusout, so focus on the wrapped
+        // control — not the wrapper — is what opens and closes it.
+        onFocus={showNow}
+        onBlur={hide}
+        // Dismiss without moving focus. NOT stopped: a sheet's own Escape
+        // handler must still see it.
+        onKeyDown={(e) => {
+          if (e.key === "Escape") hide();
+        }}
       >
         {children}
       </span>

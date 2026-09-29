@@ -6,6 +6,11 @@
 // Create runs the roll, Create+LLM also authors name/flavor exactly as
 // pipeline generation would (confirm-gated — it spends tokens).
 //
+// Create+LLM is gated on the CAPABILITY before it is gated on money: a kind
+// this pack cannot LLM-author (every dungeon kind — music and sfx included)
+// greys the button out at panel-open, so the spend card never appears for a
+// run that cannot happen. See `completionGate.ts` for how that is asked.
+//
 // EDIT (pass editRow/editId): prefilled from the EXISTING row's flat view.
 // Values land verbatim via `canon db update` — no rerolls, no LLM; canon
 // rehashes, stamps user_edited, and journals op=edit with the field diff.
@@ -41,6 +46,14 @@ import { DB_NESTING } from "../../lib/dbNesting";
 import { kindForTypeId, typeIdForKind } from "../../lib/placements";
 import { useStore } from "../../store";
 import { confirmSpend } from "../agent/confirmGateState";
+import { GatedButton } from "../GatedButton";
+import {
+  CREATE_INSTEAD,
+  completionBlocked,
+  completionUnavailable,
+  isNotYetRefusal,
+  rememberBlocked,
+} from "./completionGate";
 
 type SpecField = {
   name: string;
@@ -206,6 +219,22 @@ export function RowEditor({
       .catch((e) => setErr(String(e)));
   }, [worldPath, dbType]);
 
+  // Ask whether this kind can be LLM-authored AT ALL, before the user can
+  // reach the money card. The old order asked canon only after `confirmSpend`
+  // had already collected a ~1¢ approval, so a kind that refuses for free
+  // still raised a spend dialog. `completionBlocked` answers from canon's own
+  // structured refusal (see completionGate.ts) — never a list of kinds.
+  useEffect(() => {
+    if (editing) return;
+    let live = true;
+    void completionBlocked(worldPath, dbType).then((blocked) => {
+      if (live && blocked) setCompleteOff(completionUnavailable(label, CREATE_INSTEAD));
+    });
+    return () => {
+      live = false;
+    };
+  }, [worldPath, dbType, editing, label]);
+
   const classify = useCallback(
     (name: string): "protected" | "routed" | "decorative" | "editable" => {
       const leaf = leafOf(name);
@@ -247,8 +276,22 @@ export function RowEditor({
   };
 
   const create = async (complete: boolean) => {
-    // Create+LLM spends tokens: the paid card gates it (row P1-A5). A plain
-    // Create is free and asks nothing.
+    if (busy) return;
+    // REFUSAL BEFORE MONEY. A kind this pack cannot LLM-author never reaches
+    // `confirmSpend`: asking someone to approve a spend for an action that
+    // cannot run is the bug this ordering fixes. The probe usually greyed the
+    // button out long before the click; this is the belt for the fail-open
+    // case (a probe that could not run).
+    if (complete && completeOff) return;
+    if (complete) {
+      const blocked = await completionBlocked(worldPath, dbType);
+      if (blocked) {
+        setCompleteOff(completionUnavailable(label, CREATE_INSTEAD));
+        return;
+      }
+    }
+    // Create+LLM spends tokens: the paid card gates it. A plain Create is
+    // free and asks nothing.
     if (
       complete &&
       !(await confirmSpend({
@@ -273,11 +316,18 @@ export function RowEditor({
       onCreated(result.id);
       onClose();
     } catch (e) {
-      const message = String(e);
       // `db complete` answers a structured not-yet on a kind whose seed binds
-      // no per-row completion body — render the reason, never crash.
-      if (complete && /not_yet|not yet/.test(message)) setCompleteOff(message.slice(0, 200));
-      setErr(message);
+      // no per-row completion body. Canon's own prose names the planning row
+      // that would bring the capability, so it never reaches the screen — the
+      // user gets the product's words and the thing that DOES work.
+      if (complete && isNotYetRefusal(e)) {
+        rememberBlocked(worldPath, dbType);
+        // The reason renders once, under the control it belongs to — not
+        // also as a raw error line.
+        setCompleteOff(completionUnavailable(label, CREATE_INSTEAD));
+      } else {
+        setErr(String(e));
+      }
     } finally {
       setBusy(false);
     }
@@ -722,23 +772,36 @@ export function RowEditor({
                 <button disabled={busy} onClick={() => create(false)} style={{ cursor: "pointer" }}>
                   {busy ? "…" : spec.schema_source ? "🎲 Create (roll only)" : "Create"}
                 </button>
-                <button
-                  disabled={busy || !!completeOff}
-                  title={completeOff ?? undefined}
-                  onClick={() => create(true)}
-                  style={{
-                    cursor: completeOff ? "default" : "pointer",
-                    background: completeOff ? undefined : "var(--accent)",
-                    color: completeOff ? undefined : "var(--accent-ink)",
-                    fontWeight: 600,
-                    border: completeOff ? undefined : "none",
-                    borderRadius: 6,
-                    padding: "4px 10px",
-                    opacity: completeOff ? 0.6 : 1,
-                  }}
+                {/* CAPABILITY-blocked, so it stays RENDERED and greyed with
+                    its reason on hover OR keyboard focus — `GatedButton` is
+                    the app's one rendering of that state, and it keeps the
+                    control focusable (a native `disabled` would strand the
+                    reason on hover only). */}
+                <GatedButton
+                  className="btn pri"
+                  reason={completeOff ?? ""}
+                  hint="Roll the row, then let the LLM author its name and flavor"
+                  onClick={() => void create(true)}
+                  testId="create-complete"
                 >
                   {busy ? "…" : "Create + LLM complete"}
-                </button>
+                </GatedButton>
+                {/* It is the panel's accented primary, so the reason is on
+                    screen as well as in the tip — beside the control that
+                    actually works. */}
+                {completeOff && (
+                  <p
+                    data-testid="create-complete-reason"
+                    style={{
+                      flexBasis: "100%",
+                      margin: "2px 0 0",
+                      fontSize: 11,
+                      color: "var(--fg-dim)",
+                    }}
+                  >
+                    {completeOff}
+                  </p>
+                )}
               </>
             )}
           </div>

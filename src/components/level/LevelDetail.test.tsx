@@ -160,6 +160,59 @@ describe("LevelDetail room", () => {
     expect(calls("export_level").length).toBeGreaterThan(1);
   });
 
+  /** A whole-room roll returns SEVERAL warnings at once. Rendering
+   *  `warnings[0]` meant "dropped 2 monsters" could sit on top of "door moved
+   *  from (3,0) to (0,4)" — the user's door being relocated, unreported. */
+  const rollReturning = (warnings: string[]) =>
+    invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) =>
+      Promise.resolve(
+        cmd === "roll_grid_step"
+          ? { room_id: "room_0", step: "whole", seed: "s", changed: true, cost_usd: 0, warnings }
+          : answer(cmd, args),
+      ),
+    );
+
+  it("shows EVERY warning a roll returns, and keeps them out of the top bar", async () => {
+    const user = userEvent.setup();
+    const WARNINGS = [
+      "dropped 2 monsters that no longer fit",
+      "door moved from (3,0) to (0,4)",
+      "spawn re-seated inside the carved region",
+    ];
+    rollReturning(WARNINGS);
+    await renderRoom();
+    await user.click(screen.getByRole("button", { name: /⟳ Whole room/ }));
+
+    const block = await screen.findByTestId("roll-warnings");
+    for (const w of WARNINGS) expect(block.textContent).toContain(w);
+    expect(block.querySelectorAll("li")).toHaveLength(3);
+
+    // The bar's note stays ONE short chip — no variable-width prose joins a row
+    // that already wraps badly.
+    const note = screen.getByText("whole rolled — updated ✓");
+    expect(note.textContent).not.toContain("door moved");
+
+    // Dismissing drops the lines and leaves the note.
+    await user.click(screen.getByRole("button", { name: "Dismiss" }));
+    expect(screen.queryByTestId("roll-warnings")).toBeNull();
+    expect(screen.getByText("whole rolled — updated ✓")).toBeInTheDocument();
+  });
+
+  it("stays calm for a single warning, and renders no block for none", async () => {
+    const user = userEvent.setup();
+    rollReturning(["door moved from (3,0) to (0,4)"]);
+    await renderRoom();
+    await user.click(screen.getByRole("button", { name: /⟳ Whole room/ }));
+    const block = await screen.findByTestId("roll-warnings");
+    expect(block.querySelectorAll("li")).toHaveLength(1);
+    expect(block.textContent).toContain("door moved from (3,0) to (0,4)");
+
+    // A roll with no warnings adds nothing at all.
+    rollReturning([]);
+    await user.click(screen.getByRole("button", { name: /🎲 Items/ }));
+    await waitFor(() => expect(screen.queryByTestId("roll-warnings")).toBeNull());
+  });
+
   it("a monsters roll names the selected encounter", async () => {
     const user = userEvent.setup();
     const props = await renderRoom();

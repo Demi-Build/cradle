@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   api,
   type JournalIdentityRow,
+  type JournalPresence,
   type JournalSummary,
   type SpendSummary,
 } from "../lib/invoke";
@@ -41,7 +42,16 @@ import { useStore } from "../store";
  *
  *  `spend.jsonl` survives as a derived compat index: only rows WITHOUT a
  *  `journal_ref` (pre-A6 history, and the create run until it journals) are
- *  added to the journal total — no row is ever in both sets. */
+ *  added to the journal total — no row is ever in both sets.
+ *
+ *  **No journal is not $0.** A project whose journal file does not exist rolls
+ *  up to the same four zeros as a project that genuinely spent nothing, and
+ *  before this screen read canon's presence marker the two were indis-
+ *  tinguishable — a mistyped project folder, or a paid run whose journal write
+ *  never landed, looked exactly like a free run. When the marker says the file
+ *  is missing, every figure here becomes "—" and the screen says so in words:
+ *  these are an ABSENCE of records, not a $0 spend. A journal that EXISTS and
+ *  records nothing costed still reads as $0, because that is what it is. */
 export function CostDashboard() {
   const worldPath = useStore((s) => s.worldPath);
   const setDashboardOpen = useStore((s) => s.setDashboardOpen);
@@ -49,6 +59,11 @@ export function CostDashboard() {
   const [spend, setSpend] = useState<SpendSummary | null>(null);
   const [genActual, setGenActual] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  /** Does the journal FILE exist? THREE states, not two: `true`, `false`, and
+   *  `null` for a canon that does not report it — an older canon must keep
+   *  rendering exactly as it did, never be accused of a missing journal. */
+  const [journal, setJournal] = useState<Partial<JournalPresence> | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
 
   useEffect(() => {
     let live = true;
@@ -57,6 +72,14 @@ export function CostDashboard() {
       .then((r) => {
         if (!live) return;
         setSummary(r.summary ?? summarizeJournal(r.events ?? []));
+        // The top-level block is canon's statement of the fact; the copy
+        // stamped inside the roll-up is the same fact for a client that was
+        // handed the roll-up ALONE — which, passing `--summary`, is this one.
+        const present = r.journal?.present ?? r.summary?.journalPresent;
+        setJournal(
+          present == null ? null : { present, path: r.journal?.path ?? r.summary?.journalPath },
+        );
+        setWarnings(r.warnings ?? []);
       })
       .catch((e) => live && setErr(String(e).slice(0, 200)));
     // The compat index: pre-A6 rows the journal cannot know about.
@@ -64,14 +87,31 @@ export function CostDashboard() {
       .spendList(worldPath)
       .then((r) => live && setSpend(r.spend))
       .catch(() => {});
-    api
-      .readWorldJson(worldPath, "manifest.json")
-      .then((mf) => {
-        const c = (mf as { generation_stats?: { total_cost_usd?: number } }).generation_stats
+    // The last full run's measured total: the pack's standalone
+    // `generation_stats.json` first (the only stats record a platformer
+    // writes — reading the embedded block alone showed nothing for a $2.60
+    // run), the dungeon manifest's embedded copy as the fallback.
+    void (async () => {
+      let c: unknown;
+      try {
+        c = ((await api.readWorldJson(worldPath, "generation_stats")) as { total_cost_usd?: unknown })
           ?.total_cost_usd;
-        if (live && typeof c === "number") setGenActual(c);
-      })
-      .catch(() => {});
+      } catch {
+        /* no standalone file */
+      }
+      if (typeof c !== "number") {
+        try {
+          c = (
+            (await api.readWorldJson(worldPath, "manifest")) as {
+              generation_stats?: { total_cost_usd?: unknown };
+            }
+          )?.generation_stats?.total_cost_usd;
+        } catch {
+          /* no manifest either */
+        }
+      }
+      if (live && typeof c === "number") setGenActual(c);
+    })();
     return () => {
       live = false;
     };
@@ -129,13 +169,19 @@ export function CostDashboard() {
     [runningIds],
   );
 
-  const split = summary
-    ? {
-        you: summary.youCents,
-        agent: summary.agentCents,
-        total: Math.max(1, summary.youCents + summary.agentCents),
-      }
-    : null;
+  /** Canon looked for a journal file and did not find one. Only an explicit
+   *  `false` counts: a canon that says nothing leaves this false-y, and the
+   *  screen behaves exactly as it always did. */
+  const missing = journal?.present === false;
+
+  const split =
+    summary && !missing
+      ? {
+          you: summary.youCents,
+          agent: summary.agentCents,
+          total: Math.max(1, summary.youCents + summary.agentCents),
+        }
+      : null;
 
   return (
     <div style={overlay} onClick={() => setDashboardOpen(false)}>
@@ -155,11 +201,45 @@ export function CostDashboard() {
 
         {err && <div style={{ color: "var(--err)", fontSize: 12, marginBottom: 10 }}>{err}</div>}
 
+        {missing && (
+          <div style={banner} data-testid="journal-missing">
+            <strong>This project has no journal yet — so nothing here is a $0.</strong>
+            <div style={{ marginTop: 5, lineHeight: 1.5 }}>
+              Nothing has ever been recorded
+              {journal?.path && (
+                <>
+                  {" "}
+                  at <span className="mono">{journal.path}</span>
+                </>
+              )}
+              . Every figure below is an <em>absence of records</em>, not a spend of nothing. If
+              this project has generated anything, check that this is the folder you meant — and
+              that the run you are looking for actually finished.
+            </div>
+          </div>
+        )}
+        {!missing &&
+          warnings.map((w) => (
+            <div key={w} style={{ ...banner, color: "var(--warn)" }} data-testid="journal-warning">
+              {w}
+            </div>
+          ))}
+
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }} data-testid="cost-tiles">
-          <Tile label="total" cents={summary?.totalCents} testId="tile-total" />
-          <Tile label="generation" cents={summary?.generationCents} testId="tile-generation" />
-          <Tile label="conversation" cents={summary?.tokensCents} testId="tile-conversation" />
-          <Tile label="today" cents={summary?.todayCents} testId="tile-today" />
+          <Tile label="total" cents={summary?.totalCents} absent={missing} testId="tile-total" />
+          <Tile
+            label="generation"
+            cents={summary?.generationCents}
+            absent={missing}
+            testId="tile-generation"
+          />
+          <Tile
+            label="conversation"
+            cents={summary?.tokensCents}
+            absent={missing}
+            testId="tile-conversation"
+          />
+          <Tile label="today" cents={summary?.todayCents} absent={missing} testId="tile-today" />
         </div>
 
         {split && (
@@ -220,7 +300,7 @@ export function CostDashboard() {
                   <td style={{ ...tdNum, fontWeight: 600 }}>{fmtCentsUsd(r.totalCents)}</td>
                 </tr>
               ))}
-            {summary && (
+            {summary && !missing && (
               <tr data-testid="kind-total" style={{ borderTop: "1px solid var(--border)" }}>
                 <td style={{ ...td, fontWeight: 600 }} colSpan={2}>
                   all generation
@@ -316,14 +396,19 @@ export function CostDashboard() {
             {summary?.byConversation.length === 0 && (
               <tr>
                 <td style={{ ...td, opacity: 0.6 }}>
-                  No agent conversation has spent anything in this project yet.
+                  {/* An empty table means two different things, and saying the
+                      wrong one is the whole bug: with no journal there is
+                      nothing to have spent FROM. */}
+                  {missing
+                    ? "No journal, so nothing is known about what any conversation spent."
+                    : "No agent conversation has spent anything in this project yet."}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
 
-        {summary && (
+        {summary && !missing && (
           <div style={{ marginTop: 14 }} data-testid="accuracy">
             <SectionTitle>accuracy</SectionTitle>
             <div style={{ display: "flex", gap: 16, fontSize: 12, flexWrap: "wrap" }}>
@@ -348,8 +433,12 @@ export function CostDashboard() {
         )}
 
         <div style={{ fontSize: 11, opacity: 0.5, marginTop: 14, lineHeight: 1.55 }}>
-          Every row above is one journal entry, so the tables always reconcile. Estimates that were
-          never confirmed are not counted; stopped runs are counted at what they billed.
+          {!missing && (
+            <>
+              Every row above is one journal entry, so the tables always reconcile. Estimates that
+              were never confirmed are not counted; stopped runs are counted at what they billed.
+            </>
+          )}
           {legacyUsd > 0 && (
             <>
               {" "}
@@ -358,7 +447,7 @@ export function CostDashboard() {
             </>
           )}
           {genActual != null && (
-            <> Last full generation run (manifest stats): {fmtUsd(genActual)}.</>
+            <> Last full generation run (generation stats): {fmtUsd(genActual)}.</>
           )}
         </div>
       </div>
@@ -366,20 +455,28 @@ export function CostDashboard() {
   );
 }
 
+/** A tile has three readings, and only one of them is a number: "…" while the
+ *  read is in flight, "—" when there is no journal to read (an unknown, which
+ *  must never be printed as $0), and the figure itself. */
 function Tile({
   label,
   cents,
+  absent,
   testId,
 }: {
   label: string;
   cents: number | undefined;
+  absent?: boolean;
   testId: string;
 }) {
   return (
     <div style={tile} data-testid={testId}>
       <div style={{ fontSize: 11, opacity: 0.7 }}>{label}</div>
-      <div style={{ fontSize: 20, fontWeight: 700 }}>
-        {cents == null ? "…" : fmtCentsUsd(cents)}
+      <div
+        style={{ fontSize: 20, fontWeight: 700, opacity: absent ? 0.45 : 1 }}
+        title={absent ? "No journal in this project — unknown, not zero." : undefined}
+      >
+        {absent ? "—" : cents == null ? "…" : fmtCentsUsd(cents)}
       </div>
     </div>
   );
@@ -413,6 +510,17 @@ const card: React.CSSProperties = {
   padding: 22,
   color: "var(--fg)",
   boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+};
+/** The absent-journal notice. Loud enough that a glance cannot miss it, since
+ *  the thing it corrects is a glance at four zeros. */
+const banner: React.CSSProperties = {
+  border: "1px solid var(--warn)",
+  borderRadius: 8,
+  padding: "9px 11px",
+  marginBottom: 12,
+  fontSize: 12,
+  lineHeight: 1.45,
+  background: "var(--bg-sunken)",
 };
 const tile: React.CSSProperties = {
   flex: 1,

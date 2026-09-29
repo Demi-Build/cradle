@@ -89,6 +89,16 @@ describe("devMock parity for the P0-5 commands", () => {
     expect(p?.phases.find((x) => x.node === "phase:plat:world")?.status).toBe("done");
     // …and the total is the graph pass's, not the six-node bootstrap's.
     expect(p?.total).toBe(nodes.length);
+    // I7: the terminal result carries the run's MEASURED money the way
+    // `world new` reports it — `actual_usd` PRESENT (a landed run always
+    // measures; the mock's real figure is $0) plus the lane split. Absent
+    // would mean "unmeasured", which is what canon says only for a run that
+    // never reached its manifest phase.
+    const result = useStore.getState().jobs.find((j) => j.id === "job-mock")?.result as
+      | Record<string, unknown>
+      | undefined;
+    expect(result?.actual_usd).toBe(0);
+    expect(result?.actual_split_usd).toEqual({ llm: 0, image: 0, audio: 0, vlm: 0 });
     vi.useRealTimers();
   });
 
@@ -173,6 +183,35 @@ describe("devMock parity for journal_list (row P1-A6)", () => {
     ).toBe(true);
     expect((await call({ limit: 2 })).events).toHaveLength(2);
     expect((await call({ since: "2999-01-01T00:00:00+00:00" })).events).toHaveLength(0);
+  });
+
+  it("states whether the journal FILE exists, and states it both ways", async () => {
+    // I7: canon now answers `journal: {present, path}` on EVERY read and stamps
+    // the same fact inside the roll-up (because a `--summary` caller is handed
+    // the roll-up alone). A mock that omitted it would let the dashboard's
+    // no-journal guard pass in the browser while doing nothing in the app —
+    // and an absent journal reading as "$0" is exactly the bug it guards.
+    const plain = (await mockInvoke()("journal_list", { path: "mock://pack" })) as {
+      journal: { present: boolean; path: string };
+      warnings?: string[];
+    };
+    expect(plain.journal.present).toBe(true);
+    expect(plain.journal.path).toContain("journal.jsonl");
+    // Present is an ordinary success: no warning rides along.
+    expect(plain.warnings).toBeUndefined();
+
+    const rolled = (await mockInvoke()("journal_list", {
+      path: "mock://pack",
+      summary: true,
+    })) as { journal: { present: boolean }; summary: JournalSummary };
+    expect(rolled.journal.present).toBe(true);
+    expect(rolled.summary.journalPresent).toBe(true);
+    expect(rolled.summary.journalPath).toBe(plain.journal.path);
+    // The path is the one canon would report for THAT pack, not a constant.
+    const other = (await mockInvoke()("journal_list", { path: "mock://other" })) as {
+      journal: { path: string };
+    };
+    expect(other.journal.path).not.toBe(plain.journal.path);
   });
 
   it("jobs_record then jobs_list round-trips the lane fields the ledger gained", async () => {
@@ -384,20 +423,26 @@ describe("devMock parity for the P0-12 key commands", () => {
     expect(doc.backend_key_vars.chat.kimi).toBe("MOONSHOT_API_KEY");
   });
 
-  it("reports names and sources — and holds no key value at all", async () => {
+  it("reports names and presence in the key FILE — and holds no key value at all", async () => {
     const doc = (await mockInvoke()("provider_keys", {
       vars: ["ANTHROPIC_API_KEY", "MESHY_API_KEY"],
     })) as {
       vars: { name: string; set: boolean; source: string | null }[];
       keys: string[];
       backend: string;
+      env_file: string;
+      env_file_exists: boolean;
     };
-    expect(doc.backend).toBe("keychain");
+    // The file is the one source: its path is reported, and so is whether
+    // it exists yet (the first-use flag).
+    expect(doc.backend).toBe("env_file");
+    expect(doc.env_file).toContain("provider-keys.env");
+    expect(doc.env_file_exists).toBe(true);
     const anthropic = doc.vars.find((v) => v.name === "ANTHROPIC_API_KEY")!;
     expect(anthropic).toEqual({
       name: "ANTHROPIC_API_KEY",
       set: true,
-      source: "keychain",
+      source: "env_file",
       also_in: [],
     });
     expect(doc.vars.find((v) => v.name === "MESHY_API_KEY")!.set).toBe(false);
@@ -415,8 +460,9 @@ describe("devMock parity for the P0-12 key commands", () => {
     expect(ack).toEqual({
       var: "MESHY_API_KEY",
       stored: true,
-      backend: "keychain",
+      backend: "env_file",
       warning: null,
+      env_file: "mock://config/cradle/provider-keys.env",
     });
     expect(JSON.stringify(ack)).not.toContain("not-a-real-key-0000");
 
@@ -429,6 +475,17 @@ describe("devMock parity for the P0-12 key commands", () => {
       removed: boolean;
     };
     expect(gone.removed).toBe(true);
+  });
+
+  it("creates the key file through its own command, idempotently", async () => {
+    // The mock's file already exists (the usual keys are present), so this
+    // is the "already there" answer — the shape the pane's first-use action
+    // reads either way.
+    const ack = (await mockInvoke()("create_provider_key_file", {})) as {
+      env_file: string;
+      created: boolean;
+    };
+    expect(ack).toEqual({ env_file: "mock://config/cradle/provider-keys.env", created: false });
   });
 
   it("never contacts a provider from the key test (doctrine 3)", async () => {
@@ -474,5 +531,59 @@ describe("devMock parity for the P0-12 key commands", () => {
       locked_by_env: false,
     });
     await mockInvoke()("set_project_store", { path: null });
+  });
+});
+
+describe("devMock parity for the asset-failure surface (I7)", () => {
+  it("read_world_json serves a generation_stats whose failures list the create card and bible read", async () => {
+    const stats = (await mockInvoke()("read_world_json", {
+      path: "mock://pack",
+      name: "generation_stats",
+    })) as {
+      images_succeeded: number;
+      failures: { kind: string; target: string; hint: string; attempts: number }[];
+    };
+    expect(stats.images_succeeded).toBe(43);
+    expect(stats.failures.length).toBeGreaterThan(0);
+    for (const f of stats.failures) {
+      expect(typeof f.kind).toBe("string");
+      expect(typeof f.target).toBe("string");
+      expect(typeof f.hint).toBe("string");
+      expect(typeof f.attempts).toBe("number");
+    }
+    // the manifest the bible view also asks for, and a file the pack has not
+    expect(await mockInvoke()("read_world_json", { path: "mock://pack", name: "manifest" })).toEqual({});
+    await expect(
+      mockInvoke()("read_world_json", { path: "mock://pack", name: "nope" }),
+    ).rejects.toThrow(/no nope\.json/);
+  });
+
+  it("generate_asset accepts --target missing and answers the dungeon verb's shape", async () => {
+    vi.useFakeTimers();
+    useStore.setState({
+      jobs: [{ id: "job-missing", op: "asset", label: "repair", target: "missing", targetType: "", status: "queued", ts: 0 }],
+    } as never);
+    const ack = (await mockInvoke()("generate_asset", {
+      path: "mock://pack",
+      target: "missing",
+      jobId: "job-missing",
+      imageBackend: "fake",
+      sfxBackend: "fake",
+    })) as { status: string };
+    expect(ack.status).toBe("queued");
+    await vi.advanceTimersByTimeAsync(1_000);
+    const result = useStore.getState().jobs.find((j) => j.id === "job-missing")?.result as Record<
+      string,
+      unknown
+    >;
+    vi.useRealTimers();
+    expect(result.target).toBe("missing");
+    expect(Array.isArray(result.planned) && (result.planned as string[]).length).toBeGreaterThan(0);
+    expect(Array.isArray(result.landed)).toBe(true);
+    expect(result.failures).toEqual([]);
+    // the family with no backend flag is reported, never guessed
+    expect((result.skipped as Record<string, string>).music).toMatch(/--music-backend/);
+    expect((result.landed as string[]).some((t) => t.startsWith("music:"))).toBe(false);
+    expect(Array.isArray(result.files)).toBe(true);
   });
 });

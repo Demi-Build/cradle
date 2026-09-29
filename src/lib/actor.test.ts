@@ -35,6 +35,14 @@ describe("actor strings", () => {
         const code = line.replace(/^\s*(\/\/|\/?\*).*$/, "");
         if (/["']cradle:user["']/.test(code)) offenders.push(`${path}:${i + 1}`);
         if (/`agent:\$\{|["']agent:["']\s*\+/.test(code)) offenders.push(`${path}:${i + 1}`);
+        // The prefix const is not an escape hatch. `${AGENT_ACTOR_PREFIX}${x}`
+        // is the same hand-built identity as the literal and used to slip
+        // past the two rules above: that is how the status bar carried a
+        // false `agent:<name>` — an identity nothing in the journal or the
+        // ledger has ever matched — while this guard stayed green. Outside
+        // this module the prefix has no legitimate use: read an actor with
+        // `parseActor`/`isAgentActor`, build one with `agentActor`.
+        if (/AGENT_ACTOR_PREFIX/.test(code)) offenders.push(`${path}:${i + 1}`);
       });
     }
     expect(offenders).toEqual([]);

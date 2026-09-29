@@ -82,17 +82,27 @@ function restoreTarget(node: LineageNode, artifactId: string): string | GridRest
     }
     case "row":
     case "data":
-      // Every registry kind's row file (P.4.1: the CAS unit is the FILE, so a
-      // row restore brings the whole collection back — the label says so).
+      // Every registry kind's row: `<kind>:<id>` IS the restore target, and
+      // `canon asset restore` defaults to `--scope row` (D13) — the row's own
+      // slot is lifted out of the stored version and written into the CURRENT
+      // file, so the siblings are never touched.
       return rest ? artifactId : null;
     default:
       return null;
   }
 }
 
-/** What a restore of this node actually covers. A collection kind's CAS unit
- *  is its FILE (P.4.1), so restoring one row's version restores every row in
- *  that file — the button must say so rather than imply a single row. */
+/** What a restore of this node actually covers — the sentence a user reads
+ *  before agreeing to it, so it has to name the scope canon actually writes
+ *  at. A row's stored version is the whole FILE, but the restore is per-ROW
+ *  (D13, `db_ops.restore_db_row`): the row's slot is taken out of that
+ *  version and dropped into the CURRENT file, so every sibling row keeps the
+ *  edits made since. Taking the whole file back is a separate, explicitly
+ *  labelled canon action (`asset restore --scope collection`) — that one DOES
+ *  revert siblings and can drop rows added since, and it is the only scope
+ *  whose card would be right to warn about them. Cradle never asks for it
+ *  (`asset_restore` sends no `--scope`, so canon's `row` default is what every
+ *  button here runs), so no copy in this panel may claim a whole-file rewind. */
 function restoreScope(node: LineageNode, target: string | GridRestore): string {
   // A room's two STEPS share ONE file (maze.json), but `restore_room_step` is
   // scoped to the named step's own keys: restoring `grid` keeps the placement
@@ -100,7 +110,7 @@ function restoreScope(node: LineageNode, target: string | GridRestore): string {
   if (typeof target !== "string")
     return `restores this room's ${target.step} step — the other step keeps the edits made since`;
   if (node.facet === "row" || node.facet === "data")
-    return "restores the whole row file — every row in it comes back";
+    return "restores just this row — every other row in its file keeps the edits made since";
   return "restores this version";
 }
 

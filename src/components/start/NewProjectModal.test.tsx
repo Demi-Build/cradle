@@ -67,7 +67,11 @@ const newProject = vi.fn();
 const projectStore = vi.fn();
 const providerKeys = vi.fn();
 const providerRows = vi.fn();
+const runtimeStatus = vi.fn();
 const confirmSpend = vi.fn();
+const readWorldJson = vi.fn();
+const recordJob = vi.fn(() => Promise.resolve());
+const recordSpend = vi.fn(() => Promise.resolve());
 
 vi.mock("../../lib/invoke", () => ({
   api: {
@@ -77,7 +81,8 @@ vi.mock("../../lib/invoke", () => ({
     projectStore: (...a: unknown[]) => projectStore(...a),
     providerKeys: (...a: unknown[]) => providerKeys(...a),
     providerRows: (...a: unknown[]) => providerRows(...a),
-    readWorldJson: () => Promise.resolve({}),
+    runtimeStatus: (...a: unknown[]) => runtimeStatus(...a),
+    readWorldJson: (...a: unknown[]) => readWorldJson(...a),
   },
 }));
 vi.mock("../agent/confirmGateState", () => ({
@@ -88,8 +93,8 @@ vi.mock("../../lib/cost", () => ({
   fmtRange: (u?: { best: number; worst: number }) =>
     u ? `$${u.best.toFixed(2)}–$${u.worst.toFixed(2)}` : "…",
   fmtUsd: (n: number) => `$${n.toFixed(2)}`,
-  recordJob: () => Promise.resolve(),
-  recordSpend: () => Promise.resolve(),
+  recordJob: (...a: unknown[]) => recordJob(...(a as [])),
+  recordSpend: (...a: unknown[]) => recordSpend(...(a as [])),
 }));
 vi.mock("../../lib/agentActions", () => ({ cancelJob: () => Promise.resolve() }));
 
@@ -104,6 +109,18 @@ vi.mock("../../lib/jobs", () => ({
     return jobId;
   },
 }));
+
+/** What `runtime_status` answers — only the fields the picker reads. */
+const runtimeOn = (origin: string) => ({
+  ok: true,
+  origin,
+  command: "canon",
+  triple: "",
+  resource_dir: null,
+  legs: [],
+  version: { canon_version: "0" },
+  error: null,
+});
 
 const estimate = (best: number, worst: number) => ({
   scope: "world",
@@ -166,7 +183,13 @@ beforeEach(() => {
   newProject.mockResolvedValue({ job_id: "job-1", status: "queued", pack_dir: "/store/my_world" });
   projectStore.mockResolvedValue({ root: "/store", exists: true });
   providerKeys.mockResolvedValue({ env_file: "/repo/.env", keys: [] });
+  // The startup probe. A DEV checkout resolves canon on PATH, so
+  // the default here is the leg where an optional extra is the user's to
+  // install; the bundled leg is asserted on its own below.
+  runtimeStatus.mockResolvedValue(runtimeOn("path"));
   confirmSpend.mockResolvedValue(true);
+  // Nothing on disk unless a test says otherwise — which is "unmeasured", not $0.
+  readWorldJson.mockImplementation(() => Promise.resolve({}));
   // The real store, with the one action the modal calls on landing stubbed.
   useStore.setState({ jobs: [], loadWorldByPath } as never);
   vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -451,6 +474,180 @@ describe("⏹ Stop on a create", () => {
   });
 });
 
+describe("what a landed create records", () => {
+  /** The worker's terminal `job-updated`, as the modal sees it: the tray row
+   *  for THIS run at a terminal status. */
+  const land = async (
+    status: string,
+    result?: Record<string, unknown>,
+    error?: string,
+    progress?: Record<string, unknown>,
+  ) => {
+    await act(async () => {
+      useStore.setState({
+        jobs: [
+          {
+            id: "job-1",
+            op: "world",
+            label: "My World",
+            target: "My World",
+            targetType: "",
+            scope: "world",
+            status,
+            error,
+            ts: Date.now() - 1000,
+            endedAt: Date.now(),
+            result,
+            progress,
+          } as never,
+        ],
+      });
+    });
+  };
+  /** A pack whose ONLY stats record is the standalone file — the platformer's
+   *  layout: `generation_stats.json` at the root, no block in the manifest. */
+  const standaloneStats = (total: number) =>
+    readWorldJson.mockImplementation((_dir: unknown, name: unknown) =>
+      name === "generation_stats"
+        ? Promise.resolve({ total_cost_usd: total })
+        : Promise.resolve({ seed: "x" }),
+    );
+  const spendRow = () => (recordSpend.mock.calls[0] as unknown as [string, Record<string, unknown>])[1];
+  const jobRow = () => (recordJob.mock.calls[0] as unknown as [string, Record<string, unknown>])[1];
+  const started = async () => {
+    await open("platformer");
+    fireEvent.click(screen.getByText("Create"));
+    await waitFor(() => expect(newProject).toHaveBeenCalled());
+  };
+
+  it("prefers the create verb's own measured figure over anything on disk", async () => {
+    // `world new` reports `actual_usd` on its result, read from the tree's
+    // generation_stats.json by canon's one stats reader. The file it read is
+    // the same one, so a re-read is never needed — and a disk read cannot
+    // outvote it.
+    standaloneStats(9.99);
+    await started();
+    await land("ok", { changed: true, pack_dir: "/store/my_world", actual_usd: 1.25 });
+    await waitFor(() => expect(recordJob).toHaveBeenCalled());
+    expect(spendRow().actual_usd).toBe(1.25);
+    expect(jobRow().actual_usd).toBe(1.25);
+    expect((recordSpend.mock.calls[0] as unknown as [string])[0]).toBe("/store/my_world");
+  });
+
+  it("reads the standalone generation_stats.json when the result carries no figure", async () => {
+    // The $2.60 platformer run that recorded $0: every reader looked for an
+    // EMBEDDED manifest block (a dungeon convention) and the platformer never
+    // writes one. The card and both ledgers now read the file canon declares
+    // canonical, through the existing read_world_json command.
+    standaloneStats(2.6);
+    await started();
+    await land("ok", { changed: true, pack_dir: "/store/my_world" });
+    await waitFor(() => expect(recordJob).toHaveBeenCalled());
+    expect(readWorldJson).toHaveBeenCalledWith("/store/my_world", "generation_stats");
+    expect(spendRow().actual_usd).toBe(2.6);
+    expect(jobRow().actual_usd).toBe(2.6);
+  });
+
+  it("omits actual_usd and says so when nothing measured the run", async () => {
+    // A stop before the manifest phase leaves no stats file and no manifest
+    // block. The rows carry NO actual_usd — an unmeasured run must be
+    // distinguishable from a measured $0 — and the tracker says why.
+    readWorldJson.mockImplementation(() => Promise.reject(new Error("no such file")));
+    await started();
+    await land("cancelled", { cancelled: true, kept: ["phase:plat:world"] });
+    await waitFor(() => expect(recordJob).toHaveBeenCalled());
+    expect("actual_usd" in spendRow()).toBe(false);
+    expect("actual_usd" in jobRow()).toBe(false);
+    expect(jobRow().status).toBe("cancelled");
+    const warning = await screen.findByTestId("create-cost-warning");
+    expect(warning.textContent).toContain("generation_stats.json");
+    expect(warning.textContent).toContain("unmeasured");
+    expect(screen.queryByTestId("create-cost")).toBeNull();
+  });
+
+  it("records BOTH ledgers for a failed create, with whatever the stats file holds", async () => {
+    // The most expensive outcome used to be the least recorded: the effect
+    // returned before either ledger on `failed`. A paid run that died after
+    // spending is exactly the one that must leave a row.
+    standaloneStats(1.7);
+    await started();
+    await land("failed", undefined, "canon world new failed: provider timed out");
+    await waitFor(() => expect(recordJob).toHaveBeenCalled());
+    expect(recordSpend).toHaveBeenCalledTimes(1);
+    expect(spendRow().actual_usd).toBe(1.7);
+    expect(jobRow()).toMatchObject({
+      status: "failed",
+      actual_usd: 1.7,
+      changed: false,
+      error: "canon world new failed: provider timed out",
+    });
+    // Nothing was opened, and the modal is honest about the money.
+    expect(loadWorldByPath).not.toHaveBeenCalled();
+    expect(screen.getByText("Generation failed")).toBeTruthy();
+    expect((await screen.findByTestId("create-cost")).textContent).toContain("$1.70");
+    expect((screen.getByText("Close") as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("records a failed create with no stats as unmeasured, never as $0", async () => {
+    readWorldJson.mockImplementation(() => Promise.reject(new Error("no such file")));
+    await started();
+    await land("failed", undefined, "boom");
+    await waitFor(() => expect(recordJob).toHaveBeenCalled());
+    expect("actual_usd" in spendRow()).toBe(false);
+    expect(jobRow().status).toBe("failed");
+    expect("actual_usd" in jobRow()).toBe(false);
+    expect((await screen.findByTestId("create-cost-warning")).textContent).toContain("unmeasured");
+  });
+
+  it("falls back to a dungeon manifest's embedded block only when there is no standalone file", async () => {
+    readWorldJson.mockImplementation((_dir: unknown, name: unknown) =>
+      name === "generation_stats"
+        ? Promise.reject(new Error("no such file"))
+        : Promise.resolve({ generation_stats: { total_cost_usd: 3.0 } }),
+    );
+    await started();
+    await land("ok", { changed: true, pack_dir: "/store/my_world" });
+    await waitFor(() => expect(recordJob).toHaveBeenCalled());
+    expect(spendRow().actual_usd).toBe(3.0);
+  });
+
+  it("lights the post-create asset line from the tree's stats, with the failures named", async () => {
+    // The wizard's tracker rendered CreateProgress without the run's folder,
+    // so `44 images · 43 landed · 1 failed — see list` stayed dark here while
+    // the agent panel's card showed it. The folder is the one the create ack
+    // named; the step log's `run_end` is what marks the run over.
+    readWorldJson.mockImplementation((_dir: unknown, name: unknown) =>
+      name === "generation_stats"
+        ? Promise.resolve({
+            total_cost_usd: 2.6,
+            images_succeeded: 43,
+            failures: [
+              {
+                kind: "image",
+                target: "npc:1003",
+                provider: "fal",
+                message: "502 bad gateway",
+                status: 502,
+                retryable: true,
+                attempts: 4,
+              },
+            ],
+          })
+        : Promise.resolve({ seed: "x" }),
+    );
+    await started();
+    await land("ok", { changed: true, pack_dir: "/store/my_world" }, undefined, {
+      phases: [{ node: "phase:plat:assets", status: "done" }],
+      total: 1,
+      endedAt: Date.now(),
+      ok: true,
+    });
+    const summary = await screen.findByTestId("cp-asset-summary");
+    expect(summary.textContent).toContain("44 images · 43 landed · 1 failed");
+    expect(screen.getByText("npc:1003")).toBeTruthy();
+  });
+});
+
 describe("a generator lane the template does not have", () => {
   it("is disabled WITH the reason, and cannot key-gate or spend-confirm", async () => {
     // The dungeon declares no `vlm` lane, so canon answers `--vlm-backend
@@ -484,6 +681,52 @@ describe("a generator lane the template does not have", () => {
     await waitFor(() => expect(newProject).toHaveBeenCalled());
     expect(confirmSpend).not.toHaveBeenCalled();
     expect((newProject.mock.calls[0][2] as Record<string, unknown>).vlmBackend).toBe("none");
+  });
+});
+
+describe("an art option this build cannot run", () => {
+  const artOptions = () =>
+    Array.from((screen.getByLabelText("Art (sprites)") as HTMLSelectElement).options);
+
+  it("says what it needs when the extra is the user's to install", async () => {
+    // canon on PATH is a Python environment the user owns: `diffusers`/`torch`
+    // may already be there and cradle cannot see inside it, so the option
+    // stays selectable — it just stops being a bare "local" whose requirement
+    // you learn from a failed run.
+    await open("platformer");
+    const local = artOptions().find((o) => o.value === "local");
+    expect(local).toBeTruthy();
+    expect(local!.disabled).toBe(false);
+    expect(local!.textContent).toMatch(/diffusers/i);
+    expect(local!.title).toMatch(/images-local/);
+  });
+
+  it("is not offered at all behind the bundled runtime", async () => {
+    // The app's vendored interpreter cannot have an extra added to it, so the
+    // choice can never work here. Not a greyed row with advice about some
+    // other installation — not rendered.
+    runtimeStatus.mockResolvedValue(runtimeOn("bundled"));
+    await open("platformer");
+    await waitFor(() => expect(artOptions().some((o) => o.value === "local")).toBe(false));
+    // …and the rest of the lane is untouched: the picker filtered on what the
+    // rows DECLARE, not on a list of ids it keeps.
+    expect(artOptions().map((o) => o.value)).toEqual(["fake", "none", "fal", "retro", "pixellab"]);
+  });
+
+  it("never leaves an unbuildable backend selected when the probe lands", async () => {
+    let land: (v: unknown) => void = () => {};
+    runtimeStatus.mockReturnValue(new Promise((r) => (land = r)));
+    await open("platformer");
+    fireEvent.change(screen.getByLabelText("Art (sprites)"), { target: { value: "local" } });
+    await act(async () => {
+      land(runtimeOn("bundled"));
+    });
+    await waitFor(() =>
+      expect((screen.getByLabelText("Art (sprites)") as HTMLSelectElement).value).toBe("fake"),
+    );
+    fireEvent.click(screen.getByText("Create"));
+    await waitFor(() => expect(newProject).toHaveBeenCalled());
+    expect((newProject.mock.calls[0][2] as Record<string, unknown>).imageBackend).toBe("fake");
   });
 });
 

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { useStore } from "../../store";
-import { api } from "../../lib/invoke";
+import { api, type JobProgress } from "../../lib/invoke";
 import { enqueueJob } from "../../lib/jobs";
 import { cancelJob } from "../../lib/agentActions";
 import { isFreeSelection } from "./confirmGateState";
@@ -45,6 +45,21 @@ export type StartCreate = {
    *  what never STARTED is not in it — `CreateRunCard` counts that from the
    *  job's own progress rather than from a key nothing sends. */
   kept: string[];
+  /** What the settle could not do honestly — today, one line: the run's
+   *  money was unmeasured (no `generation_stats.json`), so its ledger rows
+   *  carry no `actual_usd`. Never folded into `error`: a finished create
+   *  whose cost is unknown is not a failed create. */
+  warnings: string[];
+  /** The run's last folded position, mirrored here by `handleJobProgress`.
+   *
+   *  The job tray is PER PACK: `closeWorld` empties it, and a create started
+   *  on the start page is not about the pack that was open. So the job row
+   *  the progress used to live on can vanish mid-run while the run itself
+   *  carries on — the Rust JobQueue does not care which surface is mounted.
+   *  Keeping the fold here as well is what lets the card show the real phase
+   *  and a real clock after the user has been away, instead of reverting to
+   *  "Starting canon…" with a clock that ticks forever. */
+  progress: JobProgress | null;
 };
 
 const IDLE: StartCreate = {
@@ -58,6 +73,8 @@ const IDLE: StartCreate = {
   estimateUsd: null,
   error: null,
   kept: [],
+  warnings: [],
+  progress: null,
 };
 
 let state: StartCreate = IDLE;
@@ -85,6 +102,18 @@ export function useStartCreate(): StartCreate {
 /** Read it outside React (the conversation driver). */
 export function currentCreate(): StartCreate {
   return state;
+}
+
+/** Mirror the run's folded position here, from the ONE fold that already owns
+ *  it (`handleJobProgress`). Ignored unless it is this create's job, so a
+ *  concurrent editor job can never repaint the create card.
+ *
+ *  This is a copy of the tray row's `progress`, not a second fold: while the
+ *  row exists both hold the same object, and the point of the copy is that it
+ *  outlives the row. */
+export function noteCreateProgress(jobId: string, progress: JobProgress): void {
+  if (state.jobId !== jobId) return;
+  set({ progress });
 }
 
 /** Tests and "start over" — never called by the UI mid-run. */
@@ -145,6 +174,14 @@ export async function beginCreate(params: CreateParams): Promise<string> {
       estimate: params.estimateUsd ?? undefined,
     },
     async (id) => {
+      // Addressable from its FIRST breath. `handleJobEvent` recognises the
+      // create by `jobId` and nothing else, so anything terminal that happens
+      // before this callback returns — a rejected enqueue, or a worker that
+      // reports the run finished before the invoke's reply reaches the webview
+      // — would never find the create if the id were only assigned after
+      // `enqueueJob` resolved. Assigned here rather than there because this is
+      // the first moment the id exists.
+      set({ jobId: id });
       const ack = await api.newProject(null, name, {
         template: template.id,
         counts,
@@ -163,14 +200,21 @@ export async function beginCreate(params: CreateParams): Promise<string> {
       return ack;
     },
   );
-  set({ jobId, packDir: dir });
+  // Only the folder is news by now: the id was assigned inside the callback,
+  // and a create that failed to enqueue has already settled — this patch must
+  // not resurrect it, which is why it no longer re-sets `status` or `jobId`.
+  set({ packDir: dir });
   return jobId;
 }
 
 /** ⏹ — A4.5's cancel contract, unchanged: start nothing new, keep what
  *  landed, say what it cost. The worker answers with `job-updated
  *  {status:"cancelled", result:{kept}}` (read from the run's own step log),
- *  which `settle` folds in; nothing about what was kept is inferred here. */
+ *  which `settle` folds in; nothing about what was kept is inferred here.
+ *
+ *  The cancel goes to the JobQueue by id, which is why it still works after
+ *  the create has lost its tray row (`closeWorld` empties the per-pack tray
+ *  while the run continues): `cancelJob` no longer requires a row. */
 export async function stopCreate(): Promise<void> {
   if (!state.jobId) return;
   await cancelJob(state.jobId);
@@ -183,8 +227,66 @@ export async function stopCreate(): Promise<void> {
  *  Driven by the job's status rather than an await, because the run outlives
  *  the call that started it. Idempotent: the ledgers are appends, so a second
  *  invocation for the same job is refused rather than billed twice.
+ *
+ *  Called from ONE place: the top of `handleJobEvent`, the single path that
+ *  already owns job lifecycle. It used to be driven by `CreateRunCard`'s
+ *  effect, and that card mounts only on the start page — so a create the user
+ *  navigated away from (opening the project, or the "cradle" breadcrumb, which
+ *  empties the job tray) reached its end with nobody left to write these
+ *  ledgers. Nothing may settle a create from a component again.
  */
 let settled: string | null = null;
+
+/** What a create's run really cost, or an honest "unmeasured".
+ *
+ *  `actual_usd` is absent — not 0 — when nothing measured it. The two are
+ *  different facts: a fake run measures a real $0, a run that never reached
+ *  its manifest phase (stopped, crashed) measured nothing, and a ledger row
+ *  that says `0` for the second reads as the first. */
+export type CreateMoney = { actual_usd?: number; warning?: string };
+
+/** The ONE reader every create settle (the wizard, the start-page
+ *  conversation) takes its actual from, in order:
+ *
+ *  1. the create verb's own figure — `world new` reports `actual_usd` on its
+ *     result, read from the tree's `generation_stats.json` through canon's
+ *     one stats reader, so a landed run needs no second read of the tree;
+ *  2. that same standalone `generation_stats.json`, off disk — the path canon
+ *     declares canonical, and the ONLY stats record a platformer writes. This
+ *     is the leg a stopped or failed run takes: the worker builds those
+ *     payloads from the step log, not from canon's document;
+ *  3. the dungeon manifest's embedded copy of the same block, as a fallback
+ *     only. It used to be the sole source, which is how a $2.60 platformer
+ *     create recorded as $0: the platformer embeds nothing.
+ *
+ *  Reads through the existing `read_world_json` command (`data.rs` resolves
+ *  both pack layouts); a name that is not on disk rejects and falls through. */
+export async function measuredCreateCost(
+  dir: string,
+  result?: Record<string, unknown>,
+): Promise<CreateMoney> {
+  if (typeof result?.actual_usd === "number") return { actual_usd: result.actual_usd };
+  try {
+    const stats = (await api.readWorldJson(dir, "generation_stats")) as {
+      total_cost_usd?: unknown;
+    } | null;
+    if (typeof stats?.total_cost_usd === "number") return { actual_usd: stats.total_cost_usd };
+  } catch {
+    /* no standalone file — the embedded block may still exist */
+  }
+  try {
+    const mf = (await api.readWorldJson(dir, "manifest")) as {
+      generation_stats?: { total_cost_usd?: unknown };
+    } | null;
+    const embedded = mf?.generation_stats?.total_cost_usd;
+    if (typeof embedded === "number") return { actual_usd: embedded };
+  } catch {
+    /* no manifest either */
+  }
+  return {
+    warning: `no generation_stats.json under ${dir}: the run's cost is unmeasured (not $0), so its ledger rows carry no actual_usd`,
+  };
+}
 
 export async function settleCreate(job: {
   id: string;
@@ -196,43 +298,39 @@ export async function settleCreate(job: {
   label?: string;
 }): Promise<void> {
   if (state.jobId !== job.id) return;
-  if (job.status === "failed") {
-    set({ status: "failed", error: job.error ?? "the create failed" });
-    return;
-  }
-  if (job.status === "cancelled") {
-    set({
-      status: "stopped",
-      kept: Array.isArray(job.result?.kept) ? (job.result!.kept as string[]).map(String) : [],
-    });
-    return;
-  }
-  if (job.status !== "ok" && job.status !== "no_change") return;
+  const failed = job.status === "failed";
+  const stopped = job.status === "cancelled";
+  if (!failed && !stopped && job.status !== "ok" && job.status !== "no_change") return;
+  const kept = Array.isArray(job.result?.kept) ? (job.result!.kept as string[]).map(String) : [];
+  // The outcome first — the ledgers below are best-effort appends and must
+  // never hold up what the card says.
+  if (failed) set({ status: "failed", error: job.error ?? "the create failed" });
+  else if (stopped) set({ status: "stopped", kept });
   const dir = state.packDir || String(job.result?.pack_dir ?? "");
   if (!dir) {
-    set({ status: "failed", error: "the create finished but reported no project folder" });
+    if (!failed && !stopped) {
+      set({ status: "failed", error: "the create finished but reported no project folder" });
+    }
+    // A run that never got a folder has nowhere to record anything.
     return;
   }
   if (settled === job.id) return;
   settled = job.id;
 
-  // The actual cost comes from the tree the run wrote, exactly as the modal
-  // reads it; both ledgers land in the pack the run CREATED.
-  let actual = 0;
-  try {
-    const mf = (await api.readWorldJson(dir, "manifest.json")) as {
-      generation_stats?: { total_cost_usd?: number };
-    };
-    actual = mf.generation_stats?.total_cost_usd ?? 0;
-  } catch {
-    /* stats optional */
-  }
+  // Every terminal outcome records both ledgers, in the pack the run CREATED.
+  // A failed or stopped run is the one that most needs recording — it billed
+  // what it billed before it ended — and a failed create used to record
+  // nothing at all. The actual comes from `measuredCreateCost`; when it is
+  // unmeasured the rows carry no `actual_usd` and the card says why.
+  const money = await measuredCreateCost(dir, job.result);
+  if (money.warning) set({ warnings: [...state.warnings, money.warning] });
+  const actual = money.actual_usd != null ? { actual_usd: money.actual_usd } : {};
   await recordSpend(dir, {
     op: "world",
     scope: "world",
     backends: state.backends,
     estimate: state.estimateUsd ?? undefined,
-    actual_usd: actual,
+    ...actual,
   });
   await recordJob(dir, {
     job_id: job.id,
@@ -242,11 +340,12 @@ export async function settleCreate(job: {
     status: job.status,
     backends: state.backends,
     estimate: state.estimateUsd ?? undefined,
-    actual_usd: actual,
+    ...actual,
     duration_ms: job.endedAt && job.ts ? job.endedAt - job.ts : undefined,
-    changed: true,
+    changed: failed ? false : stopped ? kept.length > 0 : true,
+    error: failed ? (job.error ?? "the create failed") : undefined,
   });
-  set({ status: "done", packDir: dir });
+  if (!failed && !stopped) set({ status: "done", packDir: dir });
 }
 
 /** Open the finished project. Separate from `settleCreate` so the card can

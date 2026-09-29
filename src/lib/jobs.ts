@@ -4,10 +4,18 @@ import {
   type Job,
   type JobProgress,
   type JobProgressEvent,
+  type JobStatus,
   type OpCost,
   type PhaseProgress,
 } from "./invoke";
 import { recordJob, recordSpend } from "./cost";
+import { currentCreate, noteCreateProgress, settleCreate } from "../components/agent/startCreate";
+import {
+  CREATE_STEP,
+  creatingConversation,
+  markPlanStep,
+  settleTurn,
+} from "../components/agent/startConversation";
 
 /** `identity` from an actor string — canon's `provenance.identity_for` on the
  *  cradle side (row P1-A6): an `agent:…` actor passes through, everything else
@@ -36,15 +44,108 @@ export type JobEventPayload = {
   error?: string;
 };
 
+/** The raw `job-updated` status, in the vocabulary everything downstream reads.
+ *
+ *  The worker says `done`; the store, the ledgers and `settleCreate` all speak
+ *  ok / no_change / cancelled / failed. One mapping, so the two readers below
+ *  can never disagree about whether a run ended or how. `null` = not terminal
+ *  (a queued echo, a `running` heartbeat).
+ *
+ *  Returns a `JobStatus`, which is deliberately a plain string here (see
+ *  `JOB_STATUSES`, the DATA behind labels and ordering): an unknown status
+ *  renders as itself rather than being narrowed away by a union. */
+function terminalStatus(status: string, result?: Record<string, unknown>): JobStatus | null {
+  if (status === "failed") return "failed";
+  if (status === "cancelled") return "cancelled";
+  if (status === "done") return result?.changed ? "ok" : "no_change";
+  return null;
+}
+
+/** The start-page create's own fold: its terminal settle, and the plan step
+ *  that approved it.
+ *
+ *  **Why it lives inside `handleJobEvent`, above the tray guard.** This is the
+ *  one job whose lifecycle outlives the surface that launched it. Its card
+ *  mounts only on the start page, so opening the finished project unmounts it
+ *  — and the "cradle" breadcrumb calls `closeWorld`, which empties the job
+ *  tray (jobs are PER PACK, and a create is not about the pack that was open).
+ *  While the settle was driven by that card's effect, a create the user
+ *  navigated away from ran to completion on the Rust JobQueue and wrote no
+ *  spend and no job ledger at all: real money, unrecorded. Anchored any later
+ *  in this function it would still be dead, because the `!job` guard below
+ *  returns first once the tray has been emptied.
+ *
+ *  It is deliberately NOT a second listener and NOT a tray row: parking a
+ *  foreign job in whichever pack happens to be open would file the create's
+ *  run under someone else's project. The create's own module holds it, and
+ *  both ledgers land in the pack the run created.
+ *
+ *  Being event-driven, it can only settle a create that events reach. Two
+ *  places make sure they do: `beginCreate` assigns `jobId` inside the enqueue
+ *  callback (so the create is addressable before anything can report), and
+ *  `enqueueJob` folds an enqueue failure through `handleJobEvent` (so the one
+ *  ending that produces no worker event still arrives here). */
+async function foldStartCreate(
+  payload: JobEventPayload,
+  terminal: JobStatus | null,
+): Promise<void> {
+  if (!terminal) return;
+  const create = currentCreate();
+  // The job's enqueue time while the tray still holds the row, and the
+  // create's own `startedAt` (set in the same breath as the enqueue) once it
+  // does not — so the ledger keeps a duration across the detach too.
+  const enqueued = useStore.getState().jobs.find((j) => j.id === payload.id)?.ts;
+  await settleCreate({
+    id: payload.id,
+    status: terminal,
+    error: payload.error,
+    result: payload.result,
+    ts: enqueued ?? create.startedAt,
+    endedAt: Date.now(),
+    label: create.name,
+  });
+
+  // …and the plan card that approved it hears the same outcome, so its step
+  // ticks off (or fails) instead of sitting at "0 of 2" forever. This used to
+  // be a second effect on the run card and moved here for the same reason the
+  // settle did: it has to happen whether or not the panel is mounted.
+  //
+  // When the conversation itself is gone — `closeWorld` resets the whole agent
+  // slice — `agentDispatch` finds no conversation and returns without changing
+  // anything. That silent no-op is the right answer and not an oversight:
+  // there is no plan card left to tick, and the create's own status (which the
+  // card below renders) is the surviving record of the outcome.
+  const conv = creatingConversation();
+  if (!conv) return;
+  const settledCreate = currentCreate();
+  if (settledCreate.status === "done") markPlanStep(conv, CREATE_STEP, "done");
+  else if (settledCreate.status === "failed")
+    markPlanStep(conv, CREATE_STEP, "failed", { error: settledCreate.error ?? undefined });
+  else if (settledCreate.status === "stopped")
+    markPlanStep(conv, CREATE_STEP, "failed", {
+      error: "stopped by you — the folder and everything already written are kept",
+    });
+  else return;
+  // Whatever the outcome, the turn is over: nothing is running any more.
+  settleTurn(conv);
+}
+
 /** The single place that processes a background-job lifecycle event. Wired to
  *  the Rust `job-updated` listener in App (native) AND driven directly by the
- *  browser dev-mock (which has no event bus). Folds the event into the store,
- *  then on completion records the durable ledgers, broadcasts a completion
- *  signal (open detail views refresh), refreshes the affected nav list, and
- *  opens a freshly generated level. Uses getState() so it never goes stale. */
+ *  browser dev-mock (which has no event bus). Settles the start-page create
+ *  (see `foldStartCreate` — that one runs with or without a tray row), folds
+ *  the event into the store, then on completion records the durable ledgers,
+ *  broadcasts a completion signal (open detail views refresh), refreshes the
+ *  affected nav list, and opens a freshly generated level. Uses getState() so
+ *  it never goes stale. */
 export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
-  const store = useStore.getState();
   const { id, status, result, error } = payload;
+  const terminal = terminalStatus(status, result);
+
+  // ABOVE the `!job` guard, on purpose — see `foldStartCreate`.
+  if (currentCreate().jobId === id) await foldStartCreate(payload, terminal);
+
+  const store = useStore.getState();
   const job = store.jobs.find((j) => j.id === id);
   if (!job) return; // an event for a job this session didn't enqueue — ignore
 
@@ -52,12 +153,12 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
     store.updateJob(id, { status: "running" });
     return;
   }
-  if (status !== "done" && status !== "failed" && status !== "cancelled") return; // queued echo, etc.
+  if (!terminal) return; // queued echo, etc.
 
   const now = Date.now();
-  if (status === "failed") {
+  if (terminal === "failed") {
     store.updateJob(id, { status: "failed", error: error ?? "failed", endedAt: now });
-  } else if (status === "cancelled") {
+  } else if (terminal === "cancelled") {
     // ⏹ (row A4.5's contract, rendered by A5): nothing new started, what
     // landed is kept (`result.kept`), and what it billed is reported by the
     // worker — never inferred here.
@@ -69,10 +170,10 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
       endedAt: now,
     });
   } else {
-    const changed = !!result?.changed;
+    const changed = terminal === "ok";
     const resolvedTarget = (result?.level_id as string) || (result?.id as string) || job.target;
     store.updateJob(id, {
-      status: changed ? "ok" : "no_change",
+      status: terminal,
       changed,
       cost: result?.cost as OpCost | undefined,
       result,
@@ -180,13 +281,21 @@ export async function handleJobEvent(payload: JobEventPayload): Promise<void> {
  *  Deliberately additive and order-tolerant: canon may add events, and a
  *  `node_item` can arrive for a phase whose `node_start` we somehow missed
  *  (a truncated read, a resumed run), so an unknown node opens a row rather
- *  than being dropped. */
+ *  than being dropped.
+ *
+ *  Anchored the same way as `foldStartCreate`: the start-page create's
+ *  POSITION has to survive its tray row going away too, or a user who comes
+ *  back to a run still in flight is shown "Starting canon…" for a run that is
+ *  half done. So the fold runs for the create with or without a row, and its
+ *  result is mirrored into the create's own module. Every other job still
+ *  needs a row — the tray is per pack, and nothing parks a foreign job in it. */
 export function handleJobProgress(payload: JobProgressEvent): void {
   const store = useStore.getState();
   const job = store.jobs.find((j) => j.id === payload.id);
-  if (!job) return;
+  const isCreate = currentCreate().jobId === payload.id;
+  if (!job && !isCreate) return;
 
-  const prev: JobProgress = job.progress ?? { phases: [] };
+  const prev: JobProgress = job?.progress ?? currentCreate().progress ?? { phases: [] };
   const phases = [...prev.phases];
   const ts = payload.ts ? Date.parse(payload.ts) || undefined : undefined;
   const next: JobProgress = { ...prev, phases, startedAt: prev.startedAt ?? ts };
@@ -259,7 +368,10 @@ export function handleJobProgress(payload: JobProgressEvent): void {
     default:
       return; // an event this version doesn't model — no state change
   }
-  store.updateJob(payload.id, { progress: next });
+  // Both readers get the same folded object: the tray row while it exists, and
+  // the create's module, which is what is left after `closeWorld`.
+  if (isCreate) noteCreateProgress(payload.id, next);
+  if (job) store.updateJob(payload.id, { progress: next });
 }
 
 function newJobId(): string {
@@ -274,7 +386,9 @@ function newJobId(): string {
  *  blocks. The Rust worker drives it running → done/failed via `job-updated`
  *  events, which App.tsx's global listener folds back into the store (updating
  *  the tray, recording the durable ledgers, and broadcasting completion so open
- *  detail views refresh). A failure to even enqueue marks the job failed. */
+ *  detail views refresh). A failure to even enqueue marks the job failed and is
+ *  then folded through that same listener path, because no worker event is ever
+ *  coming for a job the queue never accepted. */
 export async function enqueueJob(
   meta: JobMeta,
   fire: (jobId: string) => Promise<unknown>,
@@ -285,7 +399,16 @@ export async function enqueueJob(
   try {
     await fire(id);
   } catch (e) {
+    // The tray row goes red at once…
     store.updateJob(id, { status: "failed", error: String(e), endedAt: Date.now() });
+    // …and the failure then takes the SAME lifecycle path every worker event
+    // takes, because it is the only one anything downstream listens to. The
+    // queue never accepted this job, so no `job-updated` is ever coming for
+    // it: a fold that only ran on inbound events would leave the start-page
+    // create (settled at the top of `handleJobEvent`) reading "creating"
+    // forever, under a ⏹ for a run that does not exist. `void`, matching the
+    // app's own listener — a lifecycle fold never blocks the enqueuing caller.
+    void handleJobEvent({ id, status: "failed", error: String(e) });
   }
   return id;
 }

@@ -202,6 +202,9 @@ export function DialogueSurface({
     };
   }, [npcId, worldPath, stored]);
 
+  // `dialogue test` is handed the UNSAVED TREE PAYLOAD, so the buffer IS what
+  // it walks and the buffer is the right thing to gate on. Improve, below, is
+  // the opposite case — read the note there before copying this line.
   const testDisabledReason = doc.trees.length === 0 ? "no tree to walk yet — author one first" : "";
 
   // The engine-lag layer's ONE computation — the banner, the statusbar count
@@ -209,7 +212,39 @@ export function DialogueSurface({
   const lag = useMemo(() => treeLag(tree, packInfo), [packInfo, tree]);
   const lagLines = useMemo(() => lagWarnings(lag), [lag]);
 
-  const improveDisabledReason = doc.trees.length === 0 ? "no dialogue to improve yet" : "";
+  /** The tree ids canon can actually resolve — the ones ON DISK.
+   *
+   *  THE BUG THIS EXISTS FOR: the Improve gate used to read `doc.trees`, the
+   *  UNSAVED buffer, so a tree that had only ever been authored here passed the
+   *  gate and `canon dialogue improve` then refused the id ("npc 1001 has no
+   *  tree '1001:tree_5'") — AFTER the user had committed to a paid run. Improve
+   *  resolves its target from the pack on disk, so the gate has to ask the pack
+   *  on disk too.
+   *
+   *  Two disk reads answer this and BOTH are used, because each is the fresher
+   *  one at a different moment: the buffer's `base` is the tree list canon
+   *  returned from the last save (right the instant ⌘S lands, while the
+   *  `dialogue show` round-trip is still in flight), and `dialogue show` re-reads
+   *  the pack (right when something outside this surface wrote it). Neither can
+   *  ever hold a buffer-only tree, so unioning them cannot re-open the hole. */
+  const savedTreeIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const t of editor.buffer?.base.trees ?? base.trees) ids.add(t.tree_id);
+    // A gate is the last place that should throw on a short payload: take the
+    // show read only when it really came back as the tree list.
+    if (Array.isArray(show?.trees)) for (const t of show.trees) ids.add(String(t.tree_id));
+    return ids;
+  }, [base.trees, editor.buffer, show]);
+
+  /** Improve is PAID and reads the SAVED pack, so what blocks it is a missing
+   *  saved tree — a capability the user can go and get, which is why the button
+   *  stays rendered and greyed with this reason rather than vanishing. */
+  const improveDisabledReason =
+    savedTreeIds.size > 0
+      ? ""
+      : doc.trees.length === 0
+        ? "no dialogue to improve yet — author a tree, then save it"
+        : `improve re-authors the SAVED pack — save this tree first (${kbd("S")})`;
 
   const enter = useCallback(
     (next: DialogueMode) => {
@@ -1078,8 +1113,12 @@ export function DialogueSurface({
           npcLabel={npcLabel}
           doc={doc}
           treeId={treeId}
+          // What canon will find on disk — the modal's scope pills and its
+          // Propose button are gated on this, not on the buffer.
+          savedTreeIds={savedTreeIds}
           onOps={push}
           onNote={setNote}
+          onSave={openSave}
           onClose={() => setImproveOpen(false)}
         />
       ) : null}

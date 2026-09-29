@@ -6,6 +6,7 @@ import { fmtRange, fmtUsd, recordJob, recordSpend } from "../../lib/cost";
 import { enqueueJob } from "../../lib/jobs";
 import { cancelJob } from "../../lib/agentActions";
 import { confirmSpend } from "../agent/confirmGateState";
+import { measuredCreateCost, type CreateMoney } from "../agent/startCreate";
 import { CreateProgress } from "./CreateProgress";
 import {
   countLabel,
@@ -20,6 +21,26 @@ import {
   SETTINGS_KEYS_SCREEN,
   openProviderKeys,
 } from "../../lib/providerKeys";
+import { useRuntimeProbe } from "../../lib/useRuntimeProbe";
+
+/** What one generator option needs beyond a key before the RESOLVED canon can
+ *  run it — carried by the option row itself, so the picker never enumerates
+ *  backend ids to decide anything (backends are data). */
+type OptionNeeds = {
+  /** Said in the option's own text, so the requirement is never a surprise
+   *  discovered as an error at the end of a run. */
+  note: string;
+  /** The fuller sentence, on hover. */
+  detail: string;
+  /** Non-null when the canon this app resolved can NEVER provide it. Such an
+   *  option is not rendered: there is no reason to show, or explain, a choice
+   *  no action by the user could make work in this build. */
+  impossible: string | null;
+};
+
+/** One row of a generator picker: canon's backend id, its label, and what it
+ *  needs. The id is a plain string read straight back into `--*-backend`. */
+type GeneratorOption = [id: string, label: string, needs?: OptionNeeds];
 
 /** "New project": pick a template, tune its counts and generators, then
  *  scaffold a populated STARTER via `canon world new --template` and open it.
@@ -81,6 +102,10 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
   const [keyGateVar, setKeyGateVar] = useState<string | null>(null);
   const [run, setRun] = useState<{ jobId: string; startedAt: number } | null>(null);
   const [packDir, setPackDir] = useState("");
+  // What the landed run's ledger rows say about money — a figure, or the
+  // reason there is none. Shown on the tracker, so a stopped or failed run
+  // says what it cost (or that nobody measured it) instead of nothing.
+  const [money, setMoney] = useState<CreateMoney | null>(null);
   const landed = useRef<string | null>(null);
   const job = useStore((s) => (run ? s.jobs.find((j) => j.id === run.jobId) : undefined));
 
@@ -105,6 +130,53 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
     }),
     [llm, image, music, sfx, vlm, lanes],
   );
+  // Which canon answered the startup probe (`useRuntimeProbe` — the same
+  // resolution order the runtime failure screen renders: an explicit
+  // override, the runtime bundled with the app, then `canon` on PATH).
+  // `bundled` is the app's own vendored interpreter, spawned with user
+  // site-packages switched off — nothing can be installed into it, so an
+  // option that needs an optional extra can never run behind that leg. Any
+  // other leg is a Python environment the user owns, where the extra is
+  // theirs to install (and may already be there — cradle cannot see inside
+  // it, so such an option stays selectable and merely says what it needs).
+  const runtime = useRuntimeProbe().status;
+  const bundledCanon = runtime?.origin === "bundled";
+
+  // The art lane's options. A table, not a filter over ids: the requirement
+  // rides on the row that declares the backend, and the picker only ever
+  // asks a row whether it is possible here.
+  const imageOptions = useMemo<GeneratorOption[]>(
+    () => [
+      ["fake", "placeholder ($0)"],
+      ["none", "none"],
+      ["fal", "fal (paid)"],
+      ["retro", "Retro Diffusion (paid)"],
+      ["pixellab", "PixelLab (paid)"],
+      [
+        "local",
+        "local diffusion — on this machine ($0)",
+        {
+          note: "needs diffusers + torch",
+          detail:
+            "Runs a diffusion model on your own GPU. Needs the images-local extra " +
+            "(diffusers + torch) in the Python that canon runs from: " +
+            "pip install canon-ai[images-local]",
+          impossible: bundledCanon
+            ? "the runtime bundled with this app has no diffusers/torch and cannot be installed into"
+            : null,
+        },
+      ],
+    ],
+    [bundledCanon],
+  );
+  // A selection the probe has just ruled out drops back to the lane's first
+  // offer, so the run can never be started with a backend the picker no
+  // longer shows. Generic over the table — no id is named.
+  useEffect(() => {
+    const offered = imageOptions.filter(([, , needs]) => !needs?.impossible).map(([id]) => id);
+    if (offered.length && !offered.includes(image)) setImage(offered[0]);
+  }, [imageOptions, image]);
+
   const anyPaid =
     backends.llm === "anthropic" ||
     ["fal", "retro", "pixellab"].includes(backends.image) ||
@@ -254,17 +326,20 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
   // billed what it billed and still left what landed on disk, so it records
   // both ledgers — it just does not open the partial tree behind the user's
   // back (the tracker offers "Open anyway").
+  //
+  // A FAILED run is terminal too, and the one that most needs recording: it
+  // billed what it billed before it died. It used to return before either
+  // ledger, so the most expensive outcome was the least recorded.
   useEffect(() => {
     if (!run || !job) return;
-    if (job.status === "failed") {
-      setErr(job.error ?? "generation failed");
-      return;
-    }
+    const failed = job.status === "failed";
     const stop = job.status === "cancelled";
-    if (job.status !== "ok" && job.status !== "no_change" && !stop) return;
+    if (failed) setErr(job.error ?? "generation failed");
+    if (job.status !== "ok" && job.status !== "no_change" && !stop && !failed) return;
     const dir = packDir || (job.result?.pack_dir as string) || "";
     if (!dir) {
-      if (!stop) setErr("generation finished but reported no pack directory");
+      if (!stop && !failed) setErr("generation finished but reported no pack directory");
+      // Nowhere to record: a run with no folder never started.
       return;
     }
     // Exactly once per run: the ledger writes are appends, and StrictMode
@@ -273,17 +348,14 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
     landed.current = job.id;
     let live = true;
     void (async () => {
-      // Record the run's ACTUAL cost from the generated tree's stats (real LLM +
-      // audio/pixellab/retro image spend). Best-effort — a missing stat records 0.
-      let actual = 0;
-      try {
-        const mf = (await api.readWorldJson(dir, "manifest.json")) as {
-          generation_stats?: { total_cost_usd?: number };
-        };
-        actual = mf.generation_stats?.total_cost_usd ?? 0;
-      } catch {
-        /* stats optional */
-      }
+      // The run's ACTUAL cost, through the one reader every create settle
+      // shares: the verb's own `actual_usd` first, then the tree's standalone
+      // `generation_stats.json`, then a dungeon manifest's embedded copy.
+      // Unmeasured (a run that never reached its manifest phase) OMITS the
+      // key and says so — a missing stat is not a $0.
+      const money = await measuredCreateCost(dir, job.result);
+      if (live) setMoney(money);
+      const actual = money.actual_usd != null ? { actual_usd: money.actual_usd } : {};
       // Both ledgers land in the pack the run CREATED, not the one that
       // happened to be open — which is why `handleJobEvent` sits this one out
       // (it only knows the open world).
@@ -292,7 +364,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
         scope: "world",
         backends,
         estimate: est?.total_usd,
-        actual_usd: actual,
+        ...actual,
       });
       await recordJob(dir, {
         job_id: job.id,
@@ -302,11 +374,12 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
         status: job.status,
         backends,
         estimate: est?.total_usd,
-        actual_usd: actual,
+        ...actual,
         duration_ms: job.endedAt ? job.endedAt - job.ts : undefined,
-        changed: stop ? !!job.changed : true,
+        changed: failed ? false : stop ? !!job.changed : true,
+        error: failed ? (job.error ?? "generation failed") : undefined,
       });
-      if (!live || stop) return;
+      if (!live || stop || failed) return;
       try {
         await loadWorldByPath(dir);
         onClose();
@@ -361,11 +434,20 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
     label: string,
     value: string,
     set: (v: string) => void,
-    opts: [string, string][],
+    opts: GeneratorOption[],
   ) => {
     const off = lanes.has(lane)
       ? null
       : `${template?.label ?? "This template"} has no ${label.toLowerCase()} generator`;
+    // An option this build can never run is NOT rendered at all: its
+    // requirement is not something the user can act on here, so a greyed row
+    // with a reason would only be advice about a different installation —
+    // that treatment is for a control the user COULD unblock. An option that
+    // merely NEEDS something says so in
+    // its own text and stays selectable — cradle cannot look inside the user's
+    // Python, and disabling a choice that may well work would be a worse lie
+    // than naming its requirement.
+    const shown = opts.filter(([, , needs]) => !needs?.impossible);
     return (
       <label style={row} title={off ?? undefined}>
         <span>
@@ -385,9 +467,9 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
           style={{ fontSize: 12 }}
           aria-label={label}
         >
-          {opts.map(([v, l]) => (
-            <option key={v} value={v}>
-              {l}
+          {shown.map(([v, l, needs]) => (
+            <option key={v} value={v} title={needs?.detail}>
+              {needs?.note ? `${l} · ${needs.note}` : l}
             </option>
           ))}
         </select>
@@ -481,6 +563,16 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
               </>
             )}
           </p>
+          {money &&
+            (money.warning ? (
+              <p className="note dim" data-testid="create-cost-warning">
+                {money.warning}
+              </p>
+            ) : (
+              <p className="note dim" data-testid="create-cost">
+                Recorded: {fmtUsd(money.actual_usd)} spent.
+              </p>
+            ))}
           <CreateProgress
             progress={job?.progress}
             startedAt={run.startedAt}
@@ -488,6 +580,10 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
             error={err}
             templates={template ? [template] : templates}
             onStop={dead ? undefined : () => void cancelJob(run.jobId)}
+            // Where the run wrote: once it is over, the tracker reads the tree's
+            // generation_stats for the post-create asset line, so a create that
+            // lost assets never reads as a clean finish here either.
+            packDir={packDir || undefined}
           />
           <div className="modal-foot">
             <span style={{ flex: 1 }} />
@@ -553,14 +649,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
           ["fake", "$0 canned"],
           ["anthropic", "Claude (paid)"],
         ])}
-        {sel("image", "Art (sprites)", image, setImage, [
-          ["fake", "placeholder ($0)"],
-          ["none", "none"],
-          ["fal", "fal (paid)"],
-          ["retro", "Retro Diffusion (paid)"],
-          ["pixellab", "PixelLab (paid)"],
-          ["local", "local"],
-        ])}
+        {sel("image", "Art (sprites)", image, setImage, imageOptions)}
         {sel("music", "Music", music, setMusic, [
           ["none", "none"],
           ["fake", "placeholder ($0)"],

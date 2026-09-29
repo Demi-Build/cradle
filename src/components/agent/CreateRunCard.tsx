@@ -1,22 +1,8 @@
-import { useEffect } from "react";
-import { useStore } from "../../store";
 import type { JobProgress } from "../../lib/invoke";
 import { usePackTemplates } from "../../lib/packTemplates";
 import { CreateProgress } from "../start/CreateProgress";
-import {
-  openCreated,
-  settleCreate,
-  stopCreate,
-  useStartCreate,
-  isPaidSelection,
-} from "./startCreate";
-import {
-  CREATE_STEP,
-  OPEN_STEP,
-  creatingConversation,
-  markPlanStep,
-  settleTurn,
-} from "./startConversation";
+import { openCreated, stopCreate, useStartCreate, isPaidSelection } from "./startCreate";
+import { OPEN_STEP, creatingConversation, markPlanStep } from "./startConversation";
 
 /** How many steps never began. The worker's cancel payload names what it
  *  KEPT (its step log's finished nodes) and nothing else, so the other half of
@@ -45,36 +31,19 @@ function neverStarted(progress?: JobProgress): string {
  *  Doctrine 5: elapsed + counts, never an ETA. The bar is `CreateProgress`'s,
  *  which is driven by finished step counts and goes indeterminate when the
  *  step total is not yet known.
+ *
+ *  **A pure view.** It reads the create and renders it; it settles nothing.
+ *  The terminal fold and the plan-step mirror both live at the top of
+ *  `handleJobEvent`, because this card mounts only on the start page and a
+ *  create the user walks away from still has to record what it spent. For the
+ *  same reason the progress it renders is the create's OWN copy, not a lookup
+ *  in the job tray: `closeWorld` empties the tray (jobs are per pack) while
+ *  the run carries on, and a card fed by the tray reverted to "Starting
+ *  canon…" with a clock ticking for a run that had already finished.
  */
 export function CreateRunCard() {
   const create = useStartCreate();
-  const job = useStore((s) =>
-    create.jobId ? s.jobs.find((j) => j.id === create.jobId) : undefined,
-  );
   const { templates } = usePackTemplates();
-
-  // The run outlives the call that started it, so the terminal fold is driven
-  // by the job's status. `settleCreate` is idempotent per job id.
-  useEffect(() => {
-    if (job) void settleCreate(job);
-  }, [job, job?.status, job?.error]);
-
-  // …and the plan card that approved it hears the same outcome, so its step
-  // ticks off (or fails) instead of sitting at "0 of 2" forever.
-  useEffect(() => {
-    const conv = creatingConversation();
-    if (!conv) return;
-    if (create.status === "done") markPlanStep(conv, CREATE_STEP, "done");
-    else if (create.status === "failed")
-      markPlanStep(conv, CREATE_STEP, "failed", { error: create.error ?? undefined });
-    else if (create.status === "stopped")
-      markPlanStep(conv, CREATE_STEP, "failed", {
-        error: "stopped by you — the folder and everything already written are kept",
-      });
-    else return;
-    // Whatever the outcome, the turn is over: nothing is running any more.
-    settleTurn(conv);
-  }, [create.status, create.error]);
 
   if (create.status === "idle") return null;
   const running = create.status === "creating";
@@ -85,8 +54,13 @@ export function CreateRunCard() {
         <span className="title">{running ? `Creating ${create.name}` : create.name}</span>
       </div>
       <CreateProgress
-        progress={job?.progress}
+        progress={create.progress ?? undefined}
         startedAt={create.startedAt}
+        // The run is over. Says so even when no `run_end` arrived (a create
+        // that ends between segments, or one whose last events were missed):
+        // without it the clock ticks on under a card that already reads
+        // "done", which is exactly the display doctrine 5 forbids.
+        ended={!running}
         paid={isPaidSelection(create.backends)}
         // A stop is a dead run too, so the clock stops and the headline says
         // where it stopped instead of ticking on as if the phase were still
@@ -101,10 +75,25 @@ export function CreateRunCard() {
         }
         templates={templates}
         onStop={running ? () => void stopCreate() : undefined}
+        // Where the run wrote: once it is over, the card reads the tree's
+        // generation_stats for the post-create asset line, so a create that
+        // lost assets never reads as a clean "Finished" here either.
+        packDir={create.packDir || undefined}
       />
       {create.packDir && (
         <div className="ag-card-mono" data-testid="create-folder">
           {create.packDir}
+        </div>
+      )}
+      {create.warnings.length > 0 && (
+        // What the ledgers could not measure. A run with no stats file has an
+        // UNKNOWN cost — not a $0, and not a failure — so this reads as a note
+        // beside the outcome, never as an alarm over it. It is the same line
+        // the wizard's tracker shows for the same run.
+        <div className="ag-note" data-testid="create-warnings">
+          {create.warnings.map((w) => (
+            <div key={w}>{w}</div>
+          ))}
         </div>
       )}
       {create.status === "stopped" && (
@@ -115,7 +104,7 @@ export function CreateRunCard() {
               ? `Kept: ${create.kept.join(", ")}.`
               : "Kept: the project folder and whatever had already been written."}
           </div>
-          <div>{neverStarted(job?.progress)}</div>
+          <div>{neverStarted(create.progress ?? undefined)}</div>
           <div>The folder is still on disk — open it from disk, or delete it yourself.</div>
         </div>
       )}

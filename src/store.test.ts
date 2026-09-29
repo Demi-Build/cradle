@@ -184,6 +184,30 @@ describe("store: loadWorldByPath", () => {
     });
   });
 
+  it("takes the recents cost from the standalone generation_stats.json when the manifest has no block", async () => {
+    // The stats file at the root is the record every template writes; a
+    // manifest that embeds nothing (the platformer's, or a dungeon whose
+    // block was stripped) must not blank the card's cost. Same reader order
+    // as `enrichRecent`. (A platformer open takes the early nav branch above
+    // and enriches through `enrichRecent` — that path is pinned there.)
+    invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
+      switch (cmd) {
+        case "load_world":
+          return Promise.resolve({ path: "/d", name: "d", world_kind: "dungeon", entity_counts: [] });
+        case "get_world_bible":
+          return Promise.resolve({ story: { title: "T" } });
+        case "read_world_json":
+          return args?.name === "generation_stats"
+            ? Promise.resolve({ total_cost_usd: 2.6 })
+            : Promise.resolve({ seed: 7 });
+        default:
+          return Promise.reject(new Error(`unexpected cmd ${cmd}`));
+      }
+    });
+    await useStore.getState().loadWorldByPath("/d");
+    expect(useStore.getState().recents[0]).toMatchObject({ path: "/d", seed: 7, cost: 2.6 });
+  });
+
   it("falls back to entity_counts when manifest fields are missing", async () => {
     invokeMock.mockImplementation((cmd: string) => {
       switch (cmd) {
@@ -302,6 +326,50 @@ describe("store: enrichRecent", () => {
 
     await useStore.getState().enrichRecent("/w");
     expect(useStore.getState().recents).toEqual([original]);
+  });
+
+  it("reads the card's cost from the standalone generation_stats.json, not only a manifest block", async () => {
+    // A platformer pack: `generation_stats.json` at the root and NO
+    // `generation_stats` block in its manifest. The card read only the
+    // embedded block (a dungeon convention), so a $2.60 run showed nothing.
+    invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
+      switch (cmd) {
+        case "load_world":
+          return Promise.resolve({ path: "/w", name: "plat", world_kind: "platformer", entity_counts: [] });
+        case "get_world_bible":
+          return Promise.reject(new Error("no bible"));
+        case "read_world_json":
+          return args?.name === "generation_stats"
+            ? Promise.resolve({ total_cost_usd: 2.6, llm_cost_usd: 0.41 })
+            : Promise.resolve({ seed: "x" });
+        default:
+          return Promise.reject(new Error(cmd));
+      }
+    });
+    await useStore.getState().enrichRecent("/w");
+    expect(useStore.getState().recents[0].cost).toBe(2.6);
+  });
+
+  it("leaves the card's cost unset when neither stats record exists", async () => {
+    invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
+      switch (cmd) {
+        case "load_world":
+          return Promise.resolve({ path: "/w", name: "plat", world_kind: "platformer", entity_counts: [] });
+        case "get_world_bible":
+          return Promise.reject(new Error("no bible"));
+        case "read_world_json":
+          return args?.name === "generation_stats"
+            ? Promise.reject(new Error("no such file"))
+            : Promise.resolve({ seed: 42 });
+        default:
+          return Promise.reject(new Error(cmd));
+      }
+    });
+    await useStore.getState().enrichRecent("/w");
+    // The manifest still enriched the rest of the card…
+    expect(useStore.getState().recents[0].seed).toBe(42);
+    // …and an unmeasured cost stays ABSENT, never a $0.
+    expect(useStore.getState().recents[0].cost).toBeUndefined();
   });
 });
 

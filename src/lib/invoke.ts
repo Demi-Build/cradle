@@ -115,25 +115,27 @@ export type ProviderRowsDoc = {
 export type ProviderKeyVar = {
   name: string;
   set: boolean;
-  /** Which store wins for this var: `keychain` · `file` (the unencrypted
-   *  fallback) · `env` · `file` from an env file. Null when unset. */
+  /** Where a set var was found: `env_file`. The key file is the ONE source
+   *  cradle reads — the shell is not consulted — so that is the only value a
+   *  set var carries. Null when unset. */
   source: string | null;
-  /** The other places the same name was seen, so an override is visible. */
+  /** Always empty: with one source there is nothing that could override the
+   *  key file. Still on the wire, so it is still typed. */
   also_in: string[];
-  /** Stored in cradle's own store, but this machine will not hand it back —
-   *  a stale names index, or a keychain that refuses this binary. Reported so
-   *  the pane can say "stored, unreadable" instead of a green chip over a key
-   *  the canon child never receives (doctrine 4). */
-  unreadable?: boolean;
 };
 export type ProviderKeyStatus = {
+  /** The key file's path, or null when none can be resolved on this machine. */
   env_file: string | null;
-  /** Pre-P0-12 field, unchanged: the names cradle can hand over. */
+  /** Whether that file exists yet — the first-use flag. A read never creates
+   *  it; `api.createProviderKeyFile` is the one action that does. */
+  env_file_exists: boolean;
+  /** The names cradle can hand over — what the missing-key gate reads. */
   keys: string[];
   vars: ProviderKeyVar[];
-  /** Which store took the keys: `keychain` · `file` · `none`. */
+  /** The store behind the names: `env_file`, the only one there is. */
   backend: string;
-  /** The LOUD "stored unencrypted" line when the fallback is in use. */
+  /** The way out when NO key file can be resolved — which variable to set —
+   *  and null otherwise. */
   warning: string | null;
   config_dir: string | null;
 };
@@ -318,6 +320,21 @@ export type CostEstimate = {
   unitCount?: number;
   /** `measured` | `estimated` — the accuracy flag canon stamps (P.8.8). */
   accuracy?: string;
+  /** `actuals` | `defaults` — WHERE the figures came from, which is a
+   *  different question from `accuracy` (how exact they are): `actuals` when a
+   *  number in this forecast came from the pack's own recorded runs,
+   *  `defaults` when every number is the shipped rate table's.
+   *
+   *  A plain `string`, like `accuracy` and every other open value here — never
+   *  a literal union, so a third source needs no type edit. And OPTIONAL, in
+   *  earnest: a canon that predates the field sends nothing, and `undefined`
+   *  is UNKNOWN — never read as either answer. Anything rendering it must ask
+   *  for the value it wants, never `!== "defaults"`.
+   *
+   *  Today it reaches the user only through canon's own `unitLabel` suffix
+   *  ("· default rates" / "· measured from this pack's runs"), which cradle
+   *  passes through as opaque copy. */
+  calibration?: string;
 };
 /** A row of `.canon/spend.jsonl`.
  *
@@ -539,6 +556,16 @@ export type JournalConversationRow = {
   totalCents: number;
   runs: number;
 };
+/** Does the pack HAVE a journal file, and where did canon look?
+ *
+ *  A pack with no journal at all and a journal that records nothing costed are
+ *  two different facts that both roll up to all zeros — the first is an ABSENCE
+ *  of records (a wrong project folder, or a write that never landed), the
+ *  second a genuine $0. Canon states this both ways on every `journal list` so
+ *  a client dispatches on a VALUE, never on a missing key. `present` being
+ *  `undefined` here is a THIRD state — a canon that predates the marker — and
+ *  must not be read as "missing". */
+export type JournalPresence = { present: boolean; path: string };
 /** The roll-up `canon journal list --summary` computes. Every figure is a sum
  *  of the SAME `costCents` field, which is why the tables reconcile. */
 export type JournalSummary = {
@@ -557,6 +584,13 @@ export type JournalSummary = {
   byIdentity: JournalIdentityRow[];
   byConversation: JournalConversationRow[];
   today: string;
+  /** The presence marker canon stamps INSIDE the roll-up, because a client
+   *  that passes `--summary` is handed the roll-up ALONE — the top-level
+   *  `journal` block would be the one thing it never looked at. Optional for
+   *  the same reason `JournalPresence.present` is tri-state: a canon that does
+   *  not report it leaves this `undefined`, which means UNKNOWN. */
+  journalPresent?: boolean;
+  journalPath?: string;
 };
 /** Filters for `journalList` — P.8.7's exact flag set. */
 export type JournalFilter = {
@@ -1272,9 +1306,20 @@ export const api = {
    *  source. `summary: true` asks canon for the roll-up INSTEAD of every event:
    *  the reply then carries `summary` and no `events`, which is the whole point
    *  of the flag. Pass `limit` alongside it to get both (the roll-up is then
-   *  computed over those same N events). Pure read. */
+   *  computed over those same N events). Pure read.
+   *
+   *  `journal` says whether the journal FILE exists at all, and `warnings`
+   *  carries canon's line when it does not — an all-zero roll-up with no file
+   *  behind it is an absence of records, not a $0 spend, and nothing that
+   *  renders these figures may confuse the two. */
   journalList: (path: string, filter: JournalFilter = {}) =>
-    invoke<{ result: string; events?: JournalEvent[]; summary?: JournalSummary }>("journal_list", {
+    invoke<{
+      result: string;
+      journal?: JournalPresence;
+      warnings?: string[];
+      events?: JournalEvent[];
+      summary?: JournalSummary;
+    }>("journal_list", {
       path,
       identity: filter.identity ?? null,
       session: filter.session ?? null,
@@ -1443,18 +1488,20 @@ export const api = {
    *  tried in what order. Cheap and off the main thread (the command is
    *  async Rust-side); safe to re-run from the failure screen's Try again. */
   runtimeStatus: () => invoke<RuntimeStatus>("runtime_status", {}),
-  /** Which provider keys cradle can hand to canon, and the env file they came
+  /** Which provider keys cradle can hand to canon, and the key file they came
    *  from. NAMES and SOURCES only — never a value, not even masked, and never
-   *  a length (row P0-12). Lets a paid gate refuse up front instead of dying
-   *  at the provider.
+   *  a length. Lets a paid gate refuse up front instead of dying at the
+   *  provider.
    *
    *  `vars` is the union of names to report on, passed in from
    *  `providerRows()` so the list stays canon's DATA rather than a literal
    *  here or in Rust; anything else cradle can see is reported anyway. */
   providerKeys: (vars?: string[]) =>
     invoke<ProviderKeyStatus>("provider_keys", { vars: vars ?? null }),
-  /** Store one provider key in the OS keychain (row P0-12 / W3.4).
-   *  **Write-only**: the value goes in and no command ever hands it back. */
+  /** Save one provider key into the key file: that one line is rewritten or
+   *  appended, everything else in the file is kept, and a missing file is
+   *  created owner-only. **Write-only**: the value goes in and no command
+   *  ever hands it back. */
   setProviderKey: (variable: string, value: string) =>
     invoke<{ var: string; stored: boolean; backend: string; warning: string | null }>(
       "set_provider_key",
@@ -1467,6 +1514,11 @@ export const api = {
       "delete_provider_key",
       { var: variable },
     ),
+  /** First use: create the key file (header only, owner-only) at the path
+   *  `providerKeys` reports. Reads never create it — this is the one action
+   *  that does. `created: false` when it was already there. */
+  createProviderKeyFile: () =>
+    invoke<{ env_file: string; created: boolean }>("create_provider_key_file", {}),
   /** `canon providers list` — the provider ROWS the key screen renders and the
    *  backend→var map the missing-key precheck uses (master §6 S6: rows are
    *  DATA). Cradle keeps no provider list of its own. Pack-less; pure read. */
@@ -1475,7 +1527,7 @@ export const api = {
    *  authenticated ping the row declares, **never a generation** (doctrine 3).
    *  This CONTACTS the provider, so it is only ever called from an explicit
    *  click whose copy says so. The key never passes through here: it reaches
-   *  canon from the keychain via the child environment. */
+   *  canon from the key file via the child environment. */
   testProviderKey: (provider: string) =>
     invoke<ProviderTestResult>("test_provider_key", { provider }),
   /** Everything W3.5's Environment pane shows in one read: the effective canon

@@ -108,7 +108,9 @@ describe("the happy path", () => {
     await until(() => (activeConversation()?.items.length ?? 0) > 2);
     await waitFor(() => expect(screen.queryByTestId("caret")).toBeTruthy(), { timeout: 4000 });
     expect(screen.getByTestId("msg-user").textContent).toContain("Why does 2-3 feel empty");
-    expect(screen.getAllByText("WICK")[0]).toBeInTheDocument(); // the label from the project's title
+    // The agent's own name, NOT the project's title ("The Wandering Wick"):
+    // the label is `agentLabel`'s constant unless the pack declares one.
+    expect(screen.getAllByText("WRIGHT")[0]).toBeInTheDocument();
     scriptedAgent.speed = 0;
     await p;
     expect(screen.queryByTestId("caret")).toBeNull();

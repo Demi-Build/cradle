@@ -30,22 +30,31 @@ const testProviderKey = vi.fn();
 const environmentStatus = vi.fn();
 const setProjectStore = vi.fn();
 
-vi.mock("../../lib/invoke", () => ({
-  api: {
-    providerRows: (...a: unknown[]) => providerRowsFn(...a),
-    providerKeys: (...a: unknown[]) => providerKeys(...a),
-    setProviderKey: (...a: unknown[]) => setProviderKey(...a),
-    deleteProviderKey: (...a: unknown[]) => deleteProviderKey(...a),
-    testProviderKey: (...a: unknown[]) => testProviderKey(...a),
-    environmentStatus: (...a: unknown[]) => environmentStatus(...a),
-    setProjectStore: (...a: unknown[]) => setProjectStore(...a),
-  },
-}));
+// The real `api` with the pane's reads and writes stubbed, so the first-use
+// `createProviderKeyFile` goes through the real command wrapper to the mocked
+// `invoke` above.
+vi.mock("../../lib/invoke", async (importActual) => {
+  const actual = await importActual<typeof import("../../lib/invoke")>();
+  return {
+    ...actual,
+    api: {
+      ...actual.api,
+      providerRows: (...a: unknown[]) => providerRowsFn(...a),
+      providerKeys: (...a: unknown[]) => providerKeys(...a),
+      setProviderKey: (...a: unknown[]) => setProviderKey(...a),
+      deleteProviderKey: (...a: unknown[]) => deleteProviderKey(...a),
+      testProviderKey: (...a: unknown[]) => testProviderKey(...a),
+      environmentStatus: (...a: unknown[]) => environmentStatus(...a),
+      setProjectStore: (...a: unknown[]) => setProjectStore(...a),
+    },
+  };
+});
 vi.mock("../../lib/openWorld", () => ({
   pickDirectory: () => Promise.resolve("/new/store"),
   pickAndOpenWorld: () => Promise.resolve(),
 }));
 
+import { invoke } from "@tauri-apps/api/core";
 import { SettingsScreen } from "./SettingsScreen";
 import { resetProviderRows } from "../../lib/providerKeys";
 import { setAgentTransport, type AgentTransport } from "../../lib/agent";
@@ -97,20 +106,15 @@ const ROWS = {
   },
 };
 
-function status(
-  vars: {
-    name: string;
-    set: boolean;
-    source: string | null;
-    also_in?: string[];
-    unreadable?: boolean;
-  }[],
-) {
+/** The status read's shape: present in the key FILE or absent, plus the
+ *  file's path and whether it exists yet. No other source is possible. */
+function status(vars: { name: string; set: boolean; source: string | null }[]) {
   return {
     env_file: "/repo/.env",
+    env_file_exists: true,
     keys: vars.filter((v) => v.set).map((v) => v.name),
-    vars: vars.map((v) => ({ ...v, also_in: v.also_in ?? [] })),
-    backend: "keychain",
+    vars: vars.map((v) => ({ ...v, also_in: [] })),
+    backend: "env_file",
     warning: null,
     config_dir: "/cfg/cradle",
   };
@@ -165,7 +169,7 @@ beforeEach(() => {
   providerRowsFn.mockResolvedValue(ROWS);
   providerKeys.mockResolvedValue(
     status([
-      { name: "ANTHROPIC_API_KEY", set: true, source: "keychain" },
+      { name: "ANTHROPIC_API_KEY", set: true, source: "env_file" },
       { name: "PIXELLAB_SECRET", set: false, source: null },
       { name: "PIXELLAB_API_KEY", set: false, source: null },
       { name: "MESHY_API_KEY", set: false, source: null },
@@ -174,14 +178,16 @@ beforeEach(() => {
   setProviderKey.mockResolvedValue({
     var: "MESHY_API_KEY",
     stored: true,
-    backend: "keychain",
+    backend: "env_file",
     warning: null,
+    env_file: "/repo/.env",
   });
   deleteProviderKey.mockResolvedValue({
     var: "ANTHROPIC_API_KEY",
     removed: true,
-    backend: "keychain",
+    backend: "env_file",
     warning: null,
+    env_file: "/repo/.env",
   });
   environmentStatus.mockResolvedValue(ENV);
   setProjectStore.mockResolvedValue({ root: "/new/store", exists: true, source: "settings" });
@@ -221,57 +227,24 @@ describe("Settings → API keys", () => {
     expect(note.textContent).not.toContain("required for commercial use.");
   });
 
-  it("chips each row set/unset WITH its source", async () => {
+  it("chips each row present-in-the-file or absent — the only two states", async () => {
     render(<SettingsScreen />);
     await screen.findAllByTestId("key-row");
     const chips = screen.getAllByTestId("key-chip");
     expect(chips[0].getAttribute("data-set")).toBe("1");
-    expect(chips[0].getAttribute("data-source")).toBe("keychain");
-    expect(chips[0].textContent).toContain("keychain");
+    expect(chips[0].getAttribute("data-source")).toBe("env_file");
+    expect(chips[0].textContent).toContain("in the key file");
     expect(chips[1].getAttribute("data-set")).toBe("0");
     expect(chips[1].textContent).toBe("not set");
-  });
-
-  it("names the OTHER places a key was seen, so an override is not a mystery", async () => {
-    providerKeys.mockResolvedValue(
-      status([
-        { name: "ANTHROPIC_API_KEY", set: true, source: "keychain", also_in: ["env", "env_file"] },
-      ]),
-    );
-    render(<SettingsScreen />);
-    const also = await screen.findByTestId("key-also-in");
-    expect(also.textContent).toContain("this machine's environment");
-    expect(also.textContent).toContain("the env file");
-    // One article, not two: the copy no longer supplies its own "the" on top
-    // of the one `sourceLabel` already carries.
-    expect(also.textContent).toContain("— the OS keychain is what canon gets");
-    expect(also.textContent).not.toContain("the the");
-  });
-
-  it("calls a stored-but-unretrievable key UNREADABLE rather than set", async () => {
-    // The state a key removed outside cradle (or a keychain refusing this
-    // build) leaves behind: the names index still lists it, but canon would
-    // receive nothing — so the gate must refuse here rather than mid-job.
-    providerKeys.mockResolvedValue(
-      status([{ name: "ANTHROPIC_API_KEY", set: false, source: null, unreadable: true }]),
-    );
-    render(<SettingsScreen />);
-    const rows = await screen.findAllByTestId("key-row");
-    const anthropic = rows.find((r) => r.dataset.provider === "anthropic")!;
-    expect(within(anthropic).getByTestId("key-chip").getAttribute("data-set")).toBe("0");
-    expect(within(anthropic).getByTestId("key-chip").textContent).toBe("unreadable");
-    expect(within(anthropic).getByTestId("key-unreadable").textContent).toContain(
-      "will not release it",
-    );
-    // Removing the stale entry IS something cradle's own store can do.
-    expect(within(anthropic).getByTestId("key-remove")).not.toBeDisabled();
+    // No keychain, no shell: no chip ever names another source.
+    for (const chip of chips) expect(chip.textContent).not.toMatch(/keychain|environment/);
   });
 
   it("counts an ALIAS as set and says which name holds it (the PixelLab pair)", async () => {
     providerKeys.mockResolvedValue(
       status([
         { name: "PIXELLAB_SECRET", set: false, source: null },
-        { name: "PIXELLAB_API_KEY", set: true, source: "keychain" },
+        { name: "PIXELLAB_API_KEY", set: true, source: "env_file" },
       ]),
     );
     render(<SettingsScreen />);
@@ -327,29 +300,26 @@ describe("the paste field is WRITE-ONLY", () => {
     expect(within(anthropic).getByTestId("key-remove")).not.toBeDisabled();
   });
 
-  it("disables Remove WITH the reason for a key cradle's store does not hold", async () => {
-    // A shell export or the dev `.env` — `delete_provider_key` reaches only
-    // cradle's own store, so an enabled button would promise a withdrawal it
-    // cannot perform. Doctrine 4: disabled with the reason, never hidden.
-    providerKeys.mockResolvedValue(
-      status([{ name: "ANTHROPIC_API_KEY", set: true, source: "env" }]),
-    );
+  it("offers Remove for every present key and says which file it deletes from", async () => {
+    // The file is the one source, so a present key is always one Remove can
+    // withdraw — the button names the file rather than a store.
     render(<SettingsScreen />);
     await screen.findAllByTestId("key-row");
     const anthropic = screen
       .getAllByTestId("key-row")
       .find((r) => r.dataset.provider === "anthropic")!;
     const remove = within(anthropic).getByTestId("key-remove");
-    expect(remove).toBeDisabled();
-    expect(remove.getAttribute("title")).toContain("this machine's environment");
-    expect(remove.getAttribute("title")).toContain("unset it there");
+    expect(remove).not.toBeDisabled();
+    expect(remove.getAttribute("title")).toBe("Delete ANTHROPIC_API_KEY from /repo/.env");
+    await userEvent.click(remove);
+    await waitFor(() => expect(deleteProviderKey).toHaveBeenCalledWith("ANTHROPIC_API_KEY"));
   });
 
   it("removes by the NAME that actually holds the key", async () => {
     providerKeys.mockResolvedValue(
       status([
         { name: "PIXELLAB_SECRET", set: false, source: null },
-        { name: "PIXELLAB_API_KEY", set: true, source: "keychain" },
+        { name: "PIXELLAB_API_KEY", set: true, source: "env_file" },
       ]),
     );
     render(<SettingsScreen />);
@@ -385,7 +355,12 @@ describe("the key TEST button", () => {
     });
     await userEvent.click(within(anthropic).getByTestId("key-test"));
     await waitFor(() => expect(testProviderKey).toHaveBeenCalledWith("anthropic"));
-    expect((await screen.findByTestId("key-test-result")).textContent).toContain("accepted");
+    const result = await screen.findByTestId("key-test-result");
+    expect(result.textContent).toContain("accepted");
+    // The result says WHICH FILE the tested key came from — the one place
+    // cradle reads a key, so a bad result points at the right file.
+    expect(result.textContent).toContain("tested with the key in /repo/.env");
+    expect(why.textContent).toContain("/repo/.env");
   });
 
   it("is disabled WITH the reason when the provider publishes no free endpoint", async () => {
@@ -416,25 +391,64 @@ describe("the key TEST button", () => {
   });
 });
 
-describe("the unencrypted fallback", () => {
-  it("warns LOUDLY when keys are not in a keychain", async () => {
+describe("the key file — the one source", () => {
+  it("shows the file's PATH, calmly: a plain file readable by your user account", async () => {
+    render(<SettingsScreen />);
+    const note = await screen.findByTestId("keys-store-note");
+    expect(screen.getByTestId("keys-file-path").textContent).toBe("/repo/.env");
+    expect(note.textContent).toContain("readable by your user account");
+    expect(note.textContent).toContain("not your shell, not a keychain");
+    // The intended path is not an alarm: no warning box, no red.
+    expect(screen.queryByTestId("keys-store-warning")).toBeNull();
+    expect(screen.queryByTestId("keys-file-missing")).toBeNull();
+    expect(note.textContent).not.toMatch(/UNENCRYPTED|⚠/);
+  });
+
+  it("FIRST USE: says plainly there is no file yet, names where it will go, and creates it in one action", async () => {
     providerKeys.mockResolvedValue({
-      ...status([{ name: "ANTHROPIC_API_KEY", set: true, source: "fallback_file" }]),
-      backend: "fallback_file",
-      warning: "stored UNENCRYPTED: this machine has no OS keychain…",
+      ...status([{ name: "ANTHROPIC_API_KEY", set: false, source: null }]),
+      env_file: "/cfg/cradle/provider-keys.env",
+      env_file_exists: false,
+    });
+    vi.mocked(invoke).mockResolvedValue({
+      env_file: "/cfg/cradle/provider-keys.env",
+      created: true,
+    });
+    render(<SettingsScreen />);
+    const missing = await screen.findByTestId("keys-file-missing");
+    expect(missing.textContent).toContain("No key file yet");
+    expect(screen.getByTestId("keys-file-path").textContent).toBe("/cfg/cradle/provider-keys.env");
+    // Nothing was created by the read: the only writes are the button and Save.
+    expect(invoke).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("keys-store-note")).toBeNull();
+    // The rows are still there — Save works before the file exists (it
+    // creates it), so first use is never a dead end.
+    expect(screen.getAllByTestId("key-row").length).toBeGreaterThan(0);
+
+    // The one action. After it, the status is re-read and the file is there.
+    providerKeys.mockResolvedValue({
+      ...status([{ name: "ANTHROPIC_API_KEY", set: false, source: null }]),
+      env_file: "/cfg/cradle/provider-keys.env",
+    });
+    await userEvent.click(screen.getByTestId("keys-create-file"));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith("create_provider_key_file", {}));
+    const note = await screen.findByTestId("keys-store-note");
+    expect(note.textContent).toContain("/cfg/cradle/provider-keys.env");
+    expect(screen.queryByTestId("keys-file-missing")).toBeNull();
+  });
+
+  it("names the way out when no key file can be resolved at all", async () => {
+    providerKeys.mockResolvedValue({
+      ...status([]),
+      env_file: null,
+      env_file_exists: false,
+      warning: "cradle has no place to keep provider keys on this machine: set CANON_ENV_FILE…",
     });
     render(<SettingsScreen />);
     const warn = await screen.findByTestId("keys-store-warning");
-    expect(warn.textContent).toContain("UNENCRYPTED");
-    // …and the macOS keychain-prompt note is NOT shown on that machine.
+    expect(warn.textContent).toContain("CANON_ENV_FILE");
     expect(screen.queryByTestId("keys-store-note")).toBeNull();
-  });
-
-  it("explains the macOS first-access prompt when the keychain IS in use", async () => {
-    render(<SettingsScreen />);
-    const note = await screen.findByTestId("keys-store-note");
-    expect(note.textContent).toContain("keychain permission prompt");
-    expect(note.textContent).toContain("expected, not a failure");
+    expect(screen.queryByTestId("keys-create-file")).toBeNull();
   });
 });
 

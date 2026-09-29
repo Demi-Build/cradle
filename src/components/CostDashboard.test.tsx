@@ -19,7 +19,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 import { CostDashboard } from "./CostDashboard";
-import { summarizeJournal } from "../lib/cost";
+import { digestConversations, summarizeJournal } from "../lib/cost";
 import type { JournalEvent } from "../lib/invoke";
 import type { Conversation } from "../lib/agentState";
 import { INITIAL_AGENT, useStore } from "../store";
@@ -263,6 +263,46 @@ describe("CostDashboard", () => {
     expect(total).toBe(summarizeJournal(EVENTS, TODAY).totalCents);
   });
 
+  it("reads the last full run's total from the standalone generation_stats.json", async () => {
+    // A platformer pack embeds no stats block in its manifest — the file at
+    // the root is the only record. Reading the embedded block alone left this
+    // line blank for a $2.60 run.
+    invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
+      if (cmd === "journal_list") {
+        return Promise.resolve({ result: "journal_list", summary: summarizeJournal(EVENTS, TODAY) });
+      }
+      if (cmd === "read_world_json") {
+        return args?.name === "generation_stats"
+          ? Promise.resolve({ total_cost_usd: 2.6 })
+          : Promise.resolve({ seed: "x" });
+      }
+      return Promise.resolve(null);
+    });
+    render(<CostDashboard />);
+    const dash = await screen.findByTestId("cost-dashboard");
+    await waitFor(() => expect(dash.textContent).toContain("Last full generation run"));
+    expect(dash.textContent).toContain("$2.60");
+    expect(invokeMock).toHaveBeenCalledWith("read_world_json", { path: "/w", name: "generation_stats" });
+  });
+
+  it("falls back to a manifest's embedded stats block only when there is no standalone file", async () => {
+    invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
+      if (cmd === "journal_list") {
+        return Promise.resolve({ result: "journal_list", summary: summarizeJournal(EVENTS, TODAY) });
+      }
+      if (cmd === "read_world_json") {
+        return args?.name === "generation_stats"
+          ? Promise.reject(new Error("no such file"))
+          : Promise.resolve({ generation_stats: { total_cost_usd: 3 } });
+      }
+      return Promise.resolve(null);
+    });
+    render(<CostDashboard />);
+    const dash = await screen.findByTestId("cost-dashboard");
+    await waitFor(() => expect(dash.textContent).toContain("Last full generation run"));
+    expect(dash.textContent).toContain("$3.00");
+  });
+
   it("renders from the roll-up alone, with no events in the reply", async () => {
     // `journal list --summary` returns the roll-up INSTEAD of every event —
     // the dashboard must never need the raw list to draw a table.
@@ -291,6 +331,103 @@ describe("CostDashboard", () => {
     // the same arithmetic, so the same answer
     expect(cellCents(screen.getByTestId("kind-total"), 4)).toBe(
       summarizeJournal(EVENTS).generationCents,
+    );
+  });
+});
+
+/** The money guard. An all-zero roll-up means two different things and the
+ *  dashboard used to print the same "$0.00" for both — so a mistyped project
+ *  folder, or a paid run whose journal write never landed, read as a free run.
+ *  These are the two documents side by side. */
+describe("a project with no journal is not a project that spent nothing", () => {
+  const NONE: JournalEvent[] = [];
+
+  function answer(journalReply: Record<string, unknown>) {
+    invokeMock.mockImplementation((cmd: string) =>
+      cmd === "journal_list"
+        ? Promise.resolve(journalReply)
+        : cmd === "read_world_json"
+          ? Promise.resolve({ generation_stats: {} })
+          : Promise.resolve(null),
+    );
+  }
+
+  it("says so in words and refuses to print a figure it does not have", async () => {
+    answer({
+      result: "journal_list",
+      journal: { present: false, path: "/w/.canon/journal.jsonl" },
+      warnings: ["No journal file at /w/.canon/journal.jsonl — …"],
+      summary: {
+        ...summarizeJournal(NONE, TODAY),
+        journalPresent: false,
+        journalPath: "/w/.canon/journal.jsonl",
+      },
+    });
+    render(<CostDashboard />);
+    const banner = await screen.findByTestId("journal-missing");
+    expect(banner.textContent).toContain("no journal");
+    expect(banner.textContent).toContain("absence of records");
+    expect(banner.textContent).toContain("/w/.canon/journal.jsonl");
+    // No tile may read as money — an unknown is "—", never "$0.00".
+    for (const id of ["tile-total", "tile-generation", "tile-conversation", "tile-today"]) {
+      expect(screen.getByTestId(id).textContent).not.toContain("$");
+      expect(screen.getByTestId(id).textContent).toContain("—");
+    }
+    // …and neither may the empty table's copy claim nothing was spent.
+    expect(screen.getByTestId("by-conversation").textContent).toContain("nothing is known");
+    expect(screen.queryByTestId("split-bar")).toBeNull();
+  });
+
+  it("reads the marker off the roll-up when that is all canon sent", async () => {
+    // `--summary` hands the client the roll-up ALONE, so the fact has to
+    // travel inside it — that copy is the one the dashboard actually sees.
+    answer({
+      result: "journal_list",
+      summary: { ...summarizeJournal(NONE, TODAY), journalPresent: false, journalPath: "/w/j" },
+    });
+    render(<CostDashboard />);
+    expect((await screen.findByTestId("journal-missing")).textContent).toContain("/w/j");
+  });
+
+  it("leaves a real journal that recorded nothing costed reading exactly as $0", async () => {
+    // The legitimate free run: the file EXISTS, it just has nothing priced in
+    // it. Nothing about this screen may change.
+    answer({
+      result: "journal_list",
+      journal: { present: true, path: "/w/.canon/journal.jsonl" },
+      summary: { ...summarizeJournal(NONE, TODAY), journalPresent: true, journalPath: "/w/j" },
+    });
+    render(<CostDashboard />);
+    await screen.findByTestId("cost-dashboard");
+    await waitFor(() => expect(screen.getByTestId("tile-total").textContent).toContain("$0"));
+    expect(screen.queryByTestId("journal-missing")).toBeNull();
+    expect(screen.getByTestId("by-conversation").textContent).toContain("has spent anything");
+  });
+
+  it("treats a canon that reports nothing as unknown, not as missing", async () => {
+    // Three states, not two: no marker at all is an older canon, and the
+    // screen must keep behaving exactly as it did before the marker existed.
+    answer({ result: "journal_list", summary: summarizeJournal(EVENTS, TODAY) });
+    render(<CostDashboard />);
+    await screen.findByTestId("cost-dashboard");
+    await waitFor(() =>
+      expect(screen.getByTestId("tile-total").textContent).toContain(
+        `$${(summarizeJournal(EVENTS, TODAY).totalCents / 100).toFixed(2)}`,
+      ),
+    );
+    expect(screen.queryByTestId("journal-missing")).toBeNull();
+  });
+
+  it("passes a warning canon sent about a journal that IS there straight through", async () => {
+    answer({
+      result: "journal_list",
+      journal: { present: true, path: "/w/j" },
+      warnings: ["two rows share a batch id"],
+      summary: { ...summarizeJournal(EVENTS, TODAY), journalPresent: true },
+    });
+    render(<CostDashboard />);
+    expect((await screen.findByTestId("journal-warning")).textContent).toContain(
+      "two rows share a batch id",
     );
   });
 });
@@ -328,5 +465,65 @@ describe("summarizeJournal", () => {
       agentActor("mason", "artist"),
       "user",
     ]);
+  });
+});
+
+/** The history menu's rows come from here. The one thing that must never be
+ *  true is that the menu and this dashboard disagree about what a conversation
+ *  cost — so the digest takes its money from the by-conversation roll-up
+ *  itself rather than adding the same events up a second time. */
+describe("digestConversations", () => {
+  it("carries the by-conversation roll-up's own cents, not a second sum", () => {
+    const rolled = summarizeJournal(EVENTS, TODAY);
+    const digests = digestConversations(EVENTS);
+    for (const row of rolled.byConversation) {
+      const d = digests.get(row.session)!;
+      expect(d.totalCents).toBe(row.totalCents);
+      expect(d.tokensCents).toBe(row.tokensCents);
+      expect(d.generationCents).toBe(row.generationCents);
+      expect(d.runs).toBe(row.runs);
+      // The who-split is a partition of that same total.
+      expect(d.youCents + d.agentCents).toBe(row.totalCents);
+    }
+  });
+
+  it("names what the calls were, newest-first timestamp and all, tokens aside", () => {
+    const d = digestConversations(EVENTS).get("wick")!;
+    // `tokens` is the conversation itself, not a call it made — it is the one
+    // kind held out of the list, and its money stays visible as tokensCents.
+    expect(d.kinds.map((k) => k.genKind)).not.toContain("tokens");
+    expect(d.kinds.map((k) => k.genKind).sort()).toEqual(["animation", "image"]);
+    expect(d.tokensCents).toBeGreaterThan(0);
+    const wick = EVENTS.filter((e) => e.session === "wick");
+    expect(d.lastTs).toBe(wick[wick.length - 1].ts);
+    expect(d.models.map((m) => m.model)).toContain("sonnet-4-6");
+    expect(d.byAgent).toBe(true);
+    expect(d.byYou).toBe(false);
+  });
+
+  it("renders a genKind nobody has seen, because it never switches on a list", () => {
+    const d = digestConversations(EVENTS).get("ember")!;
+    expect(d.kinds.map((k) => k.genKind)).toEqual(["mesh"]);
+    const invented = digestConversations([
+      { ts: "2026-09-01T00:00:00+00:00", session: "s", actor: USER_ACTOR, genKind: "hologram" },
+    ]).get("s")!;
+    expect(invented.kinds).toEqual([{ genKind: "hologram", runs: 1 }]);
+  });
+
+  it("keeps a conversation whose every run went unpriced — an absent row reads like $0", () => {
+    const d = digestConversations([
+      {
+        ts: "2026-09-01T00:00:00+00:00",
+        session: "broke",
+        actor: agentActor("broke", "artist"),
+        genKind: "image",
+        gen: { backend: "fal", model: "fal-ai/new-thing" },
+        detail: { cost_error: "no price row" },
+      },
+    ]).get("broke")!;
+    expect(summarizeJournal([]).byConversation).toEqual([]);
+    expect(d.runs).toBe(0);
+    expect(d.events).toBe(1);
+    expect(d.unpriced).toBe(1);
   });
 });

@@ -25,8 +25,8 @@ struct AppState {
 // hook say goodbye anyway (POST /shutdown, then reap).
 //
 // The port is per-process state, never persisted (I5/I8). Provider keys
-// reach the child from the same env file `provider_keys` reads — the real
-// key sources the missing-key copy names (Appendix I deviation 2).
+// reach the child from the one key file `provider_keys` reports — the same
+// file the missing-key copy names.
 //
 // Deliberately absent, by row ownership: the JobQueue's Child retention and
 // `cancel_job` (A4.5 — its map lives beside `JobQueue`, not here); play
@@ -75,74 +75,118 @@ fn parse_port_line(line: &str) -> Result<(u16, u32), String> {
     Ok((port as u16, pid as u32))
 }
 
-/// **THE ONE PLACE cradle builds a child's provider environment** (row P0-12 /
-/// W3.4).
+/// **THE ONE PLACE cradle builds a child's provider environment.**
 ///
-/// Before this row there were two: canon verbs got `--env-file` and the agent
-/// sidecar got `env_file_pairs()` inline, so "which keys does a child see?" had
-/// two answers and the keychain would have needed three implementations. Now
-/// every CANON CHILD — the verbs through `CanonCommand::command`, which the
+/// Every CANON CHILD — the verbs through `CanonCommand::command`, which the
 /// agent sidecar and the startup probe also go through, plus the pygame play
-/// harness — calls this.
+/// harness — calls this. Non-goal, deliberately: the **Godot launch does
+/// not**. Godot is an engine, not a canon child, and it has no business
+/// holding a provider secret; the omission is restated at that spawn site so
+/// neither place drifts.
 ///
-/// Non-goal, deliberately: the **Godot launch does not**. Godot is an engine,
-/// not a canon child, and it has no business holding a provider secret; the
-/// omission is restated at that spawn site so neither place drifts.
+/// **The key file is the only source.** Two steps, in order:
 ///
-/// Precedence, lowest first:
+/// 1. every provider variable canon declares (`provider_var_names` — data
+///    from `canon providers list`, never a literal here) is REMOVED from the
+///    environment the child would otherwise inherit. A key exported by the
+///    user's shell never reaches a canon child, so a stale export cannot
+///    shadow the file — which is exactly what happened when cradle's own
+///    inherited environment used to sit between a keychain and the file;
+/// 2. the file's pairs are set explicitly. In the child, an explicit `env`
+///    beats an inherited one, and canon's own `--env-file` loading is
+///    setdefault, so the file wins over everything.
 ///
-/// 1. the resolved env file's pairs, for names cradle's own environment lacks
-///    (the dev two-repo checkout's `.env`, unchanged);
-/// 2. cradle's own inherited environment (a developer's exported key);
-/// 3. **the keychain**, which overrides both — a key the user added in Settings
-///    is the most explicit statement of intent on the machine, and canon's
-///    `os.environ.setdefault` means the child's environment beats any env file
-///    it is also handed.
-///
-/// Values pass from the store straight into the child; nothing here logs,
+/// Values pass from the file straight into the child; nothing here logs,
 /// stores, or returns one.
 fn apply_provider_env(cmd: &mut std::process::Command) {
-    apply_provider_env_from(cmd, &keys::KeyStore::app(), env_file_pairs());
+    apply_provider_env_from(cmd, &provider_var_names(), env_file_pairs());
 }
 
-/// `apply_provider_env` over explicit inputs, so the precedence is testable
-/// without a keychain, an env file, or a mutated process environment.
+/// `apply_provider_env` over explicit inputs, so both halves are testable
+/// without canon, a real key file, or a mutated process environment.
 fn apply_provider_env_from(
     cmd: &mut std::process::Command,
-    store: &keys::KeyStore,
+    strip: &[String],
     env_file: Vec<(String, String)>,
 ) {
+    for name in strip {
+        cmd.env_remove(name);
+    }
     for (k, v) in env_file {
         cmd.env(k, v);
     }
-    for (k, v) in store.all() {
-        cmd.env(k, v);
-    }
 }
 
-/// KEY=VALUE pairs of the env file `provider_keys` resolves — the keys the
-/// service's providers read. Only names not already in cradle's own env.
+/// KEY=VALUE pairs of the key file `env_file_path` resolves — the keys the
+/// child's providers read. The one call into `KeyFile::pairs`.
 fn env_file_pairs() -> Vec<(String, String)> {
-    let mut out = Vec::new();
-    let Some(path) = env_file_path() else {
-        return out;
+    key_file().map(|f| f.pairs()).unwrap_or_default()
+}
+
+/// The provider variable NAMES canon declares: every row's `env_var` and
+/// `aliases` from `canon providers list`. These are what the child-environment
+/// builder strips from the inherited environment, so the list has to be
+/// canon's own table — a literal here would silently miss the next provider.
+///
+/// Fetched once per process and remembered; a fetch that fails is not
+/// remembered, so a canon that was unreachable at startup is asked again
+/// rather than leaving the shell's keys unstripped for the whole session.
+fn provider_var_names() -> Vec<String> {
+    static NAMES: std::sync::Mutex<Option<Vec<String>>> = std::sync::Mutex::new(None);
+    if let Some(names) = NAMES.lock().ok().and_then(|g| g.clone()) {
+        return names;
+    }
+    let Some(names) = fetch_provider_var_names() else {
+        return Vec::new();
     };
-    let Ok(text) = std::fs::read_to_string(&path) else {
-        return out;
-    };
-    for line in text.lines() {
-        let line = line.trim().trim_start_matches("export ").trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
+    if let Ok(mut guard) = NAMES.lock() {
+        *guard = Some(names.clone());
+    }
+    names
+}
+
+/// `canon providers list`, parsed for its names. Spawned through
+/// `CanonCommand::command_bare` — the one canon child built WITHOUT
+/// `apply_provider_env`, because this fetch is what that builder waits on
+/// and the listing needs no key.
+fn fetch_provider_var_names() -> Option<Vec<String>> {
+    let output = canon_command()
+        .command_bare()
+        .args(["providers", "list"])
+        .stdin(std::process::Stdio::null())
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let doc: Value = serde_json::from_slice(&output.stdout).ok()?;
+    Some(provider_var_names_from(&doc))
+}
+
+/// The pure half: a providers doc → its variable names, canonical and alias.
+fn provider_var_names_from(doc: &Value) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for row in doc
+        .get("providers")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
+        if let Some(var) = row.get("env_var").and_then(Value::as_str) {
+            out.push(var.to_string());
         }
-        if let Some((key, value)) = line.split_once('=') {
-            let key = key.trim();
-            let value = value.trim().trim_matches(['"', '\'']);
-            if !key.is_empty() && !value.is_empty() && std::env::var_os(key).is_none() {
-                out.push((key.to_string(), value.to_string()));
-            }
+        for alias in row
+            .get("aliases")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+        {
+            out.push(alias.to_string());
         }
     }
+    out.sort();
+    out.dedup();
     out
 }
 
@@ -258,11 +302,10 @@ fn agent_start(
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
-    // The sidecar's provider keys used to be assembled here, from the env file
-    // alone. Row P0-12 unified that: `canon.command()` already applied
-    // `apply_provider_env`, so the service sees the SAME environment every
-    // other canon child sees — including the chat-provider keys the panel's
-    // real backends need.
+    // The sidecar's provider keys are not assembled here: `canon.command()`
+    // already applied `apply_provider_env`, so the service sees the SAME
+    // environment every other canon child sees — the key file's pairs, and
+    // nothing the shell exported.
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("failed to launch `{command}`: {e}"))?;
@@ -1487,34 +1530,58 @@ fn with_opt_flag(mut args: Vec<String>, flag: &str, value: Option<String>) -> Ve
     args
 }
 
-/// The provider-key file passed to canon's paid verbs. `CANON_ENV_FILE` wins;
-/// otherwise fall back to `<canon repo>/.env`, which is where the keys live in
-/// a normal two-repo checkout.
+/// THE provider-key file — the one place cradle reads a provider key from and
+/// the one place the Settings pane writes. In order:
 ///
-/// canon itself still never auto-reads a .env — it requires an explicit
-/// `--env-file`, and that doctrine is unchanged. This is the HOST deciding
-/// which file to hand it. Without the fallback, launching cradle the ordinary
-/// way (`npm run tauri dev`) silently dropped every key, and paid generation
-/// failed with a provider-level "needs FAL_KEY" that pointed nowhere near the
-/// actual cause.
-fn env_file_path() -> Option<String> {
-    if let Ok(env_file) = std::env::var("CANON_ENV_FILE") {
-        if !env_file.is_empty() {
-            return Some(env_file);
-        }
-    }
-    let candidate = canon_repo_root().ok()?.join(".env");
-    if candidate.is_file() {
-        return Some(candidate.to_string_lossy().to_string());
-    }
-    None
+/// 1. `CANON_ENV_FILE`, when set — an explicit choice;
+/// 2. the dev checkout's `<canon repo>/.env` — whenever the checkout is
+///    resolvable and looks like one (`pyproject.toml` beside it), whether or
+///    not the file exists yet, so first use in a checkout lands there;
+/// 3. the packaged app's `<config dir>/provider-keys.env`.
+///
+/// canon itself still never auto-reads a `.env` — it takes an explicit
+/// `--env-file`, and that is unchanged. This is the HOST deciding which file
+/// to hand it, and the same file's pairs are set on every canon child's
+/// environment directly (`apply_provider_env`).
+///
+/// `None` only when nothing can be resolved at all (no override, no checkout,
+/// no config directory); `provider_keys` reports that as a warning.
+fn env_file_path() -> Option<PathBuf> {
+    env_file_path_from(
+        std::env::var("CANON_ENV_FILE").ok(),
+        canon_repo_root().ok(),
+        keys::app_file(),
+    )
 }
 
-/// Append `--env-file <resolved>` so provider keys reach paid verbs.
+/// `env_file_path` over explicit inputs, so the order is testable without a
+/// mutated process environment.
+fn env_file_path_from(
+    explicit: Option<String>,
+    repo: Option<PathBuf>,
+    app_file: Option<PathBuf>,
+) -> Option<PathBuf> {
+    if let Some(explicit) = explicit.filter(|p| !p.trim().is_empty()) {
+        return Some(PathBuf::from(explicit));
+    }
+    if let Some(repo) = repo.filter(|r| r.join("pyproject.toml").is_file()) {
+        return Some(repo.join(".env"));
+    }
+    app_file
+}
+
+/// The resolved key file as a store, or `None` when no path resolves.
+fn key_file() -> Option<keys::KeyFile> {
+    env_file_path().map(keys::KeyFile::at)
+}
+
+/// Append `--env-file <resolved>` so provider keys reach paid verbs. Only when
+/// the file is there: canon would ignore a missing one, but a job's argv
+/// should not name a file that does not exist.
 fn with_env_file(mut args: Vec<String>) -> Vec<String> {
-    if let Some(env_file) = env_file_path() {
+    if let Some(file) = key_file().filter(keys::KeyFile::exists) {
         args.push("--env-file".into());
-        args.push(env_file);
+        args.push(file.path().to_string_lossy().into_owned());
     }
     args
 }
@@ -1524,151 +1591,107 @@ fn run_canon_owned(args: Vec<String>) -> Result<Value, String> {
     run_canon(&refs)
 }
 
-/// The names a resolved env file sets (values dropped at the door).
-fn env_file_names() -> Vec<String> {
-    let Some(path) = env_file_path() else {
-        return Vec::new();
-    };
-    let Ok(text) = std::fs::read_to_string(path) else {
-        return Vec::new();
-    };
-    let mut names = Vec::new();
-    for line in text.lines() {
-        let line = line.trim().trim_start_matches("export ").trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        if let Some((key, value)) = line.split_once('=') {
-            if !value.trim().trim_matches(['"', '\'']).is_empty() {
-                names.push(key.trim().to_string());
-            }
-        }
-    }
-    names
-}
+/// The warning `provider_keys` carries when no key file can be resolved.
+const NO_KEY_FILE: &str = "cradle has no place to keep provider keys on this machine: set \
+     CANON_ENV_FILE to a KEY=VALUE file, or CRADLE_CONFIG_DIR to a writable folder.";
 
-/// Which provider keys cradle can actually hand to canon, and **from where**.
+/// Which provider keys cradle can hand to canon — **present in the key file,
+/// or absent**. There is no other source: the shell is not consulted, and
+/// nothing else is stored anywhere.
 ///
-/// Row P0-12 extends W2's names-only answer with a SOURCE per variable
-/// (`keychain` · `env` · `file`), reported in the same order
-/// `apply_provider_env` applies them, so the chip on the Keys pane names the
-/// store that will actually win. `also_in` lists the other places the same
-/// name was seen — that is how "you added this in Settings but your shell also
-/// exports it" becomes visible instead of mysterious.
+/// **Names and presence only.** Never a value, not even masked; never a
+/// length. The frontend passes `vars` (the canonical + alias names from
+/// `canon providers list`, so the union stays DATA); any other name the file
+/// sets is reported too, so an unexpected key is never invisible.
 ///
-/// **Names and sources only.** Never a value, not even masked; never a length.
-/// The frontend passes `vars` (the canonical + alias names from `canon
-/// providers list`, so the union stays DATA); anything else cradle can see is
-/// still reported, so an unexpected key is never invisible.
-///
-/// Every asked-for name is resolved against the environment BY NAME. The
-/// name-shaped scan below is discovery of extra names only — a var whose name
-/// does not look like an API key (`PIXELLAB_SECRET`, canon's own) is still
-/// answered correctly.
+/// `env_file` is the path — the pane shows it so the user knows where their
+/// keys live — and `env_file_exists` is the first-use flag: a read never
+/// creates the file.
 #[tauri::command]
 fn provider_keys(vars: Option<Vec<String>>) -> Value {
-    let store = keys::KeyStore::app();
-    let backend = store.backend();
-    // Indexed names split by whether this machine will actually release them:
-    // a stale index or a keychain that refuses THIS binary must read as
-    // unreadable, never as set (see `KeyStore::readable_names`).
-    let (from_keychain, unreadable) = store.readable_names();
-    let from_file = env_file_names();
-    // DISCOVERY ONLY. This name-shaped scan exists so a key cradle can see but
-    // was not asked about is never invisible; it must NEVER decide whether an
-    // asked-for name is set — `PIXELLAB_SECRET`, the var this row makes
-    // canonical, matches no such shape, and deciding by shape reported a
-    // working machine's PixelLab key as "not set" and refused the wizard.
-    let discovered_env: Vec<String> = std::env::vars()
-        .filter(|(k, v)| {
-            !v.trim().is_empty() && (k.ends_with("_API_KEY") || k.starts_with("FAL_KEY"))
-        })
-        .map(|(k, _)| k)
-        .collect();
-    // The one question asked of the environment per NAME, never per shape.
-    let in_env = |name: &str| {
-        std::env::var(name)
-            .map(|v| !v.trim().is_empty())
-            .unwrap_or(false)
-    };
+    provider_keys_for(vars, key_file())
+}
+
+/// `provider_keys` over an explicit file, so the status read is testable
+/// against a temp file rather than the machine's.
+fn provider_keys_for(vars: Option<Vec<String>>, file: Option<keys::KeyFile>) -> Value {
+    let from_file: Vec<String> = file.as_ref().map(keys::KeyFile::names).unwrap_or_default();
 
     // The vars to REPORT: whatever the caller asked about (canon's table),
-    // plus everything cradle can see. A union of data, never a literal.
+    // plus everything the file sets. A union of data, never a literal.
     let mut wanted: Vec<String> = vars.unwrap_or_default();
-    wanted.extend(from_keychain.iter().cloned());
-    wanted.extend(unreadable.iter().cloned());
-    wanted.extend(discovered_env.iter().cloned());
     wanted.extend(from_file.iter().cloned());
     wanted.sort();
     wanted.dedup();
 
-    let mut rows: Vec<Value> = Vec::new();
-    let mut set_names: Vec<String> = Vec::new();
-    for name in &wanted {
-        // Highest-precedence source first — the same order the child gets.
-        let mut places: Vec<&str> = Vec::new();
-        if from_keychain.contains(name) {
-            places.push(backend.id());
-        }
-        if in_env(name) {
-            places.push("env");
-        }
-        if from_file.contains(name) {
-            places.push("env_file");
-        }
-        if !places.is_empty() {
-            set_names.push(name.clone());
-        }
-        rows.push(serde_json::json!({
-            "name": name,
-            "set": !places.is_empty(),
-            "source": places.first().copied(),
-            "also_in": places.iter().skip(1).collect::<Vec<_>>(),
-            // Stored here, but this machine will not hand it over. Doctrine 4:
-            // say so rather than showing a green chip over a key the child
-            // never receives.
-            "unreadable": unreadable.contains(name),
-        }));
-    }
+    let rows: Vec<Value> = wanted
+        .iter()
+        .map(|name| {
+            let set = from_file.contains(name);
+            serde_json::json!({
+                "name": name,
+                "set": set,
+                "source": if set { Some("env_file") } else { None },
+                "also_in": Vec::<String>::new(),
+            })
+        })
+        .collect();
+    let mut set_names = from_file.clone();
+    set_names.sort();
     serde_json::json!({
-        "env_file": env_file_path(),
-        // The pre-P0-12 field, unchanged in meaning: the NAMES cradle can hand
-        // over. Kept so nothing that reads it has to change at once.
+        "env_file": file.as_ref().map(|f| f.path().to_string_lossy().into_owned()),
+        "env_file_exists": file.as_ref().is_some_and(keys::KeyFile::exists),
+        // The NAMES cradle can hand over — what the missing-key gate reads.
         "keys": set_names,
         "vars": rows,
-        "backend": backend.id(),
-        "warning": backend.warning(),
+        "backend": "env_file",
+        "warning": file.is_none().then(|| NO_KEY_FILE.to_string()),
         "config_dir": keys::config_dir().map(|p| p.to_string_lossy().into_owned()),
     })
 }
 
-/// Store one provider key in the OS keychain. **Write-only**: the value goes
-/// in and never comes back out through any command (row P0-12's secrets
-/// discipline). The answer carries the variable name, the store that took it,
-/// and the loud warning when that store is the unencrypted fallback.
+/// Save one provider key into the key file: that ONE line is rewritten (or
+/// appended), every other line and comment is preserved, and a missing file
+/// is created owner-only. **Write-only**: the value goes in and never comes
+/// back out through any command.
 #[tauri::command]
 fn set_provider_key(var: String, value: String) -> Result<Value, String> {
-    let store = keys::KeyStore::app();
-    let backend = store.set(&var, &value)?;
+    let file = key_file().ok_or_else(|| NO_KEY_FILE.to_string())?;
+    file.set(&var, &value)?;
     Ok(serde_json::json!({
         "var": var,
         "stored": true,
-        "backend": backend.id(),
-        "warning": backend.warning(),
+        "backend": "env_file",
+        "warning": Value::Null,
+        "env_file": file.path().to_string_lossy().into_owned(),
     }))
 }
 
-/// Forget one provider key. Idempotent: removing a key that is not there is a
-/// success that says `removed: false`.
+/// Delete one provider key's line from the key file. Idempotent: removing a
+/// key that is not there is a success that says `removed: false`.
 #[tauri::command]
 fn delete_provider_key(var: String) -> Result<Value, String> {
-    let store = keys::KeyStore::app();
-    let (removed, backend) = store.delete(&var)?;
+    let file = key_file().ok_or_else(|| NO_KEY_FILE.to_string())?;
+    let removed = file.remove(&var)?;
     Ok(serde_json::json!({
         "var": var,
         "removed": removed,
-        "backend": backend.id(),
-        "warning": backend.warning(),
+        "backend": "env_file",
+        "warning": Value::Null,
+        "env_file": file.path().to_string_lossy().into_owned(),
+    }))
+}
+
+/// First use: create the key file (header only, owner-only) at the resolved
+/// path. The one explicit action behind the pane's "no key file yet" state —
+/// reads never create it. `created: false` when it was already there.
+#[tauri::command]
+fn create_provider_key_file() -> Result<Value, String> {
+    let file = key_file().ok_or_else(|| NO_KEY_FILE.to_string())?;
+    let created = file.create()?;
+    Ok(serde_json::json!({
+        "env_file": file.path().to_string_lossy().into_owned(),
+        "created": created,
     }))
 }
 
@@ -2635,7 +2658,7 @@ fn play_level(
     let python = canon_python()?;
     let mut cmd = std::process::Command::new(&python);
     // The vendored interpreter gets the same isolation every canon spawn gets
-    // (row P0-11): a stray user site-packages must not shadow the bundled
+    // A stray user site-packages must not shadow the bundled
     // pygame. No-op for a developer's own venv.
     isolate_if_bundled(&mut cmd, &python);
     // Row P0-12: the play harness is a canon child too — it imports the same
@@ -3376,9 +3399,9 @@ fn get_bundled_demo_path(app: AppHandle) -> Result<String, String> {
 // the same reason; canon's own `world new` re-spawns `sys.executable`, and
 // the env var — not the flag — is what that child inherits.
 //
-// Deliberately absent, by row ownership: keychain key delivery (P0-12 —
-// `env_file_pairs`/`env_file_path` are untouched here) and the create flow's
-// commands (P0-10).
+// Deliberately absent, by row ownership: provider-key delivery
+// (`apply_provider_env`/`env_file_path` are untouched here) and the create
+// flow's commands.
 // ===========================================================================
 
 /// Which leg of the resolution order answered.
@@ -3420,17 +3443,27 @@ struct CanonCommand {
 impl CanonCommand {
     /// A `Command` with the prefix pushed and the bundled runtime's isolation
     /// applied. EVERY spawn site starts here instead of `Command::new`.
+    ///
+    /// Provider keys reach EVERY canon child from here — the verbs, the job
+    /// worker, the agent sidecar and the startup probe all build their
+    /// command through this method, which is why the key file needs exactly
+    /// one injection point.
     fn command(&self) -> std::process::Command {
+        let mut cmd = self.command_bare();
+        apply_provider_env(&mut cmd);
+        cmd
+    }
+
+    /// `command` WITHOUT the provider environment: the prefix and isolation
+    /// only. One caller — `fetch_provider_var_names`, the listing the provider
+    /// environment itself is built from; it needs no key and must not wait on
+    /// itself. Every other spawn goes through `command`.
+    fn command_bare(&self) -> std::process::Command {
         let mut cmd = std::process::Command::new(&self.program);
         cmd.args(&self.prefix);
         if self.origin == CanonOrigin::Bundled {
             apply_runtime_isolation(&mut cmd);
         }
-        // Row P0-12: provider keys reach EVERY canon child from here — the
-        // verbs, the job worker, the agent sidecar and the startup probe all
-        // build their command through this method, which is why the keychain
-        // needed exactly one injection point.
-        apply_provider_env(&mut cmd);
         cmd
     }
 
@@ -4287,19 +4320,20 @@ mod runtime_tests {
     }
 }
 
-/// Row P0-12 — key STATUS and external-tool detection.
+/// Key STATUS, the child environment, and external-tool detection.
 ///
-/// The keychain round-trip itself lives in `keys.rs` beside the store. What is
-/// pinned here is the part the frontend actually consumes: that a status read
-/// carries names and sources and NEVER a value, and that Godot and Blender are
-/// found by the one detector in the one documented order.
+/// The key file's own line-level behaviour lives in `keys.rs` beside it. What
+/// is pinned here is what the rest of the app relies on: that a canon child's
+/// provider environment comes from the file and NEVER from the shell, that a
+/// status read carries names and presence and never a value, and that Godot
+/// and Blender are found by the one detector in the one documented order.
 #[cfg(test)]
 mod settings_tests {
     use super::{
-        apply_provider_env_from, detect_tool, parse_major, provider_keys, tool_candidates, BLENDER,
-        GODOT,
+        apply_provider_env_from, detect_tool, env_file_path_from, parse_major, provider_keys_for,
+        provider_var_names_from, tool_candidates, BLENDER, GODOT,
     };
-    use crate::keys::KeyStore;
+    use crate::keys::KeyFile;
     use std::path::PathBuf;
 
     fn temp_dir(tag: &str) -> PathBuf {
@@ -4315,114 +4349,254 @@ mod settings_tests {
         dir
     }
 
-    /// The ONE child-environment builder. Before row P0-12 there were two —
-    /// `--env-file` for canon verbs and an inline `env_file_pairs()` loop for
-    /// the sidecar — so "which keys does a child see?" had two answers. This
-    /// pins the merged answer AND its precedence: the keychain wins, because
-    /// a key the user added in Settings is the most explicit statement of
-    /// intent on the machine, and canon's `os.environ.setdefault` means the
-    /// child's environment beats any env file it is also handed.
-    #[test]
-    fn every_child_gets_the_keys_and_the_keychain_wins() {
-        let dir = temp_dir("inject");
-        let store = KeyStore::with("cradle-test-inject", Some(dir.clone()), true);
-        store.set("FAL_KEY", "from-the-store").unwrap();
+    /// What a child actually receives for `var`, spawned through `cmd`:
+    /// `None` when the variable is absent in the child. Unix only — the
+    /// `get_envs` assertions beside each call cover every platform.
+    #[cfg(unix)]
+    fn child_sees(cmd: &mut std::process::Command, var: &str) -> Option<String> {
+        let out = cmd
+            .arg("-c")
+            .arg(format!(
+                "if [ -n \"${{{var}+x}}\" ]; then printf '%s' \"${var}\"; else printf 'ABSENT'; fi"
+            ))
+            .output()
+            .expect("sh runs");
+        let text = String::from_utf8_lossy(&out.stdout).into_owned();
+        (text != "ABSENT").then_some(text)
+    }
 
-        let mut cmd = std::process::Command::new("true");
-        apply_provider_env_from(
-            &mut cmd,
-            &store,
-            vec![
-                ("FAL_KEY".into(), "from-the-env-file".into()),
-                ("GOOGLE_API_KEY".into(), "only-in-the-env-file".into()),
-            ],
-        );
-        let env: std::collections::HashMap<String, Option<String>> = cmd
-            .get_envs()
+    fn envs_of(cmd: &std::process::Command) -> std::collections::HashMap<String, Option<String>> {
+        cmd.get_envs()
             .map(|(k, v)| {
                 (
                     k.to_string_lossy().into_owned(),
                     v.map(|v| v.to_string_lossy().into_owned()),
                 )
             })
-            .collect();
-        assert_eq!(env["FAL_KEY"].as_deref(), Some("from-the-store"));
-        // The env file still supplies what the store does not carry.
+            .collect()
+    }
+
+    /// (a) An exported SHELL variable does not reach the child. This is the
+    /// whole fix: cradle's own process inherits the user's shell, and before
+    /// this the inherited copy sat above the file with setdefault semantics,
+    /// so a stale export won every paid run. Now every provider name canon
+    /// declares is removed from the child's environment by name.
+    #[test]
+    fn an_exported_shell_variable_never_reaches_the_child() {
+        let var = "CRADLE_TEST_SHELL_ONLY_KEY";
+        std::env::set_var(var, "from-the-shell");
+        let mut cmd = std::process::Command::new("sh");
+        apply_provider_env_from(&mut cmd, &[var.to_string()], Vec::new());
+        // The builder explicitly removed it — not merely left it unset.
+        assert_eq!(envs_of(&cmd).get(var), Some(&None));
+        #[cfg(unix)]
+        assert_eq!(child_sees(&mut cmd, var), None, "the shell's value leaked");
+        std::env::remove_var(var);
+    }
+
+    /// (b) The FILE's value does reach the child — and beats the shell's copy
+    /// of the same name, because it is set explicitly after the strip.
+    #[test]
+    fn the_key_files_value_reaches_the_child_and_beats_the_shell() {
+        let var = "CRADLE_TEST_FILE_AND_SHELL_KEY";
+        std::env::set_var(var, "from-the-shell");
+        let mut cmd = std::process::Command::new("sh");
+        apply_provider_env_from(
+            &mut cmd,
+            &[var.to_string()],
+            vec![(var.to_string(), "from-the-file".to_string())],
+        );
         assert_eq!(
-            env["GOOGLE_API_KEY"].as_deref(),
-            Some("only-in-the-env-file")
+            envs_of(&cmd).get(var),
+            Some(&Some("from-the-file".to_string()))
+        );
+        #[cfg(unix)]
+        assert_eq!(child_sees(&mut cmd, var).as_deref(), Some("from-the-file"));
+        std::env::remove_var(var);
+    }
+
+    /// The real pairs come from `KeyFile::pairs` — the file on disk, through
+    /// the one reader — so a name the file does not set is not invented.
+    #[test]
+    fn the_file_on_disk_is_what_the_builder_injects() {
+        let dir = temp_dir("inject");
+        let file = KeyFile::at(dir.join("provider-keys.env"));
+        file.set("CRADLE_TEST_INJECTED_KEY", "from-the-file")
+            .unwrap();
+        let mut cmd = std::process::Command::new("true");
+        apply_provider_env_from(&mut cmd, &[], file.pairs());
+        assert_eq!(
+            envs_of(&cmd).get("CRADLE_TEST_INJECTED_KEY"),
+            Some(&Some("from-the-file".to_string()))
         );
         std::fs::remove_dir_all(&dir).ok();
     }
 
-    /// A machine with nothing stored injects nothing — which is also why a
-    /// fresh install never raises a keychain prompt before its first key.
+    /// Nothing declared and nothing in the file: the child's environment is
+    /// untouched.
     #[test]
-    fn an_empty_store_injects_nothing() {
-        let dir = temp_dir("empty");
-        let store = KeyStore::with("cradle-test-empty-inject", Some(dir.clone()), true);
+    fn an_empty_file_and_no_names_touch_nothing() {
         let mut cmd = std::process::Command::new("true");
-        apply_provider_env_from(&mut cmd, &store, Vec::new());
+        apply_provider_env_from(&mut cmd, &[], Vec::new());
         assert_eq!(cmd.get_envs().count(), 0);
+    }
+
+    /// The names to strip are canon's TABLE — `env_var` and every alias —
+    /// never a literal in cradle. A row it has never heard of counts.
+    #[test]
+    fn the_strip_list_is_every_name_canon_declares() {
+        let doc = serde_json::json!({
+            "result": "providers",
+            "providers": [
+                {"id": "pixellab", "env_var": "PIXELLAB_SECRET", "aliases": ["PIXELLAB_API_KEY"]},
+                {"id": "demi", "env_var": "DEMI_API_KEY", "aliases": []},
+                {"id": "fal", "env_var": "FAL_KEY"},
+            ]
+        });
+        assert_eq!(
+            provider_var_names_from(&doc),
+            vec![
+                "DEMI_API_KEY",
+                "FAL_KEY",
+                "PIXELLAB_API_KEY",
+                "PIXELLAB_SECRET"
+            ]
+        );
+        assert!(provider_var_names_from(&serde_json::json!({})).is_empty());
+    }
+
+    /// The canary: a status read carries names and presence and NEVER the
+    /// value — not raw, not its length — even though the file holds it.
+    #[test]
+    fn a_status_read_reports_names_and_presence_only() {
+        let dir = temp_dir("status");
+        let secret = "sk-this-value-must-never-appear";
+        let file = KeyFile::at(dir.join("provider-keys.env"));
+        file.set("CRADLE_TEST_PRESENT_KEY", secret).unwrap();
+
+        let doc = provider_keys_for(
+            Some(vec!["CRADLE_TEST_PRESENT_KEY".into()]),
+            Some(file.clone()),
+        );
+        let flat = doc.to_string();
+        // The name, its presence, and the file it is in are there…
+        let row = doc["vars"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["name"] == "CRADLE_TEST_PRESENT_KEY")
+            .expect("the asked-for var is reported");
+        assert_eq!(row["set"], true);
+        assert_eq!(row["source"], "env_file");
+        assert_eq!(doc["env_file_exists"], true);
+        assert_eq!(doc["backend"], "env_file");
+        assert!(doc["warning"].is_null());
+        assert_eq!(
+            doc["env_file"].as_str().map(PathBuf::from),
+            Some(file.path().to_path_buf())
+        );
+        assert_eq!(doc["keys"], serde_json::json!(["CRADLE_TEST_PRESENT_KEY"]));
+        // …and the value is not, in any form.
+        assert!(!flat.contains(secret), "a key VALUE reached the frontend");
+        assert!(!flat.contains(&secret.len().to_string()));
         std::fs::remove_dir_all(&dir).ok();
     }
 
+    /// The shell is NOT a source. A variable exported in cradle's own process
+    /// and absent from the file reads as not set — the gate refuses up front
+    /// instead of a paid run quietly using a stale export.
     #[test]
-    fn a_status_read_reports_names_and_sources_only() {
-        let secret = "sk-this-value-must-never-appear";
-        std::env::set_var("CRADLE_P012_TEST_API_KEY", secret);
-        let doc = provider_keys(Some(vec!["CRADLE_P012_TEST_API_KEY".into()]));
-        let flat = doc.to_string();
-        std::env::remove_var("CRADLE_P012_TEST_API_KEY");
-
-        // The name and the source are there…
-        assert!(flat.contains("CRADLE_P012_TEST_API_KEY"), "{flat}");
+    fn a_shell_export_is_not_reported_as_set() {
+        let dir = temp_dir("shell");
+        let var = "CRADLE_TEST_EXPORTED_NOT_IN_FILE";
+        std::env::set_var(var, "exported-value-that-must-never-appear");
+        let file = KeyFile::at(dir.join("provider-keys.env"));
+        file.set("CRADLE_TEST_OTHER_KEY", "other").unwrap();
+        let doc = provider_keys_for(Some(vec![var.into()]), Some(file));
+        std::env::remove_var(var);
         let row = doc["vars"]
             .as_array()
             .unwrap()
             .iter()
-            .find(|r| r["name"] == "CRADLE_P012_TEST_API_KEY")
+            .find(|r| r["name"] == var)
             .expect("the asked-for var is reported");
-        assert_eq!(row["set"], true);
-        assert_eq!(row["source"], "env");
-        // …and the value is not, in any form — not raw, not its length.
-        assert!(!flat.contains(secret), "a key VALUE reached the frontend");
-        assert!(!flat.contains(&secret.len().to_string()));
-    }
-
-    /// The PixelLab shape, pinned. `PIXELLAB_SECRET` — canon's own canonical
-    /// name — ends in neither `_API_KEY` nor anything else the discovery scan
-    /// recognises, so a status read that decided `env` by NAME SHAPE reported
-    /// a correctly-exported key as "not set" and the create wizard refused a
-    /// working machine. Every asked-for name is now resolved by name.
-    #[test]
-    fn a_var_whose_name_is_not_api_key_shaped_is_still_seen_in_the_environment() {
-        let secret = "pixellab-value-that-must-never-appear";
-        std::env::set_var("CRADLE_P012_TEST_SECRET", secret);
-        let doc = provider_keys(Some(vec!["CRADLE_P012_TEST_SECRET".into()]));
-        std::env::remove_var("CRADLE_P012_TEST_SECRET");
-        let row = doc["vars"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .find(|r| r["name"] == "CRADLE_P012_TEST_SECRET")
-            .expect("the asked-for var is reported");
-        assert_eq!(row["set"], true);
-        assert_eq!(row["source"], "env");
-        assert!(!doc.to_string().contains(secret));
-    }
-
-    #[test]
-    fn an_unset_var_is_reported_unset_rather_than_omitted() {
-        let doc = provider_keys(Some(vec!["CRADLE_P012_ABSENT_KEY".into()]));
-        let row = doc["vars"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .find(|r| r["name"] == "CRADLE_P012_ABSENT_KEY")
-            .expect("doctrine 4: an absent key is shown with its reason, never hidden");
         assert_eq!(row["set"], false);
         assert!(row["source"].is_null());
+        assert!(!doc.to_string().contains("exported-value"));
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// First use: a missing file is reported as missing — with its path, so
+    /// the pane can say where it will go — and the read does not create it.
+    #[test]
+    fn a_missing_file_is_reported_not_created() {
+        let dir = temp_dir("missing");
+        let file = KeyFile::at(dir.join("provider-keys.env"));
+        let doc = provider_keys_for(
+            Some(vec!["CRADLE_TEST_ABSENT_KEY".into()]),
+            Some(file.clone()),
+        );
+        assert_eq!(doc["env_file_exists"], false);
+        assert_eq!(
+            doc["env_file"].as_str().map(PathBuf::from),
+            Some(file.path().to_path_buf())
+        );
+        assert!(!file.exists(), "a status read never creates the file");
+        let row = doc["vars"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["name"] == "CRADLE_TEST_ABSENT_KEY")
+            .expect("an absent key is shown with its state, never hidden");
+        assert_eq!(row["set"], false);
+        assert!(row["source"].is_null());
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    /// No resolvable file at all is a warning with a way out, not a crash and
+    /// not a silent empty table.
+    #[test]
+    fn no_resolvable_file_is_a_named_warning() {
+        let doc = provider_keys_for(Some(vec!["CRADLE_TEST_ABSENT_KEY".into()]), None);
+        assert!(doc["env_file"].is_null());
+        assert_eq!(doc["env_file_exists"], false);
+        assert!(doc["warning"].as_str().unwrap().contains("CANON_ENV_FILE"));
+        assert_eq!(doc["vars"].as_array().unwrap().len(), 1);
+    }
+
+    /// The file resolution, in order: explicit → the dev checkout's `.env`
+    /// (whether or not it exists yet, so first use lands there) → the
+    /// packaged app's file. A path that merely parses as a repo but is not
+    /// one does not capture the checkout leg.
+    #[test]
+    fn the_key_file_resolves_explicit_then_checkout_then_app() {
+        let dir = temp_dir("resolve");
+        let repo = dir.join("canon-ai");
+        std::fs::create_dir_all(&repo).unwrap();
+        std::fs::write(repo.join("pyproject.toml"), "[project]\n").unwrap();
+        let app = dir.join("cfg").join("provider-keys.env");
+
+        assert_eq!(
+            env_file_path_from(
+                Some("/explicit/.env".into()),
+                Some(repo.clone()),
+                Some(app.clone())
+            ),
+            Some(PathBuf::from("/explicit/.env"))
+        );
+        assert_eq!(
+            env_file_path_from(Some("   ".into()), Some(repo.clone()), Some(app.clone())),
+            Some(repo.join(".env")),
+            "a blank override is no override; the checkout's .env need not exist yet"
+        );
+        assert_eq!(
+            env_file_path_from(None, Some(dir.join("not-a-checkout")), Some(app.clone())),
+            Some(app.clone()),
+            "a directory without pyproject.toml is not a checkout"
+        );
+        assert_eq!(env_file_path_from(None, None, Some(app.clone())), Some(app));
+        assert_eq!(env_file_path_from(None, None, None), None);
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -4560,12 +4734,14 @@ pub fn run() {
             play_game,
             validate_level,
             preview_prompt,
-            // Row P0-12: keys + Settings. `provider_keys` reports names and
-            // SOURCES; set/delete are write-only; `provider_rows` is canon's
+            // Keys + Settings. `provider_keys` reports names and presence in
+            // the key file; set/delete rewrite one line of it, write-only;
+            // create is the first-use action; `provider_rows` is canon's
             // table verbatim; the test is user-initiated and never generates.
             provider_keys,
             set_provider_key,
             delete_provider_key,
+            create_provider_key_file,
             provider_rows,
             test_provider_key,
             environment_status,

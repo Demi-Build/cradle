@@ -1,70 +1,48 @@
-//! Provider-key storage — the OS keychain, and what cradle hands a child
-//! process (row P0-12, Phase 0 W3.4).
+//! Provider keys — ONE source: a plain `KEY=VALUE` file.
 //!
-//! # The whole delivery mechanism, in one paragraph
+//! # Why one source
 //!
-//! canon's `_load_env_file` uses `os.environ.setdefault`, so **the process
-//! environment always wins**. That single fact is what lets cradle store keys
-//! in the OS keychain and inject them as environment variables on the canon
-//! child, with **zero canon changes** and **no plaintext file at rest**. The
-//! `--env-file` plumbing stays for dev (harmless under `setdefault`); the
-//! effective precedence a child sees is: injected keychain → cradle's own
-//! environment → the resolved env file.
+//! Cradle used to merge three tiers (OS keychain → cradle's own inherited
+//! shell environment → an env file) with setdefault semantics. A shell that
+//! exported stale keys then won over a fresh `.env` on every paid run, and
+//! Settings → Test reported good keys as bad. The owner's call: users bring
+//! their own keys and choose them, so the file is the only place a provider
+//! key is read from. The shell is never consulted; the child-environment
+//! builder in `lib.rs` strips the inherited copies by name before the file's
+//! own pairs go in.
 //!
-//! # Secrets discipline (load-bearing for this row)
+//! # Which file
 //!
-//! A key VALUE never leaves this module except into a child process's
-//! environment. It is never logged, never returned by a command, never put in
-//! an error message or a URL, and never written to a file cradle owns — with
-//! the one named exception below. Status is **names and sources only**: not a
-//! masked value, not a length.
+//! `lib.rs::env_file_path` decides: an explicit `CANON_ENV_FILE`, else the
+//! dev checkout's `<canon repo>/.env`, else the packaged app's
+//! `<config dir>/provider-keys.env` (see [`app_file`]). Whichever it is, this
+//! module reads and rewrites it line by line — other lines and comments are
+//! preserved, so a hand-edited file and the Settings pane can share it.
 //!
-//! # The Linux exception (W3.4's named risk)
+//! # Secrets discipline
 //!
-//! On a headless or minimal desktop the Secret Service may be absent. Failing
-//! there would leave the user with no way to add a key at all, so this falls
-//! back to an app-config env file (`0600`) and reports a LOUD "stored
-//! unencrypted" warning that the Keys pane renders beside every row. Falling
-//! back silently would be the actual bug.
-//!
-//! # macOS
-//!
-//! The first keychain access prompts per app signature. A signed build makes
-//! that one well-labelled prompt; the Keys pane says so, so nobody reads the
-//! prompt as a failure.
-//!
-//! # Why a names index exists
-//!
-//! Keychains cannot be enumerated portably, and something has to know WHICH
-//! variables to fetch when building a child's environment. So a names-only
-//! index (`provider-keys.json`) sits beside the store. It holds no values, and
-//! it is also what keeps a fresh machine from touching the keychain at all —
-//! an empty index means no lookup, which means no macOS prompt before the user
-//! has stored anything.
+//! A key VALUE leaves this module only through [`KeyFile::pairs`], which the
+//! child-environment builder is the sole caller of. Every other accessor
+//! answers names, presence and the path. Nothing here logs a value, puts one
+//! in an error message, or returns one to a command.
 
-use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-/// The keychain service name every entry is stored under (W3.4: "Service name
-/// `cradle`, one entry per provider var").
-pub const SERVICE: &str = "cradle";
+/// The packaged app's key file, inside cradle's config directory.
+pub const APP_FILE: &str = "provider-keys.env";
 
-/// Names-only index of the variables held in the keychain.
-const INDEX_FILE: &str = "provider-keys.json";
-/// The Linux fallback's unencrypted store.
-const FALLBACK_FILE: &str = "provider-keys.env";
-/// The warning the fallback carries everywhere it is used.
-pub const FALLBACK_WARNING: &str =
-    "stored UNENCRYPTED: this machine has no OS keychain (Secret Service) that cradle could reach, \
-     so keys are written to a 0600 file in cradle's config directory. Anyone who can read your \
-     home directory can read them.";
+/// The header a freshly created file starts with. Names no other document;
+/// it has to make sense to someone who opens the file in an editor.
+const HEADER: &[&str] = &[
+    "# Provider keys for cradle and canon. One KEY=VALUE per line; # starts a comment.",
+    "# Settings \u{2192} API keys reads and writes this file; you can edit it by hand too.",
+];
 
 /// Where cradle keeps its own per-machine files. `CRADLE_CONFIG_DIR` overrides
 /// it (tests, and a portable install).
 ///
-/// This is machine config, never pack data: I5's "durable truth lives in
-/// `<pack>/.canon/`" is about the world, and a key is per-machine, not
-/// per-pack — it must not travel with a copied project.
+/// This is machine config, never pack data: a key is per-machine, not
+/// per-project — it must not travel with a copied project.
 pub fn config_dir() -> Option<PathBuf> {
     if let Ok(dir) = std::env::var("CRADLE_CONFIG_DIR") {
         if !dir.trim().is_empty() {
@@ -93,344 +71,186 @@ pub fn config_dir() -> Option<PathBuf> {
     Some(Path::new(&home).join(".config").join("cradle"))
 }
 
-/// Which store answered. `File` carries [`FALLBACK_WARNING`].
+/// The packaged app's key file path, or `None` when there is no config
+/// directory to put it in.
+pub fn app_file() -> Option<PathBuf> {
+    config_dir().map(|d| d.join(APP_FILE))
+}
+
+/// One key file. Constructed per call (commands stay stateless); the path is
+/// a parameter so tests round-trip against their own file, never the user's.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Backend {
-    Keychain,
-    File(PathBuf),
-    /// Nothing usable: no keychain AND no config directory to fall back into.
-    None(String),
+pub struct KeyFile {
+    path: PathBuf,
 }
 
-impl Backend {
-    /// A stable id the UI renders a chip from. `fallback_file` is deliberately
-    /// distinct from the `env_file` source `provider_keys` reports: one is
-    /// cradle's own unencrypted store, the other is the dev checkout's `.env`,
-    /// and conflating them would mislabel exactly the case that needs a
-    /// warning.
-    pub fn id(&self) -> &'static str {
-        match self {
-            Backend::Keychain => "keychain",
-            Backend::File(_) => "fallback_file",
-            Backend::None(_) => "none",
-        }
-    }
-    /// The loud warning, or `None` when the secure store answered.
-    pub fn warning(&self) -> Option<String> {
-        match self {
-            Backend::Keychain => None,
-            Backend::File(path) => Some(format!("{FALLBACK_WARNING} File: {}", path.display())),
-            Backend::None(why) => Some(why.clone()),
-        }
-    }
-}
-
-/// One provider-key store. Constructed per call (commands stay stateless, I3);
-/// `service` and `config` are parameters so tests can round-trip against their
-/// own service name and their own directory instead of the user's.
-#[derive(Clone, Debug)]
-pub struct KeyStore {
-    service: String,
-    config: Option<PathBuf>,
-    /// Force the unencrypted file store — the Linux fallback path, exercised
-    /// on any platform by `CRADLE_KEYSTORE=file` (and by its own test).
-    force_file: bool,
-}
-
-impl KeyStore {
-    /// The app's real store.
-    pub fn app() -> Self {
-        KeyStore {
-            service: SERVICE.to_string(),
-            config: config_dir(),
-            force_file: std::env::var("CRADLE_KEYSTORE")
-                .map(|v| v.eq_ignore_ascii_case("file"))
-                .unwrap_or(false),
-        }
+impl KeyFile {
+    pub fn at(path: impl Into<PathBuf>) -> Self {
+        KeyFile { path: path.into() }
     }
 
-    /// A store for tests: its own service name, its own directory. Test-only
-    /// so the app can never accidentally point at another service name.
-    #[cfg(test)]
-    pub fn with(service: &str, config: Option<PathBuf>, force_file: bool) -> Self {
-        KeyStore {
-            service: service.to_string(),
-            config,
-            force_file,
-        }
+    pub fn path(&self) -> &Path {
+        &self.path
     }
 
-    /// Which store this machine actually gets. Asking the keychain for its
-    /// status is what turns "secret-service is missing" into a named fallback
-    /// instead of an error at the first write.
-    pub fn backend(&self) -> Backend {
-        if !self.force_file && keychain_available() {
-            return Backend::Keychain;
-        }
-        match self.config.as_ref() {
-            Some(dir) => Backend::File(dir.join(FALLBACK_FILE)),
-            None => Backend::None(
-                "no OS keychain answered and cradle has no config directory to fall back to — \
-                 set CRADLE_CONFIG_DIR, or use an env file (CANON_ENV_FILE)."
-                    .to_string(),
-            ),
-        }
+    /// Whether the file is there. Reads never create it — first use is an
+    /// explicit action ([`KeyFile::create`]) or the first [`KeyFile::set`].
+    pub fn exists(&self) -> bool {
+        self.path.is_file()
     }
 
-    fn index_path(&self) -> Option<PathBuf> {
-        self.config.as_ref().map(|d| d.join(INDEX_FILE))
-    }
-
-    /// The variable NAMES this store holds. Never a value.
+    /// The variable NAMES the file sets to something non-empty. Never a value.
     pub fn names(&self) -> Vec<String> {
-        match self.backend() {
-            Backend::Keychain => self.index_names(),
-            Backend::File(path) => read_env_file(&path).into_keys().collect(),
-            Backend::None(_) => Vec::new(),
-        }
+        self.pairs().into_iter().map(|(k, _)| k).collect()
     }
 
-    fn index_names(&self) -> Vec<String> {
-        let Some(path) = self.index_path() else {
+    /// Every `(name, value)` the file sets — the ONE reader of values, called
+    /// only by the child-environment builder. Deliberately not `pub` beyond
+    /// the crate. An empty value is not a key: the line is skipped, exactly
+    /// as canon treats it.
+    pub(crate) fn pairs(&self) -> Vec<(String, String)> {
+        let Ok(text) = std::fs::read_to_string(&self.path) else {
             return Vec::new();
         };
-        let Ok(text) = std::fs::read_to_string(path) else {
-            return Vec::new();
-        };
-        serde_json::from_str::<serde_json::Value>(&text)
-            .ok()
-            .and_then(|v| v.get("vars").cloned())
-            .and_then(|v| v.as_array().cloned())
-            .map(|a| {
-                a.iter()
-                    .filter_map(|x| x.as_str().map(str::to_string))
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
-
-    fn write_index(&self, names: &[String]) -> Result<(), String> {
-        let Some(path) = self.index_path() else {
-            return Ok(());
-        };
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
+        let mut out: Vec<(String, String)> = Vec::new();
+        for line in text.lines() {
+            if let Some((k, v)) = parse_line(line) {
+                if v.is_empty() {
+                    continue;
+                }
+                // The file is read top-down like canon reads it; a later
+                // duplicate wins there too, so replace rather than append.
+                match out.iter_mut().find(|(name, _)| name == k) {
+                    Some(slot) => slot.1 = v.to_string(),
+                    None => out.push((k.to_string(), v.to_string())),
+                }
+            }
         }
-        let mut sorted: Vec<&String> = names.iter().collect();
-        sorted.sort();
-        sorted.dedup();
-        let body = serde_json::json!({
-            "note": "NAMES ONLY. Values live in the OS keychain under the service name in this file.",
-            "service": self.service,
-            "vars": sorted,
-        });
-        std::fs::write(
-            &path,
-            serde_json::to_string_pretty(&body).unwrap_or_default(),
-        )
-        .map_err(|e| format!("cannot write {}: {e}", path.display()))
+        out
     }
 
-    /// Store `var`'s value. Write-only: nothing here ever hands it back.
-    pub fn set(&self, var: &str, value: &str) -> Result<Backend, String> {
+    /// Set `var` to `value`, rewriting that ONE line and preserving every
+    /// other line and comment verbatim. Appends when the name is new. Creates
+    /// the file (owner-only) when it does not exist yet. Write-only: nothing
+    /// here hands the value back.
+    pub fn set(&self, var: &str, value: &str) -> Result<(), String> {
         let var = var.trim();
         if var.is_empty() {
             return Err("no variable name".into());
         }
-        if value.trim().is_empty() {
+        if !var.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+            return Err(format!(
+                "{var} is not a variable name (letters, digits, _ only)"
+            ));
+        }
+        let value = value.trim();
+        if value.is_empty() {
             return Err("empty value — use Remove to clear a key".into());
         }
-        let backend = self.backend();
-        match &backend {
-            Backend::Keychain => {
-                entry(&self.service, var)?
-                    .set_password(value.trim())
-                    .map_err(|e| format!("the keychain refused to store {var}: {e}"))?;
-                let mut names = self.index_names();
-                names.push(var.to_string());
-                self.write_index(&names)?;
-            }
-            Backend::File(path) => {
-                let mut pairs = read_env_file(path);
-                pairs.insert(var.to_string(), value.trim().to_string());
-                write_env_file(path, &pairs)?;
-            }
-            Backend::None(why) => return Err(why.clone()),
+        if value.contains(['\n', '\r']) {
+            return Err(format!("{var} cannot hold a line break"));
         }
-        Ok(backend)
-    }
-
-    /// Forget `var`. `Ok(false)` when there was nothing to forget.
-    pub fn delete(&self, var: &str) -> Result<(bool, Backend), String> {
-        let backend = self.backend();
-        let removed = match &backend {
-            Backend::Keychain => {
-                let had = self.index_names().iter().any(|n| n == var);
-                // Delete before touching the index, so a keychain that refuses
-                // never leaves the index lying about what is stored.
-                match entry(&self.service, var)?.delete_credential() {
-                    Ok(()) => {}
-                    // Already gone is a success: delete is idempotent, and a
-                    // stale index entry must still be clearable. Matched by
-                    // TYPE, not by message: keyring renders this variant as
-                    // "No matching credential found", so the older string
-                    // match never fired and a stale name could never be
-                    // cleared.
-                    Err(keyring::Error::NoEntry) => {}
-                    Err(e) => return Err(format!("the keychain refused to remove {var}: {e}")),
-                }
-                let names: Vec<String> = self
-                    .index_names()
-                    .into_iter()
-                    .filter(|n| n != var)
-                    .collect();
-                self.write_index(&names)?;
-                had
-            }
-            Backend::File(path) => {
-                let mut pairs = read_env_file(path);
-                let had = pairs.remove(var).is_some();
-                if had {
-                    write_env_file(path, &pairs)?;
-                }
-                had
-            }
-            Backend::None(why) => return Err(why.clone()),
+        let text = match std::fs::read_to_string(&self.path) {
+            Ok(text) => text,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+            Err(e) => return Err(format!("cannot read {}: {e}", self.path.display())),
         };
-        Ok((removed, backend))
-    }
-
-    /// Every stored `(name, value)` — the ONE reader of values, called only by
-    /// the child-environment builder. Deliberately not `pub` beyond the crate.
-    pub(crate) fn all(&self) -> Vec<(String, String)> {
-        self.read_indexed()
-            .into_iter()
-            .filter_map(|(name, got)| got.ok().map(|v| (name, v)))
-            .collect()
-    }
-
-    /// The stored names split by whether this machine will actually RELEASE
-    /// them: `(readable, unreadable)`.
-    ///
-    /// Extends `names()` — which answers from the names index alone — with the
-    /// question the status read actually needs. The index says a name was
-    /// stored; only a read proves the child will receive it. The two diverge on
-    /// mundane paths: the keychain item was removed outside cradle (a stale
-    /// index), or the OS refuses this binary access to it (a rebuilt or
-    /// differently-signed dev build, or a denied prompt). Reporting those as
-    /// "set" is how a job gets past the missing-key gate, spends the confirm,
-    /// and then dies inside canon with "needs FAL_KEY" — the exact confusion
-    /// row P0-12 exists to remove.
-    ///
-    /// No new prompt class: a non-empty index means a key was already stored
-    /// from this build, so the read is the same access the injector makes.
-    pub fn readable_names(&self) -> (Vec<String>, Vec<String>) {
-        let mut readable = Vec::new();
-        let mut unreadable = Vec::new();
-        for (name, got) in self.read_indexed() {
-            match got {
-                Ok(_) => readable.push(name),
-                // The reason is deliberately dropped: an OS error message can
-                // quote the item, and status is names and sources only.
-                Err(_) => unreadable.push(name),
-            }
-        }
-        (readable, unreadable)
-    }
-
-    /// The one place a stored value is read. Values never leave this module
-    /// except into a child's environment, and the `Err` side carries a reason
-    /// that is never rendered — only its existence is.
-    fn read_indexed(&self) -> Vec<(String, Result<String, String>)> {
-        match self.backend() {
-            Backend::Keychain => {
-                // An empty index means the keychain is never touched, so a
-                // fresh machine gets no macOS prompt before it stores a key.
-                let mut out = Vec::new();
-                for name in self.names() {
-                    let got = entry(&self.service, &name)
-                        .and_then(|e| e.get_password().map_err(|e| e.to_string()))
-                        .and_then(|v| {
-                            if v.is_empty() {
-                                Err("the keychain holds an empty value".into())
-                            } else {
-                                Ok(v)
-                            }
-                        });
-                    out.push((name, got));
+        let mut lines: Vec<String> = Vec::new();
+        let mut replaced = false;
+        for line in text.lines() {
+            if parse_line(line).map(|(k, _)| k) == Some(var) {
+                // One line per key: the first occurrence is rewritten in
+                // place, any later duplicate is dropped.
+                if !replaced {
+                    lines.push(format!("{var}={value}"));
+                    replaced = true;
                 }
-                out
+                continue;
             }
-            Backend::File(path) => read_env_file(&path)
-                .into_iter()
-                .map(|(k, v)| (k, Ok(v)))
-                .collect(),
-            Backend::None(_) => Vec::new(),
+            lines.push(line.to_string());
         }
-    }
-}
-
-/// Is a platform credential store usable here? `store_status()` initialises the
-/// store once and reports the result — the Linux "no Secret Service" case
-/// arrives here as an `Err`, which is what selects the fallback.
-fn keychain_available() -> bool {
-    keyring::Entry::store_status().is_ok()
-}
-
-fn entry(service: &str, var: &str) -> Result<keyring::Entry, String> {
-    keyring::Entry::new(service, var)
-        .map_err(|e| format!("the OS keychain is not usable for {var}: {e}"))
-}
-
-/// Read `KEY=VALUE` lines. Shares the env-file dialect `lib.rs::env_file_pairs`
-/// parses (`export ` prefix, `#` comments, quotes stripped).
-fn read_env_file(path: &Path) -> BTreeMap<String, String> {
-    let mut out = BTreeMap::new();
-    let Ok(text) = std::fs::read_to_string(path) else {
-        return out;
-    };
-    for line in text.lines() {
-        let line = line.trim().trim_start_matches("export ").trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        if let Some((k, v)) = line.split_once('=') {
-            let k = k.trim();
-            let v = v.trim().trim_matches(['"', '\'']);
-            if !k.is_empty() && !v.is_empty() {
-                out.insert(k.to_string(), v.to_string());
+        if !replaced {
+            if text.is_empty() {
+                lines.extend(HEADER.iter().map(|l| l.to_string()));
             }
+            lines.push(format!("{var}={value}"));
         }
+        self.write(&lines)
     }
-    out
+
+    /// Delete `var`'s line(s), preserving everything else. `Ok(false)` when
+    /// there was nothing to delete — idempotent, and a missing file is simply
+    /// a file with nothing in it.
+    pub fn remove(&self, var: &str) -> Result<bool, String> {
+        let var = var.trim();
+        let text = match std::fs::read_to_string(&self.path) {
+            Ok(text) => text,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+            Err(e) => return Err(format!("cannot read {}: {e}", self.path.display())),
+        };
+        let kept: Vec<String> = text
+            .lines()
+            .filter(|line| parse_line(line).map(|(k, _)| k) != Some(var))
+            .map(str::to_string)
+            .collect();
+        let removed = kept.len() != text.lines().count();
+        if removed {
+            self.write(&kept)?;
+        }
+        Ok(removed)
+    }
+
+    /// First use: create the file with its header, owner-only, holding no
+    /// keys. `Ok(false)` when it already exists (nothing is touched).
+    pub fn create(&self) -> Result<bool, String> {
+        if self.exists() {
+            return Ok(false);
+        }
+        let lines: Vec<String> = HEADER.iter().map(|l| l.to_string()).collect();
+        self.write(&lines)?;
+        Ok(true)
+    }
+
+    fn write(&self, lines: &[String]) -> Result<(), String> {
+        if let Some(parent) = self.path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
+        }
+        let mut body = lines.join("\n");
+        body.push('\n');
+        write_owner_only(&self.path, &body)?;
+        // A file that already existed keeps its own mode through an open, so
+        // tighten it after the write too.
+        restrict(&self.path);
+        Ok(())
+    }
 }
 
-fn write_env_file(path: &Path, pairs: &BTreeMap<String, String>) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| format!("cannot create {}: {e}", parent.display()))?;
+/// One `KEY=VALUE` line → `(key, value)`, or `None` for a blank line, a
+/// comment, or a line with no `=`. The dialect canon's own loader reads:
+/// an `export ` prefix is allowed, surrounding quotes on the value are
+/// stripped. The one parser for this file — every reader and both writers
+/// go through it, so "which line is `FAL_KEY`'s?" has one answer.
+fn parse_line(line: &str) -> Option<(&str, &str)> {
+    let line = line.trim();
+    let line = line.strip_prefix("export ").map(str::trim).unwrap_or(line);
+    if line.is_empty() || line.starts_with('#') {
+        return None;
     }
-    let mut body =
-        String::from("# cradle provider keys — UNENCRYPTED fallback (no OS keychain).\n");
-    body.push_str("# Delete this file to forget every key stored here.\n");
-    for (k, v) in pairs {
-        body.push_str(&format!("{k}={v}\n"));
+    let (k, v) = line.split_once('=')?;
+    let k = k.trim();
+    if k.is_empty() {
+        return None;
     }
-    write_owner_only(path, &body)?;
-    // Belt and braces: a file that already existed keeps its own mode through
-    // an open, so tighten it after the write too.
-    restrict(path);
-    Ok(())
+    Some((k, v.trim().trim_matches(['"', '\''])))
 }
 
 /// Write `body`, creating the file 0600 FROM THE START on unix.
 ///
-/// `std::fs::write` creates with the process umask (typically 0644) and the
-/// chmod lands afterwards, so a plain write leaves a window in which the one
-/// file that legitimately holds key VALUES (W3.4's named Linux risk) is
-/// world-readable. Every `set` and every `delete` rewrites it, so the window is
-/// not a first-run-only concern.
+/// `std::fs::write` creates with the process umask (typically 0644) and a
+/// chmod afterwards leaves a window in which the one file that holds key
+/// VALUES is world-readable. Every `set` and every `remove` rewrites it, so
+/// the window is not a first-run-only concern.
 fn write_owner_only(path: &Path, body: &str) -> Result<(), String> {
     #[cfg(unix)]
     {
@@ -443,12 +263,13 @@ fn write_owner_only(path: &Path, body: &str) -> Result<(), String> {
             .mode(0o600)
             .open(path)
             .map_err(|e| format!("cannot write {}: {e}", path.display()))?;
-        return f
-            .write_all(body.as_bytes())
-            .map_err(|e| format!("cannot write {}: {e}", path.display()));
+        f.write_all(body.as_bytes())
+            .map_err(|e| format!("cannot write {}: {e}", path.display()))
     }
     #[cfg(not(unix))]
-    std::fs::write(path, body).map_err(|e| format!("cannot write {}: {e}", path.display()))
+    {
+        std::fs::write(path, body).map_err(|e| format!("cannot write {}: {e}", path.display()))
+    }
 }
 
 /// `0600` on unix — the file holds secrets, so nothing but the owner reads it.
@@ -466,9 +287,9 @@ fn restrict(path: &Path) {
 mod tests {
     use super::*;
 
-    fn temp_config() -> PathBuf {
+    fn temp_file(tag: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
-            "cradle-keys-{}-{}",
+            "cradle-keyfile-{tag}-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -476,147 +297,162 @@ mod tests {
                 .unwrap_or(0)
         ));
         std::fs::create_dir_all(&dir).unwrap();
-        dir
+        dir.join("provider-keys.env")
     }
 
-    /// The Linux fallback path: no keychain, an unencrypted file, a LOUD
-    /// warning, and `0600` — W3.4's named risk, handled rather than fatal.
-    #[test]
-    fn the_file_fallback_round_trips_and_warns_loudly() {
-        let dir = temp_config();
-        let store = KeyStore::with("cradle-test-file", Some(dir.clone()), true);
-        let backend = store.backend();
-        assert_eq!(backend.id(), "fallback_file");
-        let warning = backend.warning().expect("the fallback must warn");
-        assert!(warning.contains("UNENCRYPTED"), "{warning}");
+    #[cfg(unix)]
+    fn mode_of(path: &Path) -> u32 {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::metadata(path).unwrap().permissions().mode() & 0o777
+    }
 
-        store.set("FAL_KEY", "value-under-test").unwrap();
-        assert_eq!(store.names(), vec!["FAL_KEY".to_string()]);
+    /// Save rewrites ONE line and leaves everything else — comments, blank
+    /// lines, other keys, an `export` prefix, quoted values — exactly as it
+    /// was. That is what lets a hand-edited file and the Settings pane share
+    /// the same file without either clobbering the other.
+    #[test]
+    fn set_rewrites_one_line_and_preserves_the_rest() {
+        let path = temp_file("set");
+        std::fs::write(
+            &path,
+            "# my keys\n\
+             export FAL_KEY=\"old-fal-value\"\n\
+             \n\
+             GOOGLE_API_KEY='google-value'   # trailing note\n\
+             # PIXELLAB_SECRET=commented-out\n",
+        )
+        .unwrap();
+        let file = KeyFile::at(&path);
+        assert_eq!(file.names(), vec!["FAL_KEY", "GOOGLE_API_KEY"]);
+
+        file.set("FAL_KEY", "new-fal-value").unwrap();
+        let text = std::fs::read_to_string(&path).unwrap();
         assert_eq!(
-            store.all(),
-            vec![("FAL_KEY".to_string(), "value-under-test".to_string())]
+            text,
+            "# my keys\n\
+             FAL_KEY=new-fal-value\n\
+             \n\
+             GOOGLE_API_KEY='google-value'   # trailing note\n\
+             # PIXELLAB_SECRET=commented-out\n",
+            "only FAL_KEY's line changed"
         );
+        assert!(!text.contains("old-fal-value"));
 
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mode = std::fs::metadata(dir.join(FALLBACK_FILE))
-                .unwrap()
-                .permissions()
-                .mode();
-            assert_eq!(mode & 0o777, 0o600, "the fallback file must be owner-only");
-        }
-
-        // A REWRITE must land owner-only too: the mode is created with the
-        // file, not chmodded on after a umask-wide window.
-        store.set("ANTHROPIC_API_KEY", "second-value").unwrap();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let mode = std::fs::metadata(dir.join(FALLBACK_FILE))
-                .unwrap()
-                .permissions()
-                .mode();
-            assert_eq!(mode & 0o777, 0o600, "a rewrite must stay owner-only");
-        }
-        store.delete("ANTHROPIC_API_KEY").unwrap();
-
-        let (removed, _) = store.delete("FAL_KEY").unwrap();
-        assert!(removed);
-        assert!(store.names().is_empty());
-        assert!(store.all().is_empty());
-        let (again, _) = store.delete("FAL_KEY").unwrap();
-        assert!(!again, "delete is idempotent");
-        std::fs::remove_dir_all(&dir).ok();
-    }
-
-    #[test]
-    fn an_empty_value_is_refused_rather_than_stored() {
-        let dir = temp_config();
-        let store = KeyStore::with("cradle-test-empty", Some(dir.clone()), true);
-        let err = store.set("FAL_KEY", "   ").unwrap_err();
-        assert!(err.contains("Remove"), "{err}");
-        assert!(store.names().is_empty());
-        std::fs::remove_dir_all(&dir).ok();
-    }
-
-    /// The KEYCHAIN round-trip: set → read status → delete, against a service
-    /// name unique to this run so no earlier build's items are ever read (a
-    /// cross-build read is what raises the macOS prompt). Skipped, loudly, on
-    /// a machine with no usable credential store — which is exactly the
-    /// machine the fallback test above covers.
-    #[test]
-    fn the_keychain_round_trips_under_a_test_service_name() {
-        if !keychain_available() {
-            eprintln!("no OS keychain here — the fallback test covers this machine");
-            return;
-        }
-        let dir = temp_config();
-        let service = format!(
-            "cradle-test-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_nanos())
-                .unwrap_or(0)
-        );
-        let store = KeyStore::with(&service, Some(dir.clone()), false);
-        assert_eq!(store.backend().id(), "keychain");
-        assert!(store.backend().warning().is_none());
-
-        // A fresh store touches nothing: no index, no lookup, no prompt.
-        assert!(store.names().is_empty());
-        assert!(store.all().is_empty());
-
-        store.set("ANTHROPIC_API_KEY", "value-under-test").unwrap();
-        assert_eq!(store.names(), vec!["ANTHROPIC_API_KEY".to_string()]);
+        // A NEW name is appended; nothing else moves.
+        file.set("ANTHROPIC_API_KEY", "anthropic-value").unwrap();
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(text.ends_with("ANTHROPIC_API_KEY=anthropic-value\n"));
+        assert!(text.starts_with("# my keys\nFAL_KEY=new-fal-value\n"));
         assert_eq!(
-            store.all(),
-            vec![(
-                "ANTHROPIC_API_KEY".to_string(),
-                "value-under-test".to_string()
-            )]
+            file.pairs(),
+            vec![
+                ("FAL_KEY".to_string(), "new-fal-value".to_string()),
+                (
+                    "GOOGLE_API_KEY".to_string(),
+                    "google-value'   # trailing note".to_string()
+                ),
+                (
+                    "ANTHROPIC_API_KEY".to_string(),
+                    "anthropic-value".to_string()
+                ),
+            ]
         );
-        // The names index is names ONLY — the value is not in the file.
-        let index = std::fs::read_to_string(dir.join(INDEX_FILE)).unwrap();
-        assert!(index.contains("ANTHROPIC_API_KEY"));
-        assert!(!index.contains("value-under-test"));
-
-        let (removed, _) = store.delete("ANTHROPIC_API_KEY").unwrap();
-        assert!(removed);
-        assert!(store.names().is_empty());
-        assert!(store.all().is_empty());
-        std::fs::remove_dir_all(&dir).ok();
+        #[cfg(unix)]
+        assert_eq!(mode_of(&path), 0o600, "a rewrite lands owner-only");
+        std::fs::remove_dir_all(path.parent().unwrap()).ok();
     }
 
-    /// A name the INDEX lists but the keychain does not hold — the state a
-    /// removal outside cradle leaves behind. Two things must hold: `delete`
-    /// clears it (the "already gone is a success" branch is reached, which the
-    /// older message match never was), and until it is cleared the status read
-    /// calls it UNREADABLE rather than set, so the missing-key gate refuses
-    /// instead of letting a paid job die inside canon.
+    /// Remove deletes ONLY that key's line. Every other line survives
+    /// byte-for-byte, and removing what is not there is a no-op that says so.
     #[test]
-    fn a_stale_index_entry_is_unreadable_and_still_clearable() {
-        if !keychain_available() {
-            eprintln!("no OS keychain here — the fallback test covers this machine");
-            return;
-        }
-        let dir = temp_config();
-        let service = format!("cradle-test-stale-{}", std::process::id());
-        let store = KeyStore::with(&service, Some(dir.clone()), false);
-        // Index the name without ever storing a value for it.
-        store.write_index(&["FAL_KEY".to_string()]).unwrap();
+    fn remove_deletes_only_that_line() {
+        let path = temp_file("remove");
+        let before = "# header\nFAL_KEY=fal-value\nGOOGLE_API_KEY=google-value\n\n# tail\n";
+        std::fs::write(&path, before).unwrap();
+        let file = KeyFile::at(&path);
 
-        assert_eq!(store.names(), vec!["FAL_KEY".to_string()]);
-        let (readable, unreadable) = store.readable_names();
-        assert!(readable.is_empty(), "nothing is actually retrievable");
-        assert_eq!(unreadable, vec!["FAL_KEY".to_string()]);
-        assert!(store.all().is_empty(), "the child would get nothing");
+        assert!(file.remove("FAL_KEY").unwrap());
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            "# header\nGOOGLE_API_KEY=google-value\n\n# tail\n"
+        );
+        assert_eq!(file.names(), vec!["GOOGLE_API_KEY"]);
 
-        let (removed, _) = store.delete("FAL_KEY").unwrap();
-        assert!(removed, "the stale index entry was cleared");
-        assert!(store.names().is_empty());
-        std::fs::remove_dir_all(&dir).ok();
+        assert!(!file.remove("FAL_KEY").unwrap(), "remove is idempotent");
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            "# header\nGOOGLE_API_KEY=google-value\n\n# tail\n",
+            "a no-op remove does not rewrite the file"
+        );
+        std::fs::remove_dir_all(path.parent().unwrap()).ok();
+    }
+
+    /// First use. Reads never create the file; `create` makes it once with
+    /// the header and owner-only; `set` on a missing file creates it too.
+    #[test]
+    fn first_use_creates_the_file_once_and_never_on_read() {
+        let path = temp_file("create");
+        let file = KeyFile::at(&path);
+        assert!(!file.exists());
+        assert!(file.names().is_empty());
+        assert!(file.pairs().is_empty());
+        assert!(!file.remove("FAL_KEY").unwrap());
+        assert!(!file.exists(), "no read or no-op write creates the file");
+
+        assert!(file.create().unwrap());
+        assert!(file.exists());
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(text.starts_with("# Provider keys"), "{text}");
+        assert!(file.names().is_empty(), "a fresh file holds no keys");
+        #[cfg(unix)]
+        assert_eq!(mode_of(&path), 0o600);
+        assert!(!file.create().unwrap(), "create is idempotent");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), text, "untouched");
+
+        // And a save straight into a missing file creates it with the header.
+        let fresh = temp_file("create-by-set");
+        KeyFile::at(&fresh).set("FAL_KEY", "fal-value").unwrap();
+        let text = std::fs::read_to_string(&fresh).unwrap();
+        assert!(text.starts_with("# Provider keys"), "{text}");
+        assert!(text.ends_with("FAL_KEY=fal-value\n"));
+        #[cfg(unix)]
+        assert_eq!(mode_of(&fresh), 0o600, "created owner-only from the start");
+        std::fs::remove_dir_all(path.parent().unwrap()).ok();
+        std::fs::remove_dir_all(fresh.parent().unwrap()).ok();
+    }
+
+    #[test]
+    fn a_bad_value_is_refused_rather_than_written() {
+        let path = temp_file("refuse");
+        let file = KeyFile::at(&path);
+        assert!(file.set("FAL_KEY", "   ").unwrap_err().contains("Remove"));
+        assert!(file.set("", "x").is_err());
+        assert!(file.set("NOT A NAME", "x").is_err());
+        assert!(file.set("FAL_KEY", "one\ntwo").is_err());
+        assert!(!file.exists(), "a refused save creates nothing");
+        std::fs::remove_dir_all(path.parent().unwrap()).ok();
+    }
+
+    /// A duplicated name collapses to one line on save, and canon's own
+    /// "last line wins" reading is what `pairs` reports until then.
+    #[test]
+    fn duplicates_collapse_to_one_line() {
+        let path = temp_file("dupes");
+        std::fs::write(&path, "FAL_KEY=first\nOTHER=x\nFAL_KEY=second\n").unwrap();
+        let file = KeyFile::at(&path);
+        assert_eq!(
+            file.pairs(),
+            vec![
+                ("FAL_KEY".to_string(), "second".to_string()),
+                ("OTHER".to_string(), "x".to_string()),
+            ]
+        );
+        file.set("FAL_KEY", "third").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            "FAL_KEY=third\nOTHER=x\n"
+        );
+        std::fs::remove_dir_all(path.parent().unwrap()).ok();
     }
 
     #[test]
@@ -628,6 +464,10 @@ mod tests {
         assert_eq!(
             config_dir(),
             Some(PathBuf::from("/tmp/cradle-config-probe"))
+        );
+        assert_eq!(
+            app_file(),
+            Some(PathBuf::from("/tmp/cradle-config-probe/provider-keys.env"))
         );
         match before {
             Some(v) => std::env::set_var("CRADLE_CONFIG_DIR", v),

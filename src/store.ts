@@ -573,6 +573,13 @@ export const useStore = create<Store>((set, get) => ({
       worldMap: null,
       worldMapSel: null,
       pendingLevelAction: null,
+      // The tray is PER PACK, so leaving the pack empties it. Nothing here
+      // cancels or deletes a run: a job still on the Rust JobQueue keeps
+      // going, and a start-page create keeps recording what it spent because
+      // its terminal fold is anchored in `handleJobEvent` ABOVE that
+      // function's "no row in the tray" guard, not in the card that used to
+      // own it. Move the fold back down and leaving a project silently loses
+      // a paid run's ledgers again.
       jobs: [],
       lastCompletedJob: null,
       jobsOpen: false,
@@ -728,7 +735,15 @@ export const useStore = create<Store>((set, get) => ({
         next.npcs = manifest.npc_count;
         next.events = manifest.event_count;
         next.quests = manifest.quest_count;
-        if (typeof manifest.generation_stats?.total_cost_usd === "number") {
+        // The card's cost: the tree's own standalone `generation_stats.json`
+        // (the only stats record a platformer writes), then the dungeon
+        // manifest's embedded copy as the fallback. Reading only the embedded
+        // block showed $0 for every paid platformer run.
+        const stats = (await api.readWorldJson(path, "generation_stats").catch(() => null)) as {
+          total_cost_usd?: unknown;
+        } | null;
+        if (typeof stats?.total_cost_usd === "number") next.cost = stats.total_cost_usd;
+        else if (typeof manifest.generation_stats?.total_cost_usd === "number") {
           next.cost = manifest.generation_stats.total_cost_usd;
         }
         next.validation = validationFrom(manifest.validation_report);
@@ -857,7 +872,13 @@ export const useStore = create<Store>((set, get) => ({
         recent.npcs = manifest.npc_count;
         recent.events = manifest.event_count;
         recent.quests = manifest.quest_count;
-        if (typeof manifest.generation_stats?.total_cost_usd === "number") {
+        // Same order as `enrichRecent`: the standalone stats file the run
+        // wrote, then the embedded manifest block only as a fallback.
+        const stats = (await api.readWorldJson(path, "generation_stats").catch(() => null)) as {
+          total_cost_usd?: unknown;
+        } | null;
+        if (typeof stats?.total_cost_usd === "number") recent.cost = stats.total_cost_usd;
+        else if (typeof manifest.generation_stats?.total_cost_usd === "number") {
           recent.cost = manifest.generation_stats.total_cost_usd;
         }
         recent.validation = validationFrom(manifest.validation_report);

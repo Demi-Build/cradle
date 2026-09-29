@@ -1,5 +1,22 @@
-import { api, type ProviderRow, type ProviderRowsDoc } from "./invoke";
+import { api, type ProviderKeyStatus, type ProviderRow, type ProviderRowsDoc } from "./invoke";
 import { useStore } from "../store";
+
+/** The key-file status the pane renders. There is ONE source of provider
+ *  keys — a plain `KEY=VALUE` file — so `env_file` is where they live and
+ *  `env_file_exists` is whether it is there yet. A read never creates it. */
+export type KeyFileStatus = ProviderKeyStatus;
+
+/** The status read — names and presence only, never a value. */
+export function providerKeyStatus(names: string[]): Promise<ProviderKeyStatus> {
+  return api.providerKeys(names);
+}
+
+/** First use: create the key file (header only, owner-only) at the path the
+ *  status read reports. The one explicit action behind "no key file yet";
+ *  `created: false` when it was already there. */
+export function createProviderKeyFile(): Promise<{ env_file: string; created: boolean }> {
+  return api.createProviderKeyFile();
+}
 
 /** Provider rows and the missing-key gate — rows as DATA (row P0-12, master
  *  §6 S6 / doctrine 8's M0-readiness rule).
@@ -61,7 +78,7 @@ export async function missingKeysFor(backends: Record<string, string>): Promise<
     if (!needed.length) return null;
     // A row's ALIAS satisfies its canonical var: the backend reads either, so
     // a key stored under the dashboard's name is not "missing".
-    const { env_file, keys } = await api.providerKeys(needed);
+    const { env_file, env_file_exists, keys } = await providerKeyStatus(needed);
     const have = new Set(keys);
     const absent = needed.filter((canonical) => {
       const row = rowForVar(doc.providers, canonical);
@@ -69,12 +86,14 @@ export async function missingKeysFor(backends: Record<string, string>): Promise<
       return !names.some((n) => have.has(n));
     });
     if (!absent.length) return null;
-    return (
-      `missing ${absent.join(", ")} — ` +
-      (env_file
-        ? `not found in the keychain or ${env_file}`
-        : "not found in the keychain; add it in Settings → API keys")
-    );
+    // The key file is the ONE place cradle looks, so the reason names it —
+    // and says when it does not exist yet, which is the first-use case.
+    const where = !env_file
+      ? "cradle has no key file on this machine; see Settings → API keys"
+      : env_file_exists === false
+        ? `there is no key file yet at ${env_file}; add it in Settings → API keys`
+        : `not in ${env_file}; add it in Settings → API keys`;
+    return `missing ${absent.join(", ")} — ${where}`;
   } catch {
     return null; // can't tell (browser mock) — let the job try.
   }

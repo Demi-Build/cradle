@@ -280,7 +280,7 @@ export default function App() {
         label: "Ask agent…",
         group: "Agent",
         hint: kbd("⇧A"),
-        keywords: "chat wick assistant panel conversation",
+        keywords: "chat wright assistant panel conversation",
         enabled: !!world,
         disabledReason: "no project open",
         run: () => {
@@ -307,7 +307,7 @@ export default function App() {
         id: "app.settings",
         label: "Settings",
         group: "View",
-        keywords: "api keys keychain provider environment canon godot blender project store",
+        keywords: "api keys key file provider environment canon godot blender project store",
         run: () => openSettings("keys"),
       },
       {

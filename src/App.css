@@ -1648,10 +1648,20 @@ button.portrait-badge:hover {
   border-color: var(--border-hi);
 }
 
+/* CONTAINER, not a button: the segmented cards/list pair. It paints a sunken
+   ground, so it must also name a foreground — a `<button>` does NOT inherit
+   colour (the UA sets `color: buttontext` on it), so a container that skips
+   `color` renders near-black text the moment the class lands on a button
+   instead of around one. That is exactly how the music/sfx toolbar's
+   "＋ new row" and "⚙ roll tables" went black-on-black in the dark theme.
+   Those two are ordinary buttons now (`.btn`); this declaration closes the
+   trap so the next reuse cannot repeat it. `.view-toggle button` below still
+   wins for the real children, so nothing changes visually. */
 .view-toggle {
   display: inline-flex;
   gap: 2px;
   background: var(--bg-sunken);
+  color: var(--fg-muted);
   padding: 2px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);

@@ -3,6 +3,8 @@ import { api } from "../lib/invoke";
 import { useStore } from "../store";
 import { ExpandableText } from "./ExpandableText";
 import { useAssetUrl } from "./start/useAssetUrl";
+import { AssetFailureList } from "./AssetFailureList";
+import { assetFamilyCell, summarizeAssets, type AssetFailure } from "./assetFailureSummary";
 
 type Faction = {
   name?: string;
@@ -55,10 +57,19 @@ type Manifest = {
 type Stats = {
   llm_backend?: string;
   image_backend?: string;
+  music_backend?: string;
+  sfx_backend?: string;
   llm_calls?: number;
   total_tokens?: number;
   images_generated?: number;
+  images_attempted?: number;
   images_succeeded?: number;
+  music_attempted?: number;
+  music_succeeded?: number;
+  sfx_attempted?: number;
+  sfx_succeeded?: number;
+  /** One record per asset that stayed missing after its retries. */
+  failures?: AssetFailure[];
   llm_cost_usd?: number;
   image_cost_usd?: number;
   audio_cost_usd?: number;
@@ -280,12 +291,28 @@ export function WorldBibleView() {
         </section>
       )}
 
+      {stats && stats.failures && stats.failures.length > 0 && (
+        <section className="bible-section bible-asset-failures">
+          <h2>Assets that did not land</h2>
+          <AssetFailureList failures={stats.failures} />
+        </section>
+      )}
+
       {stats && (
         <section className="bible-section bible-stats">
           <h2>Generation</h2>
           <div className="stats-grid">
             {stats.llm_backend && <StatCell k="llm" v={stats.llm_backend} />}
             {stats.image_backend && <StatCell k="images" v={stats.image_backend} />}
+            {stats.music_backend && <StatCell k="music" v={stats.music_backend} />}
+            {stats.sfx_backend && <StatCell k="sfx" v={stats.sfx_backend} />}
+            {/* What the run actually produced, per family: landed / planned.
+                A family that lost assets reads as `43 / 50`, never as a bare
+                success count that hides the seven — and a file with no
+                failure list reads `43 / 50 attempted`, not `43 / 43`. */}
+            {summarizeAssets(stats).map((f) => (
+              <StatCell key={f.kind} k={`${f.label} landed`} v={assetFamilyCell(f)} />
+            ))}
             {typeof stats.llm_calls === "number" && (
               <StatCell k="llm calls" v={String(stats.llm_calls)} />
             )}

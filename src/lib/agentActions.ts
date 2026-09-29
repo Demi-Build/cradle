@@ -223,13 +223,30 @@ function defaultModel(): string | null {
   return available?.id ?? st.agent.models[0]?.id ?? null;
 }
 
+/** The id prefix a tab carries until the service has created it. `nextId`
+ *  appends `_<n>`, so the placeholder ids are `local_1`, `local_2`, … */
+const LOCAL_ID_PREFIX = "local";
+
+/** Has the service created this conversation yet?
+ *
+ *  False while the tab still carries the placeholder id `newConversationTab`
+ *  minted — a tab that has never sent. Nothing outside cradle has ever seen
+ *  such an id: no transcript, no journal row, no ledger entry, and so no
+ *  actor built from it can match anything. Exported because surfaces OUTSIDE
+ *  this module need the same question answered (the status bar only shows an
+ *  actor for a conversation the service knows) and must not re-spell the
+ *  prefix at the call site. */
+export function isRemoteConversation(id: string): boolean {
+  return Boolean(id) && !id.startsWith(`${LOCAL_ID_PREFIX}_`);
+}
+
 /** Open a new tab. The conversation is created locally at once (the
  *  composer stays usable while the service starts — README §3 "Service
  *  starting… non-blocking; queues") and gets its service id on first send. */
 export function newConversationTab(opts: { mode?: string; model?: string | null } = {}): string {
   const st = useStore.getState();
   const order = Object.keys(st.agent.conversations).length + 1;
-  const id = nextId("local");
+  const id = nextId(LOCAL_ID_PREFIX);
   const conv = newConversation(id, {
     order,
     mode: opts.mode ?? st.agent.conversations[st.agent.activeId ?? ""]?.mode ?? "ask",
@@ -348,7 +365,7 @@ async function ensureRemote(localId: string): Promise<string> {
   const st = useStore.getState();
   const conv = st.agent.conversations[localId];
   if (!conv) throw new Error("no such conversation");
-  if (!localId.startsWith("local_")) return localId;
+  if (isRemoteConversation(localId)) return localId;
   const created = await agentApi.createConversation();
   const remote: Conversation = { ...conv, id: created.id };
   const s2 = useStore.getState();
@@ -597,7 +614,7 @@ function lastOkWrite(conv: Conversation, name: string): ToolItem | null {
 async function hydrateResults(id: string): Promise<void> {
   const st = useStore.getState();
   const conv = st.agent.conversations[id];
-  if (!conv || id.startsWith("local_")) return;
+  if (!conv || !isRemoteConversation(id)) return;
   const needs = collectTools(conv.items).some(
     (t) => t.result === undefined && t.status !== "pending",
   );
@@ -814,7 +831,7 @@ const abandoned = new Set<string>();
 /** Header ⏹ / Esc: stops the reply and every run beneath it. */
 export async function stopConversation(conversationId: string) {
   const st = useStore.getState();
-  if (conversationId.startsWith("local_")) {
+  if (!isRemoteConversation(conversationId)) {
     // The turn is queued on a conversation the service has not created yet:
     // nothing to POST to, but the send must still not start. Mark it and
     // say what happened — never a silently inert button.
@@ -842,17 +859,25 @@ export async function stopRun(runId: string) {
   }
 }
 
-/** Job-tray ⏹ (and CreateProgress's): row A4.5's `cancel_job`. */
+/** Job-tray ⏹ (and CreateProgress's): row A4.5's `cancel_job`.
+ *
+ *  The cancel is addressed to the JobQueue BY ID and needs no tray row. It
+ *  used to return early when the job was not in `jobs`, which made ⏹ dead for
+ *  the one job that can outlive the tray: the job tray is per pack and
+ *  `closeWorld` empties it, while a start-page create carries on running on
+ *  the Rust side. A Stop that neither stops nor says why is the cancel
+ *  contract inverted, so the request always goes out; only the optimistic row
+ *  update needs a row, and the real state arrives as `job-updated` either
+ *  way. */
 export async function cancelJob(jobId: string) {
   const st = useStore.getState();
   const job = st.jobs.find((j) => j.id === jobId);
-  if (!job) return;
   try {
     await api.cancelJob(jobId);
     // Queued jobs are dropped outright; the Rust side confirms with
     // `job-updated {status: "cancelled"}` either way — this is just the
     // immediate feedback so the row never reads "running" after Stop.
-    if (job.status === "queued") st.updateJob(jobId, { status: "cancelled", endedAt: Date.now() });
+    if (job?.status === "queued") st.updateJob(jobId, { status: "cancelled", endedAt: Date.now() });
   } catch (e) {
     showToast(String(e).slice(0, 160));
   }

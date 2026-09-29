@@ -1,35 +1,44 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   api,
-  type ProviderKeyStatus,
   type ProviderKeyVar,
   type ProviderRow,
   type ProviderTestResult,
 } from "../../lib/invoke";
-import { providerRows, resetProviderRows } from "../../lib/providerKeys";
+import {
+  createProviderKeyFile,
+  providerKeyStatus,
+  providerRows,
+  resetProviderRows,
+  type KeyFileStatus,
+} from "../../lib/providerKeys";
 import { useStore } from "../../store";
 
-/** Settings → **API keys** (row P0-12; Phase 0 W3.4–W3.5, pattern build per
- *  master §8 Q7).
+/** Settings → **API keys**.
  *
- *  **Rows are DATA.** Every row on this pane comes from `canon providers list`
- *  (master §6 S6, superseding W3.4's "fixed six provider rows"), so adding a
- *  provider is adding a row in `canon/providers.py` and nothing here changes.
- *  That is also why the six September providers, `MESHY_API_KEY` and Phase 1's
- *  chat-provider keys all render from the same loop.
+ *  **One source: the key file.** Every key cradle hands to canon comes from
+ *  one plain `KEY=VALUE` file on this machine — never from the shell, never
+ *  from a keychain. This pane shows WHERE that file is, whether each row's
+ *  key is present in it, and writes to it: Save rewrites that one line
+ *  (other lines and comments survive), Remove deletes it. When the file does
+ *  not exist yet the pane says so and offers to create it; a read never
+ *  creates it on its own.
+ *
+ *  **Rows are DATA.** Every row on this pane comes from `canon providers
+ *  list`, so adding a provider is adding a row in canon and nothing here
+ *  changes.
  *
  *  **The paste field is write-only.** A stored value never comes back: no
  *  command returns one, this component never holds one after `Save`, and the
- *  status read carries names and sources only — not a masked value, not a
+ *  status read carries names and presence only — not a masked value, not a
  *  length. The field is cleared in the same tick it is submitted.
  *
  *  **The Test button is user-initiated and named.** It runs the cheapest
  *  authenticated ping the row declares — a free read-only list call, never a
- *  generation (doctrine 3: paid legs are user-run, and a key check that billed
- *  would be a paid leg cradle started). Its copy says, before you click, that
- *  clicking contacts that provider and costs effectively nothing. A row whose
- *  provider publishes no free endpoint renders the button disabled WITH that
- *  reason (doctrine 4), never hidden.
+ *  generation. Its copy says, before you click, that clicking contacts that
+ *  provider and costs effectively nothing; its result says which file the
+ *  key came from. A row whose provider publishes no free endpoint renders the
+ *  button disabled WITH that reason, never hidden.
  *
  *  **Deep links land on a row.** `settings.focusVar` is the offending variable
  *  from whichever refusal opened this screen — the create wizard's precheck,
@@ -37,8 +46,9 @@ import { useStore } from "../../store";
 export function KeysPane() {
   const focusVar = useStore((s) => s.settings.focusVar);
   const [rows, setRows] = useState<ProviderRow[] | null>(null);
-  const [status, setStatus] = useState<ProviderKeyStatus | null>(null);
+  const [status, setStatus] = useState<KeyFileStatus | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const focusRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
@@ -46,7 +56,7 @@ export function KeysPane() {
       const doc = await providerRows();
       setRows(doc.providers);
       const names = doc.providers.flatMap((r) => [r.env_var, ...r.aliases]);
-      setStatus(await api.providerKeys(names));
+      setStatus(await providerKeyStatus(names));
       setErr(null);
     } catch (e) {
       setErr(String(e).slice(0, 400));
@@ -66,10 +76,23 @@ export function KeysPane() {
   }, [rows, focusVar]);
 
   const byName = useMemo(() => {
-    const map = new Map<string, ProviderKeyStatus["vars"][number]>();
+    const map = new Map<string, ProviderKeyVar>();
     for (const v of status?.vars ?? []) map.set(v.name, v);
     return map;
   }, [status]);
+
+  const createFile = async () => {
+    setCreating(true);
+    setErr(null);
+    try {
+      await createProviderKeyFile();
+      await load();
+    } catch (e) {
+      setErr(String(e).slice(0, 400));
+    } finally {
+      setCreating(false);
+    }
+  };
 
   if (err && !rows) {
     return (
@@ -78,9 +101,9 @@ export function KeysPane() {
         <div className="np-err" data-testid="keys-error">
           cradle could not read the provider rows from canon: {err}
         </div>
-        {/* Doctrine 4: a dead end gets a way out. The rows are cached for the
-            session, so retrying has to drop the cache first or it re-awaits
-            the same failure. */}
+        {/* A dead end gets a way out. The rows are cached for the session, so
+            retrying has to drop the cache first or it re-awaits the same
+            failure. */}
         <button
           className="btn"
           data-testid="keys-retry"
@@ -98,19 +121,7 @@ export function KeysPane() {
   return (
     <section data-testid="keys-pane">
       <PaneHead />
-      {status?.warning && (
-        <div className="np-err" data-testid="keys-store-warning">
-          ⚠ {status.warning}
-        </div>
-      )}
-      {status?.backend === "keychain" && (
-        <p style={note} data-testid="keys-store-note">
-          Keys are stored in this machine's OS keychain under the service name <code>cradle</code>,
-          and injected into canon only when it runs. On macOS the first access shows a keychain
-          permission prompt for this app — that prompt is expected, not a failure; a signed build
-          asks once.
-        </p>
-      )}
+      {status && <FileNote status={status} creating={creating} onCreate={createFile} />}
       {err && (
         <div className="np-err" data-testid="keys-error">
           {err}
@@ -122,6 +133,7 @@ export function KeysPane() {
           row={row}
           status={byName.get(row.env_var)}
           aliasStatus={row.aliases.map((a) => byName.get(a)).find((v) => v?.set)}
+          filePath={status?.env_file ?? null}
           focused={!!focusVar && (focusVar === row.env_var || row.aliases.includes(focusVar))}
           anchor={
             !!focusVar && (focusVar === row.env_var || row.aliases.includes(focusVar))
@@ -143,10 +155,79 @@ function PaneHead() {
       <h3 style={{ margin: "0 0 4px" }}>API keys</h3>
       <p style={note}>
         A key is per machine, never part of a project — copying a project never copies its keys.
-        Cradle stores each one in the OS keychain and hands it to canon as an environment variable
-        when a job runs. Values are write-only: nothing here can show you a key again.
+        Cradle keeps them in one plain file and hands each one to canon as an environment variable
+        only when it runs. Values are write-only here: nothing on this screen can show you a key
+        again.
       </p>
     </>
+  );
+}
+
+/** Where the keys live — the one fact a user needs to trust this screen — in
+ *  one of three states: no resolvable file (an error with a way out), a file
+ *  that does not exist yet (first use, with the one action that creates it),
+ *  or the file itself, named. Calm copy on the intended path: a plain file
+ *  readable by your user account is the design, not a fallback. */
+function FileNote({
+  status,
+  creating,
+  onCreate,
+}: {
+  status: KeyFileStatus;
+  creating: boolean;
+  onCreate: () => Promise<void>;
+}) {
+  if (!status.env_file) {
+    return (
+      <div className="np-err" data-testid="keys-store-warning">
+        {status.warning ?? "cradle has no place to keep provider keys on this machine."}
+      </div>
+    );
+  }
+  if (status.env_file_exists === false) {
+    return (
+      <div
+        data-testid="keys-file-missing"
+        style={{
+          border: "1px solid var(--border)",
+          borderRadius: 8,
+          padding: "10px 12px",
+          marginBottom: 12,
+          background: "var(--bg-sunken)",
+        }}
+      >
+        <strong style={{ display: "block", marginBottom: 4 }}>No key file yet</strong>
+        <div style={note}>
+          Cradle will keep your keys in{" "}
+          <code data-testid="keys-file-path" style={{ wordBreak: "break-all" }}>
+            {status.env_file}
+          </code>
+          . It does not exist on this machine yet — create it here, or save a key below and it is
+          created for you. Either way it is a plain file readable by your user account, one
+          <code> KEY=VALUE</code> per line, and you can edit it by hand.
+        </div>
+        <button
+          className="btn pri"
+          style={{ marginTop: 8 }}
+          onClick={() => void onCreate()}
+          disabled={creating}
+          data-testid="keys-create-file"
+        >
+          Create the key file
+        </button>
+      </div>
+    );
+  }
+  return (
+    <p style={note} data-testid="keys-store-note">
+      Your keys live in{" "}
+      <code data-testid="keys-file-path" style={{ wordBreak: "break-all" }}>
+        {status.env_file}
+      </code>
+      — a plain file readable by your user account, one <code>KEY=VALUE</code> per line. That file
+      is the only place cradle reads a key from: not your shell, not a keychain. Change it here or
+      by hand; either way, what is in the file is what canon gets.
+    </p>
   );
 }
 
@@ -154,6 +235,7 @@ function KeyRow({
   row,
   status,
   aliasStatus,
+  filePath,
   focused,
   anchor,
   onChanged,
@@ -162,6 +244,7 @@ function KeyRow({
   row: ProviderRow;
   status?: ProviderKeyVar;
   aliasStatus?: ProviderKeyVar;
+  filePath: string | null;
   focused: boolean;
   anchor?: React.RefObject<HTMLDivElement | null>;
   onChanged: () => Promise<void>;
@@ -174,20 +257,11 @@ function KeyRow({
   const [test, setTest] = useState<ProviderTestResult | null>(null);
   const effective = status?.set ? status : aliasStatus?.set ? aliasStatus : status;
   const isSet = !!effective?.set;
-  // Stored in cradle's own store but not retrievable on this machine: the chip
-  // must not read "set", or the missing-key gate passes and the job dies inside
-  // canon instead of here.
-  const unreadable = !isSet && (!!status?.unreadable || !!aliasStatus?.unreadable);
-  // Remove reaches cradle's OWN store and nothing else. A value that comes
-  // from the shell or an env file cannot be withdrawn from here, so the button
-  // is disabled WITH the reason rather than silently no-opping (doctrine 4).
-  const ownsValue =
-    effective?.source === "keychain" || effective?.source === "fallback_file" || unreadable;
-  const removeWhy = ownsValue
-    ? `Forget ${effective?.name ?? row.env_var} on this machine`
-    : isSet
-      ? `${effective?.name ?? row.env_var} comes from ${sourceLabel(effective?.source)}, not from cradle's store — unset it there`
-      : "nothing stored";
+  const holder = effective?.name ?? row.env_var;
+  const fileLabel = filePath ?? "the key file";
+  // The file is the only source, so a key that is set is a key Remove can
+  // delete. Disabled WITH the reason otherwise, never hidden.
+  const removeWhy = isSet ? `Delete ${holder} from ${fileLabel}` : "nothing stored";
 
   const save = async () => {
     if (!draft.trim()) return;
@@ -221,17 +295,11 @@ function KeyRow({
 
   const runTest = async () => {
     setBusy(true);
-    setTest(null);
+    onError(null);
     try {
       setTest(await api.testProviderKey(row.id));
     } catch (e) {
-      setTest({
-        id: row.id,
-        ran: false,
-        ok: false,
-        status: null,
-        reason: String(e).slice(0, 200),
-      });
+      onError(String(e).slice(0, 400));
     } finally {
       setBusy(false);
     }
@@ -242,7 +310,7 @@ function KeyRow({
     ? `${row.label} publishes no free authenticated endpoint — a test would have to run a paid generation, which this button never does.`
     : !isSet
       ? "no key stored yet"
-      : `Contacts ${row.label} with one free, read-only call. No generation, no tokens: effectively $0.`;
+      : `Contacts ${row.label} with one free, read-only call using the key in ${fileLabel}. No generation, no tokens: effectively $0.`;
 
   return (
     <div
@@ -277,11 +345,7 @@ function KeyRow({
             opacity: isSet ? 1 : 0.7,
           }}
         >
-          {isSet
-            ? `set · ${sourceLabel(effective?.source)}`
-            : unreadable
-              ? "unreadable"
-              : "not set"}
+          {isSet ? `set · ${sourceLabel(effective?.source)}` : "not set"}
         </span>
         <div style={{ flex: 1 }} />
         <a href={row.docs} target="_blank" rel="noreferrer" style={{ fontSize: 11 }}>
@@ -298,19 +362,6 @@ function KeyRow({
         <div style={{ ...note, margin: "3px 0 0" }} data-testid="key-alias-note">
           Stored under <code>{aliasStatus.name}</code> — canon accepts it as{" "}
           <code>{row.env_var}</code>.
-        </div>
-      )}
-      {unreadable && (
-        <div style={{ ...note, margin: "3px 0 0" }} data-testid="key-unreadable">
-          Stored here, but this machine will not release it — the item was removed outside cradle,
-          or the OS is refusing this build access to it. Canon would receive nothing, so paste the
-          key again to replace it.
-        </div>
-      )}
-      {!!effective?.also_in?.length && (
-        <div style={{ ...note, margin: "3px 0 0" }} data-testid="key-also-in">
-          Also present in: {effective.also_in.map(sourceLabel).join(", ")} —{" "}
-          {sourceLabel(effective.source)} is what canon gets.
         </div>
       )}
       <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
@@ -344,8 +395,8 @@ function KeyRow({
         </button>
         <button
           className="btn dang"
-          onClick={() => void remove(effective?.name ?? row.env_var)}
-          disabled={busy || !ownsValue}
+          onClick={() => void remove(holder)}
+          disabled={busy || !isSet}
           title={removeWhy}
           data-testid="key-remove"
         >
@@ -363,6 +414,7 @@ function KeyRow({
         >
           {test.ok ? "✓ " : "✕ "}
           {test.reason}
+          {test.ran ? ` — tested with the key in ${fileLabel}` : ""}
         </div>
       )}
     </div>
@@ -370,15 +422,7 @@ function KeyRow({
 }
 
 function sourceLabel(source: string | null | undefined): string {
-  return (
-    {
-      keychain: "the OS keychain",
-      fallback_file: "cradle's unencrypted fallback file",
-      env: "this machine's environment",
-      env_file: "the env file",
-    }[source ?? ""] ??
-    (source || "unknown")
-  );
+  return { env_file: "in the key file" }[source ?? ""] ?? (source || "unknown");
 }
 
 const note: React.CSSProperties = { fontSize: 11.5, opacity: 0.72, lineHeight: 1.5 };

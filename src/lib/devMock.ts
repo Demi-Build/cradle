@@ -793,6 +793,11 @@ function mockBackendKeyVars(): Record<string, Record<string, string>> {
 /** Which vars the mock reports as SET. Names only — the mock holds no key
  *  value at all, realistic-looking or otherwise. */
 const MOCK_PRESENT_KEYS = new Set<string>(["ANTHROPIC_API_KEY", "FAL_KEY", "GOOGLE_API_KEY"]);
+/** The mock's key FILE — the one source of provider keys. Its path is what the
+ *  Keys pane shows; `exists` is the first-use flag (`create_provider_key_file`
+ *  and the first save flip it, a read never does). */
+const MOCK_KEY_FILE = "mock://config/cradle/provider-keys.env";
+let mockKeyFileExists = true;
 
 /** The relocated project store, when the Environment pane moved it. */
 let MOCK_PROJECT_STORE: string | null = null;
@@ -1119,6 +1124,13 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         seed: String(args.seed ?? "mock"),
         engines: [template === "dungeon" ? "pygame" : "godot"],
         changed: true,
+        // I7 parity with `world new`'s result: the run's MEASURED money, read
+        // by canon from the tree's own generation_stats.json. The mock has
+        // called no provider, so its figure is a real $0 — the key is PRESENT
+        // (a landed run always measures), never absent, which is what canon
+        // reports for a run that never reached its manifest phase.
+        actual_usd: 0,
+        actual_split_usd: { llm: 0, image: 0, audio: 0, vlm: 0 },
       });
       return { job_id: id, status: "queued", pack_dir: packDir };
     }
@@ -1805,37 +1817,59 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         error: null,
       };
     case "provider_keys": {
-      // I7 parity for row P0-12's extended status read. Pretend the usual keys
-      // are PRESENT so paid gates are reachable headless — but only as names
-      // and sources. There is deliberately NO key value anywhere in this mock:
-      // a realistic-looking key in the repo is a secret-shaped liability even
-      // when it is fake, and the real command cannot return one either.
-      const present = new Set(MOCK_PRESENT_KEYS);
+      // Parity for the status read: present in the key FILE, or absent — the
+      // file is the only source, so there is no other place a name can be
+      // seen. Pretend the usual keys are PRESENT so paid gates are reachable
+      // headless — but only as names. There is deliberately NO key value
+      // anywhere in this mock: a realistic-looking key in the repo is a
+      // secret-shaped liability even when it is fake, and the real command
+      // cannot return one either.
+      const present = new Set(mockKeyFileExists ? MOCK_PRESENT_KEYS : []);
       const asked = Array.isArray(args.vars) ? (args.vars as string[]) : [];
-      const names = [...new Set([...asked, ...MOCK_PRESENT_KEYS])].sort();
+      const names = [...new Set([...asked, ...present])].sort();
       return {
-        env_file: "mock://.env",
+        env_file: MOCK_KEY_FILE,
+        env_file_exists: mockKeyFileExists,
         keys: names.filter((n) => present.has(n)),
         vars: names.map((name) => ({
           name,
           set: present.has(name),
-          source: present.has(name) ? "keychain" : null,
+          source: present.has(name) ? "env_file" : null,
           also_in: [],
         })),
-        backend: "keychain",
+        backend: "env_file",
         warning: null,
         config_dir: "mock://config/cradle",
       };
     }
     case "set_provider_key": {
       // Write-only in the mock too: the value is READ and DROPPED, never
-      // stored and never echoed back.
+      // stored and never echoed back. A save into a missing file creates it.
+      mockKeyFileExists = true;
       MOCK_PRESENT_KEYS.add(String(args.var));
-      return { var: String(args.var), stored: true, backend: "keychain", warning: null };
+      return {
+        var: String(args.var),
+        stored: true,
+        backend: "env_file",
+        warning: null,
+        env_file: MOCK_KEY_FILE,
+      };
     }
     case "delete_provider_key": {
-      const had = MOCK_PRESENT_KEYS.delete(String(args.var));
-      return { var: String(args.var), removed: had, backend: "keychain", warning: null };
+      const had = mockKeyFileExists && MOCK_PRESENT_KEYS.delete(String(args.var));
+      return {
+        var: String(args.var),
+        removed: had,
+        backend: "env_file",
+        warning: null,
+        env_file: MOCK_KEY_FILE,
+      };
+    }
+    case "create_provider_key_file": {
+      // First use: the one explicit action that creates the file. Idempotent.
+      const created = !mockKeyFileExists;
+      mockKeyFileExists = true;
+      return { env_file: MOCK_KEY_FILE, created };
     }
     case "provider_rows":
       return {
@@ -1970,15 +2004,51 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       schemas[t] = base;
       return { type: t, source: "pack", schema: base, changed: set.fields ?? {} };
     }
-    case "generate_asset":
+    case "generate_asset": {
+      // I7 parity with `db_ops.generate_asset`: one `<kind>:<id>` reroll or
+      // `--target missing` (every asset whose file is absent), answered in
+      // the dungeon verb's full shape — planned / landed / failures /
+      // skipped / files ride beside the platformer's older keys.
+      const target = String(args.target);
+      const planned =
+        target === "missing"
+          ? MOCK_GENERATION_STATS.failures.map((f) => f.target)
+          : [target];
+      const skipped: Record<string, string> = {};
+      if (target === "missing" && !args.musicBackend) {
+        skipped.music = "no --music-backend given — its 1 asset(s) were left as they are";
+      }
+      const landed = planned.filter(
+        (t) => !(t.startsWith("music:") && skipped.music),
+      );
       return simulateJob(args.jobId as string, {
-        target: String(args.target),
-        generated: true,
-        changed: true,
-        changed_artifacts: [String(args.target)],
+        target,
+        generated: landed.length > 0,
+        planned,
+        landed,
+        failures: [],
+        skipped,
+        changed: landed.length > 0,
+        changed_artifacts: landed,
+        files: landed.length > 0 ? ["generation_stats.json", "manifest.json"] : [],
         cost: { usd: 0, input_tokens: 0, output_tokens: 0, calls: 0, backend: "fake" },
-        warnings: ["mock: real bytes need the native app"],
+        warnings: [
+          "mock: real bytes need the native app",
+          ...Object.entries(skipped).map(([family, reason]) => `${family}: ${reason}`),
+        ],
       });
+    }
+    case "read_world_json": {
+      // The Rust command reads `<pack>/<name>.json`. The mock serves the two
+      // files the bible view and the create card read: a manifest (empty —
+      // the view renders without one) and a generation_stats in the shape a
+      // paid run with failures leaves behind, so the failure list and the
+      // per-family tallies can be exercised in the browser.
+      const name = String(args.name ?? "").replace(/\.json$/, "");
+      if (name === "generation_stats") return JSON.parse(JSON.stringify(MOCK_GENERATION_STATS));
+      if (name === "manifest") return {};
+      throw new Error(`devMock: no ${name}.json in the mock pack`);
+    }
     case "animate_asset":
       return simulateJob(args.jobId as string, {
         target: String(args.target),
@@ -2107,9 +2177,14 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
     case "estimate_level":
       return {
         result: "estimate",
-        estimate: mockEstimate(String(args.op ?? "generate"), null, {
-          llm: String(args.llmBackend ?? "fake"),
-        }),
+        estimate: mockEstimate(
+          String(args.op ?? "generate"),
+          null,
+          { llm: String(args.llmBackend ?? "fake") },
+          // A per-level op prices against an EXISTING pack, so canon calibrates
+          // it off that tree's recorded runs.
+          String(args.path ?? ""),
+        ),
       };
     // Animation geometry. Shaped like the real pack's PLAYER, including the
     // defect: every state flush to the cell edge, `fall` narrow-but-full-height.
@@ -2358,10 +2433,15 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
     case "estimate_asset":
       return {
         result: "estimate",
-        estimate: mockEstimate(String(args.op ?? "animate"), null, {
-          image: String(args.imageBackend ?? "fake"),
-          vlm: args.reuseSpec ? "none" : String(args.vlmBackend ?? "none"),
-        }),
+        estimate: mockEstimate(
+          String(args.op ?? "animate"),
+          null,
+          {
+            image: String(args.imageBackend ?? "fake"),
+            vlm: args.reuseSpec ? "none" : String(args.vlmBackend ?? "none"),
+          },
+          String(args.path ?? ""),
+        ),
       };
     case "spend_record": {
       const entry = (args.entry ?? {}) as Record<string, unknown>;
@@ -2407,15 +2487,38 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
         );
       }
       if (typeof args.limit === "number") events = events.slice(-args.limit);
+      // Does the journal FILE exist? Canon answers from the file, not from the
+      // filtered read, and states it BOTH ways so a client dispatches on a
+      // value — an all-zero roll-up with no journal behind it is an absence of
+      // records, not a $0 spend. The mock's store IS its file, so presence is
+      // derived from it rather than hardcoded true: a mock that always said
+      // "present" would never prove the marker travels.
+      const journalPath = `${String(args.path ?? "")}/.canon/journal.jsonl`;
+      const present = MOCK_JOURNAL.length > 0;
+      const out: Record<string, unknown> = {
+        result: "journal_list",
+        journal: { present, path: journalPath },
+      };
+      if (!present) {
+        out.warnings = [
+          `No journal file at ${journalPath} — nothing has ever been recorded ` +
+            `there (check the pack path). These figures are an ABSENCE of ` +
+            `records, not a $0 spend.`,
+        ];
+      }
       // Parity with the verb: `--summary` REPLACES the event list unless the
       // caller bounded the read itself (canon `cli/main.py` journal_list).
       if (args.summary) {
-        const summary = summarizeJournal(events, "2026-09-13");
-        return typeof args.limit === "number"
-          ? { result: "journal_list", events, summary }
-          : { result: "journal_list", summary };
+        // The marker travels INSIDE the roll-up too, because a client that
+        // asked for the roll-up is handed nothing else.
+        out.summary = {
+          ...summarizeJournal(events, "2026-09-13"),
+          journalPresent: present,
+          journalPath,
+        };
       }
-      return { result: "journal_list", events };
+      if (!args.summary || typeof args.limit === "number") out.events = events;
+      return out;
     }
     case "spend_list": {
       const byOp: Record<string, { count: number; actual_usd: number; estimate_usd: number }> = {};
@@ -2447,6 +2550,80 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       throw new Error(`devMock: unhandled command ${cmd}`);
   }
 }
+
+/** The `generation_stats.json` of a run that lost assets — the counters the
+ *  file has always carried plus the `failures` list canon's asset executor
+ *  records (one per asset still missing after its retries, the provider's
+ *  own reason, and a `hint` composed from the classification). Numbers from
+ *  the first paid dungeon run, which reported `ok` and opened while 26 of
+ *  its 73 assets were missing. */
+const MOCK_GENERATION_STATS = {
+  llm_backend: "anthropic",
+  image_backend: "fal",
+  music_backend: "lyria",
+  sfx_backend: "elevenlabs",
+  assets_placeholder: false,
+  llm_calls: 31,
+  total_tokens: 48_210,
+  images_attempted: 52,
+  images_succeeded: 43,
+  music_attempted: 8,
+  music_succeeded: 0,
+  sfx_attempted: 17,
+  sfx_succeeded: 4,
+  llm_cost_usd: 0.41,
+  image_cost_usd: 1.72,
+  audio_cost_usd: 0.12,
+  total_cost_usd: 2.25,
+  generation_time_human: "6m 12s",
+  failures: [
+    {
+      kind: "music",
+      target: "music:combat",
+      path: "music/combat.mp3",
+      error: "APIError",
+      provider: "lyria",
+      message: "PERMISSION_DENIED: billing is not enabled for this project",
+      status: 403,
+      request_id: null,
+      retryable: false,
+      attempts: 1,
+      hint:
+        "lyria refused the credential or the billing account: check the lyria key and plan, " +
+        "then repair with `asset generate --target missing` (it regenerates only what is absent).",
+    },
+    {
+      kind: "sfx",
+      target: "sfx:door_open",
+      path: "sfx/door_open.mp3",
+      error: "ApiError",
+      provider: "elevenlabs",
+      message: "too many concurrent requests",
+      status: 429,
+      request_id: null,
+      retryable: true,
+      attempts: 4,
+      hint:
+        "transient elevenlabs failure after 4 attempt(s); repair with `asset generate " +
+        "--target missing` (it regenerates only what is absent).",
+    },
+    {
+      kind: "image",
+      target: "npc:1003",
+      path: "portraits/npcs/npc_1003.png",
+      error: "FalClientHTTPError",
+      provider: "fal",
+      message: "502 bad gateway",
+      status: 502,
+      request_id: "req_mock_1003",
+      retryable: true,
+      attempts: 4,
+      hint:
+        "transient fal failure after 4 attempt(s); repair with `asset generate " +
+        "--target missing` (it regenerates only what is absent).",
+    },
+  ],
+};
 
 /** In-memory spend ledger for the browser mock (native writes .canon/spend.jsonl). */
 // Typed against the real payload so a field canon adds can't be forgotten here
@@ -2817,10 +2994,81 @@ function simulateWorldRun(
   fire(() => void handleJobEvent({ id: jobId, status: "done", result }));
 }
 
+/** The mock's stand-in for the recorded runs canon calibrates off — a pack's
+ *  own `generation_stats.json`, read as `{tasks, units}` (canon's
+ *  `actuals_by_task` / `actuals_by_unit`; a unit entry is `{usd, backend}`).
+ *  Keyed by pack path, and EMPTY, which is the honest answer: the browser mock
+ *  has never called a provider, so it has measured nothing and every figure
+ *  `pricedEstimate` quotes is its own shipped table's.
+ *
+ *  It exists as DATA so `mockCalibration` can DERIVE the flag the way the real
+ *  command does instead of stamping a constant — a mock that later records a
+ *  measured run starts answering `actuals` with no change to the rule. */
+const MOCK_ACTUALS: Record<
+  string,
+  { tasks: Record<string, unknown>; units: Record<string, { usd: number; backend: string }> }
+> = {};
+
+/** Which asset block of the estimate document counts each unit kind — canon's
+ *  own `{"image": "images"}` correspondence, mirrored so both sides read the
+ *  same counts. */
+const UNIT_BLOCK: Record<string, string> = { image: "images", music: "music", sfx: "sfx" };
+
+/** `canon.estimator._calibration`, mirrored: `actuals` when a figure in THIS
+ *  estimate came from the pack's own measured runs, `defaults` when every
+ *  figure is the shipped table's.
+ *
+ *  Two things gate it, exactly as in canon. First, there has to be a pack to
+ *  read: `actuals_dir` is the tree the forecast prices against, and the
+ *  `world` scope prices a project that does not exist yet — canon hands it no
+ *  tree, so it can only ever answer `defaults`. Second, the recorded figures
+ *  have to actually BITE: it answers "did calibration bite", not "does a stats
+ *  file exist", so a forecast whose tasks and unit kinds are none of the
+ *  recorded ones prices off the table and must say so, and a measured $/unit
+ *  counts only when the recorded run used the very backend this forecast
+ *  selected (canon's `_unit_actual`). */
+function mockCalibration(
+  doc: Record<string, unknown>,
+  backends: Record<string, string>,
+  packPath?: string,
+): string {
+  const recorded = packPath ? MOCK_ACTUALS[packPath] : undefined;
+  if (!recorded) return "defaults";
+  const llm = (doc.llm ?? {}) as { by_task?: Record<string, unknown> };
+  if (Object.keys(llm.by_task ?? {}).some((task) => task in recorded.tasks)) return "actuals";
+  const assets = (doc.assets ?? {}) as Record<string, { count?: number } | undefined>;
+  for (const [kind, block] of Object.entries(UNIT_BLOCK)) {
+    const measured = recorded.units[kind];
+    if (!measured || !Number(assets[block]?.count ?? 0)) continue;
+    // A figure measured on one backend must never price another.
+    if (measured.backend.toLowerCase() === (backends[kind] ?? "").toLowerCase()) return "actuals";
+  }
+  return "defaults";
+}
+
 /** A plausible, backend-MASKED cost estimate for the mock — mirrors canon's
  *  masking (fake/none = $0, counts preserved) so the gate/dashboard UI is
- *  exercisable in the browser without the native pricing engine. */
+ *  exercisable in the browser without the native pricing engine.
+ *
+ *  `packPath` is the tree the forecast prices against, when there is one — the
+ *  mock's `actuals_dir`. `estimate_world` has none (no project exists yet),
+ *  which is why it is optional here and why the flag below reads `defaults`
+ *  for it no matter what the mock has recorded. */
 function mockEstimate(
+  scope: string,
+  counts: { stages: number; levels: number; enemies: number; items: number } | null,
+  backends: Record<string, string>,
+  packPath?: string,
+): Record<string, unknown> {
+  const doc = pricedEstimate(scope, counts, backends);
+  // Additive, exactly as canon adds it — the estimate document carries WHERE
+  // its numbers came from, never silently.
+  return { ...doc, calibration: mockCalibration(doc, backends, packPath) };
+}
+
+/** The priced document itself — every figure here is the mock's own shipped
+ *  table, which is exactly what `mockCalibration` reports above. */
+function pricedEstimate(
   scope: string,
   counts: { stages: number; levels: number; enemies: number; items: number } | null,
   backends: Record<string, string>,

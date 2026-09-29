@@ -11,6 +11,7 @@
 // canvas border and the pill read from the same token. The level editor's
 // failure was three IMPLICIT states; one indicator would repeat it.
 
+import { GatedButton } from "../GatedButton";
 import { kbd } from "../../lib/keys";
 import type { DialogueMode } from "../../store";
 
@@ -70,6 +71,9 @@ export function ModeBar({
   saving?: boolean;
   /** Non-empty disables Save WITH the reason showing (doctrine 4). */
   saveDisabledReason?: string;
+  /** Non-empty greys Improve WITH the reason — it stays rendered, focusable
+   *  and clickable-for-the-reason, because the block is a CAPABILITY the user
+   *  can go and get (a saved tree), not a mode this screen is not in. */
   improveDisabledReason?: string;
   onImprove?: () => void;
   /** Non-empty disables Test WITH the reason — a treeless NPC (screen 06). */
@@ -119,17 +123,17 @@ export function ModeBar({
           {dirtyText}
         </button>
       ) : null}
-      <button
+      {/* Improve is the surface's one PAID verb, so its block is the one that
+          has to be reachable both ways: `GatedButton` keeps it focusable and
+          puts the reason on hover AND on focus. */}
+      <GatedButton
         className="btn dlg-improve"
-        disabled={!!improveDisabledReason}
-        title={
-          improveDisabledReason ||
-          "Ask a model to re-author these lines — a proposal, never a write"
-        }
+        reason={improveDisabledReason ?? ""}
+        hint="Ask a model to re-author these lines — a proposal, never a write"
         onClick={onImprove}
       >
         ✨ Improve…
-      </button>
+      </GatedButton>
       <button
         className="btn pri dlg-save"
         disabled={!!saveDisabledReason || !!saving}

@@ -496,22 +496,26 @@ export function EntityTable({
           {partition ? ` (of ${rows.length} total)` : ""}
         </span>
         <span className="tb-spacer" />
+        {/* `.btn` — the shared chrome primitive, which is what these always
+            were. They carried `.view-toggle`, the CONTAINER class of the
+            cards/list pair below: it paints a sunken ground and leaves the
+            colour to its `button` children, so on a button it rendered the
+            UA's near-black text on a near-black ground in the dark theme.
+            Nothing here needed a local colour — it needed the button class. */}
         {canCreateRow && (
           <button
-            className="view-toggle"
+            className="btn"
             title="New row (anchored generation)"
             onClick={() => setNewRowOpen(true)}
-            style={{ cursor: "pointer" }}
           >
             ＋ new row
           </button>
         )}
         {canCreateRow && (
           <button
-            className="view-toggle"
+            className="btn"
             title="Edit the roll tables bounding generation (saved as a pack-local override)"
             onClick={() => setSchemaOpen(true)}
-            style={{ cursor: "pointer" }}
           >
             ⚙ roll tables
           </button>

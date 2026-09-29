@@ -20,6 +20,14 @@ import { PromptOverride } from "./PromptOverride";
 import { AnimateModal } from "./anim/AnimateModal";
 import { RowEditor } from "./db/RowEditor";
 import { TileSlotEditor } from "./db/TileSlotEditor";
+import { GatedButton } from "./GatedButton";
+import {
+  EDIT_INSTEAD,
+  completionBlocked,
+  completionUnavailable,
+  isNotYetRefusal,
+  rememberBlocked,
+} from "./db/completionGate";
 
 function useStoreWorldPath() {
   return useStore((s) => s.worldPath);
@@ -1024,6 +1032,10 @@ function GenActions({
   // pose; `sequence` judges a TRANSITION. Rides on the existing buttons
   // rather than adding two more of them.
   const [animMode, setAnimMode] = useState<AnimPreviewMode>("grid");
+  // Why "LLM re-complete" cannot run here, when it cannot — asked BEFORE the
+  // spend card, so a kind this pack cannot author never raises a money
+  // dialog. Empty = the control is live (see db/completionGate.ts).
+  const [completeOff, setCompleteOff] = useState("");
   const kind = typeId === "enemies" ? "enemy" : typeId === "player" ? "player" : "item";
   const id = String(
     (data.enemy_id as string) ??
@@ -1032,6 +1044,16 @@ function GenActions({
       entityId ??
       "",
   );
+  useEffect(() => {
+    if (kind === "player") return; // no DB row, so no row completion to ask about
+    let live = true;
+    void completionBlocked(worldPath, kind).then((blocked) => {
+      if (live && blocked) setCompleteOff(completionUnavailable(kind, EDIT_INSTEAD));
+    });
+    return () => {
+      live = false;
+    };
+  }, [worldPath, kind]);
   // Refresh this entity when its own asset job (sprite/animate) finishes.
   useEffect(() => {
     const c = lastCompletedJob;
@@ -1058,15 +1080,30 @@ function GenActions({
   // the player's lineage and breaking its History tab.
   const target = kind === "player" ? "player" : `${kind}:${id}`;
 
+  /** Grey "LLM re-complete" for the rest of the session and answer with the
+   *  product's own words. Shared by BOTH ways the refusal can arrive — the
+   *  pre-click capability check and a not-yet that comes back from the real
+   *  run — so the two can never drift into two different explanations. */
+  const blockCompletion = () => {
+    rememberBlocked(worldPath, kind);
+    const reason = completionUnavailable(kind, EDIT_INSTEAD);
+    setCompleteOff(reason);
+    return reason;
+  };
+
   // Synchronous, non-generation actions (publish snapshot, LLM re-complete a
   // single row) — these return their result inline and refresh on completion.
   // `spend` names the backends when the action bills (LLM re-complete);
   // absent = free, and the confirm card asks instead of the paid card.
+  // `onNotYet` is the caller's CAPABILITY handler: canon's structured refusal
+  // is an answer about the pack, not a failure of the run, and only the
+  // caller knows which control it greys.
   const run = async (
     label: string,
     confirmText: string,
     fn: () => Promise<unknown>,
     spend?: { backends: Record<string, string>; model?: string; fixedUsd?: number },
+    onNotYet?: () => string,
   ) => {
     const ok = spend
       ? await confirmSpend({
@@ -1087,7 +1124,12 @@ function GenActions({
       setNote(warnings.length ? warnings[0] : `${label} done ✓`);
       select({ kind: "entity", typeId, id: entityId ?? id });
     } catch (e) {
-      setNote(String(e).slice(0, 160));
+      // A structured not-yet is a CAPABILITY answer, not a failure: the
+      // caller greys its control and says what works instead, in the
+      // product's own words — canon's prose names a planning row and never
+      // reaches the screen.
+      if (onNotYet && isNotYetRefusal(e)) setNote(onNotYet());
+      else setNote(String(e).slice(0, 160));
     } finally {
       setBusy(null);
     }
@@ -1194,28 +1236,48 @@ function GenActions({
         {busy === "generate sprite" ? "…" : "🎨 Generate sprite"}
       </button>
       {kind !== "player" && (
-        <button
+        // CAPABILITY-blocked, never hidden: greyed, still focusable, reason on
+        // hover OR keyboard focus. The probe usually resolves `completeOff`
+        // long before anyone clicks, but it is a cold canon subprocess and the
+        // button is LIVE until it answers — so the click AWAITS the capability
+        // itself before it goes anywhere near the spend card.
+        <GatedButton
           className="btn"
-          disabled={!!busy}
-          onClick={() =>
-            run(
-              "LLM re-complete",
-              `Re-author ${id}'s name/flavor with the LLM (mechanical stats preserved)?\n\nBackend: anthropic (cheap tier). Rough cost: well under 1¢.`,
-              () =>
-                api.dbComplete(
-                  worldPath,
-                  kind,
-                  id,
-                  ["archetype", "size", "rarity"],
-                  undefined,
-                  rowPrompt,
-                ),
-              { backends: { llm: "anthropic" }, model: "cheap tier (Haiku)", fixedUsd: 0.01 },
-            )
-          }
+          reason={completeOff}
+          hint="Re-author name/flavor; mechanical stats preserved"
+          testId="llm-recomplete"
+          onClick={() => {
+            if (busy || completeOff) return;
+            void (async () => {
+              // REFUSAL BEFORE MONEY. Asking someone to approve a spend for an
+              // action that cannot run is the bug this ordering fixes, and the
+              // greyed button alone does not fix it: a click inside the probe
+              // window would otherwise reach `confirmSpend`. Memoised, so this
+              // costs a promise lookup once the answer is in.
+              if (await completionBlocked(worldPath, kind)) {
+                setNote(blockCompletion());
+                return;
+              }
+              await run(
+                "LLM re-complete",
+                `Re-author ${id}'s name/flavor with the LLM (mechanical stats preserved)?\n\nBackend: anthropic (cheap tier). Rough cost: well under 1¢.`,
+                () =>
+                  api.dbComplete(
+                    worldPath,
+                    kind,
+                    id,
+                    ["archetype", "size", "rarity"],
+                    undefined,
+                    rowPrompt,
+                  ),
+                { backends: { llm: "anthropic" }, model: "cheap tier (Haiku)", fixedUsd: 0.01 },
+                blockCompletion,
+              );
+            })();
+          }}
         >
           {busy === "LLM re-complete" ? "…" : "✍️ LLM re-complete"}
-        </button>
+        </GatedButton>
       )}
       {(kind === "enemy" || kind === "player") && (
         <button className="btn" disabled={!!busy} onClick={() => setAnimating(true)}>

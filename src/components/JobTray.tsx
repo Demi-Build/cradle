@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store";
 import { api, type Job, type JobEntry } from "../lib/invoke";
 import { fmtUsd } from "../lib/cost";
+import { RunLogPanel } from "./RunLogPanel";
 
 /** The background-job tray: Active (queued + running) and Completed (this
  *  session's terminal jobs merged with the durable ledger). Watch generation
@@ -12,7 +13,7 @@ export function JobTray() {
   const worldPath = useStore((s) => s.worldPath);
   const setJobsOpen = useStore((s) => s.setJobsOpen);
   const select = useStore((s) => s.select);
-  const [tab, setTab] = useState<"active" | "completed">("active");
+  const [tab, setTab] = useState<"active" | "completed" | "runlog">("active");
   const [history, setHistory] = useState<JobEntry[]>([]);
 
   // Durable history (past sessions) — refetched whenever this session's jobs
@@ -67,9 +68,14 @@ export function JobTray() {
           <TabButton on={tab === "completed"} onClick={() => setTab("completed")}>
             Completed{completed.length ? ` (${completed.length})` : ""}
           </TabButton>
+          <TabButton on={tab === "runlog"} onClick={() => setTab("runlog")}>
+            Run log
+          </TabButton>
         </div>
 
-        {tab === "active" ? (
+        {tab === "runlog" ? (
+          <RunLogPanel worldPath={worldPath} />
+        ) : tab === "active" ? (
           active.length === 0 ? (
             <Empty>No jobs running. Generation you start shows up here.</Empty>
           ) : (

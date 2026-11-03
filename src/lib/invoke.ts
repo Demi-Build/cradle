@@ -206,6 +206,41 @@ export type JobSummary = {
   by_status: Record<string, number>;
   entries: JobEntry[];
 };
+/** One run in the pack's run log (`canon debug runs`). */
+export type RunLogRow = {
+  run: string;
+  started: string | null;
+  ended: string | null;
+  command: string;
+  /** failed | incomplete | cancelled | warnings | ok */
+  status: string;
+  exit_code: number | null;
+  duration_ms: number | null;
+  calls: number;
+  failed_calls: number;
+  cost_usd: number;
+  parent?: string | null;
+  children: string[];
+};
+/** The debug report for one run (`canon debug report`). Only the fields the
+ *  tray reads are typed; the full payload rides along. */
+export type RunReport = {
+  pack: string;
+  run: RunLogRow;
+  totals: {
+    calls: number;
+    ok_calls: number;
+    failed_attempts: number;
+    retried_attempts: number;
+    final_failures: number;
+    assets_failed: number;
+    cost_usd: number;
+    warnings: number;
+    errors: number;
+  };
+  suggestions: string[];
+  [key: string]: unknown;
+};
 /** What an enqueuing gen command returns immediately (before the job runs). */
 export type QueuedAck = { job_id: string; status: string };
 export type LibraryEntry = {
@@ -566,6 +601,13 @@ export const api = {
   jobRecord: (path: string, entry: JobEntry) =>
     invoke<{ result: string; entry: JobEntry }>("jobs_record", { path, entry }),
   jobList: (path: string) => invoke<{ result: string; jobs: JobSummary }>("jobs_list", { path }),
+  debugRuns: (path: string, limit?: number) =>
+    invoke<{ result: string; runs: RunLogRow[] }>("debug_runs", { path, limit: limit ?? null }),
+  debugReport: (path: string, run?: string | null) =>
+    invoke<{ result: string; report: RunReport; markdown: string }>("debug_report", {
+      path,
+      run: run ?? null,
+    }),
   generateLevelMusic: (
     path: string,
     levelId: string,

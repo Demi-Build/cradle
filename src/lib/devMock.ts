@@ -5,7 +5,7 @@
 
 import { DB_NESTING } from "./dbNesting";
 import { handleJobEvent } from "./jobs";
-import type { WorldMap } from "./invoke";
+import type { RunLogRow, WorldMap } from "./invoke";
 
 type Ref = { type_id: string; id: string; name: string };
 type JsonMap = Record<string, unknown>;
@@ -1344,6 +1344,31 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       MOCK_JOBS.push(line);
       return { result: "jobs_record", entry: line };
     }
+    case "debug_runs":
+      return { result: "debug_runs", runs: MOCK_RUNS };
+    case "debug_report": {
+      const row = MOCK_RUNS.find((r) => r.run === args.run) ?? MOCK_RUNS[0];
+      return {
+        result: "debug_report",
+        report: {
+          pack: String(args.path ?? ""),
+          run: row,
+          totals: {
+            calls: row.calls,
+            ok_calls: row.calls - row.failed_calls,
+            failed_attempts: row.failed_calls,
+            retried_attempts: 0,
+            final_failures: row.failed_calls,
+            assets_failed: row.failed_calls,
+            cost_usd: row.cost_usd,
+            warnings: 0,
+            errors: 0,
+          },
+          suggestions: [],
+        },
+        markdown: `# Canon run report — ${row.status.toUpperCase()}\n\n- **Run:** \`${row.run}\`\n- **Command:** \`${row.command}\`\n`,
+      };
+    }
     case "jobs_list": {
       const byOp: Record<string, number> = {};
       const byStatus: Record<string, number> = {};
@@ -1415,6 +1440,35 @@ const MOCK_ANIM: Record<
 const MOCK_SPEND: Record<string, unknown>[] = [];
 /** In-memory job ledger for the browser mock (native writes .canon/jobs.jsonl). */
 const MOCK_JOBS: Record<string, unknown>[] = [];
+/** Two recorded runs for the job tray's Run log tab (browser dev only). */
+const MOCK_RUNS: RunLogRow[] = [
+  {
+    run: "20261103T180000Z-a1b2c3",
+    started: "2026-11-03T18:00:00.000+00:00",
+    ended: "2026-11-03T18:04:12.000+00:00",
+    command: "canon world new ~/CradleProjects/demo --template dungeon --image-backend fal",
+    status: "warnings",
+    exit_code: 0,
+    duration_ms: 252000,
+    calls: 41,
+    failed_calls: 3,
+    cost_usd: 1.2345,
+    children: ["20261103T180001Z-d4e5f6"],
+  },
+  {
+    run: "20261103T170000Z-0f0f0f",
+    started: "2026-11-03T17:00:00.000+00:00",
+    ended: "2026-11-03T17:00:09.000+00:00",
+    command: "canon db complete ~/CradleProjects/demo --type npc --id npc_1",
+    status: "ok",
+    exit_code: 0,
+    duration_ms: 9000,
+    calls: 1,
+    failed_calls: 0,
+    cost_usd: 0.0123,
+    children: [],
+  },
+];
 
 /** FNV-1a → 8 hex; a cheap synchronous content hash for the mock revision id
  *  (native uses a real sha256 over the level's state files). */

@@ -1035,6 +1035,46 @@ fn spend_list(path: String) -> Result<Value, String> {
     run_canon(&["spend", "list", &root])
 }
 
+/// Append one background-job entry to the pack's job ledger (`canon jobs
+/// record`). The job tray's "Completed" history and the run-log report's job
+/// cross-reference read it back; canon owns the file.
+#[tauri::command]
+fn jobs_record(path: String, entry: Value) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let entry_str = serde_json::to_string(&entry).map_err(|e| e.to_string())?;
+    run_canon(&["jobs", "record", &root, "--json", &entry_str])
+}
+
+/// The pack's job ledger + roll-up for the job tray (`canon jobs list`).
+#[tauri::command]
+fn jobs_list(path: String) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    run_canon(&["jobs", "list", &root])
+}
+
+/// The runs recorded in the pack's run log, newest first (`canon debug runs`).
+/// Pure read.
+#[tauri::command]
+fn debug_runs(path: String, limit: Option<u32>) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let limit = limit.unwrap_or(30).to_string();
+    run_canon(&["debug", "runs", &root, "--limit", &limit])
+}
+
+/// The debug report for one run (latest when `run` is None) — structured
+/// JSON plus the rendered Markdown (`canon debug report`). Pure read.
+#[tauri::command]
+fn debug_report(path: String, run: Option<String>) -> Result<Value, String> {
+    let root = canon(path).to_string_lossy().to_string();
+    let mut args: Vec<String> = vec!["debug".into(), "report".into(), root];
+    if let Some(id) = run.filter(|r| !r.trim().is_empty()) {
+        args.push("--run".into());
+        args.push(id);
+    }
+    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    run_canon(&refs)
+}
+
 /// Every measurable fact about one actor's animation (`canon anim inspect`):
 /// the shared frame square, playback timing, authored offsets, and the measured
 /// content box of every frame. Pure read — console-script path (the anim verbs
@@ -1693,6 +1733,10 @@ pub fn run() {
             world_map_edit,
             spend_record,
             spend_list,
+            jobs_record,
+            jobs_list,
+            debug_runs,
+            debug_report,
             engine_status,
             engine_sync,
             anim_inspect,

@@ -324,7 +324,8 @@ fn agent_start(
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("failed to launch `{command}`: {e}"))?;
-    let stderr_buf: Arc<std::sync::Mutex<Vec<String>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let stderr_buf: Arc<std::sync::Mutex<Vec<String>>> =
+        Arc::new(std::sync::Mutex::new(Vec::new()));
     let exit_code: Arc<std::sync::Mutex<Option<i32>>> = Arc::new(std::sync::Mutex::new(None));
 
     // Drain stderr for the failure copy (and so the child never blocks on a
@@ -361,7 +362,10 @@ fn agent_start(
         other => {
             let _ = child.kill();
             let _ = child.wait();
-            let tail = stderr_buf.lock().unwrap_or_else(|e| e.into_inner()).join("\n");
+            let tail = stderr_buf
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .join("\n");
             let why = match other {
                 Ok(Ok(_)) => "the service exited before printing its port".to_string(),
                 Ok(Err(e)) => format!("could not read the service's stdout: {e}"),
@@ -378,7 +382,10 @@ fn agent_start(
         Err(e) => {
             let _ = child.kill();
             let _ = child.wait();
-            let tail = stderr_buf.lock().unwrap_or_else(|e| e.into_inner()).join("\n");
+            let tail = stderr_buf
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .join("\n");
             return Err(format!("{e}\ncommand: {command}\nstderr:\n{tail}"));
         }
     };
@@ -459,7 +466,10 @@ mod sidecar_tests {
 
     #[test]
     fn reads_the_port_line_the_service_prints_first() {
-        assert_eq!(parse_port_line("{\"port\": 51234, \"pid\": 77}\n").unwrap(), (51234, 77));
+        assert_eq!(
+            parse_port_line("{\"port\": 51234, \"pid\": 77}\n").unwrap(),
+            (51234, 77)
+        );
         // pid is optional — cradle falls back to the child's own id.
         assert_eq!(parse_port_line("{\"port\": 8}").unwrap(), (8, 0));
     }
@@ -642,13 +652,24 @@ mod pack_type_tests {
 
     #[test]
     fn reads_the_pack_type_verbatim_as_open_data() {
-        assert_eq!(pack_type_of(&json!({"pack_type": "platformer"})).unwrap(), "platformer");
-        assert_eq!(pack_type_of(&json!({"pack_type": "shooter"})).unwrap(), "shooter");
+        assert_eq!(
+            pack_type_of(&json!({"pack_type": "platformer"})).unwrap(),
+            "platformer"
+        );
+        assert_eq!(
+            pack_type_of(&json!({"pack_type": "shooter"})).unwrap(),
+            "shooter"
+        );
     }
 
     #[test]
     fn a_missing_empty_or_non_string_pack_type_is_a_named_error() {
-        for doc in [json!({}), json!({"pack_type": ""}), json!({"pack_type": 3}), json!({"pack_type": null})] {
+        for doc in [
+            json!({}),
+            json!({"pack_type": ""}),
+            json!({"pack_type": 3}),
+            json!({"pack_type": null}),
+        ] {
             let err = pack_type_of(&doc).unwrap_err();
             assert!(err.contains("without a pack_type"), "{err}");
         }
@@ -873,16 +894,7 @@ fn restore_grid_step(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "grid",
-        "restore",
-        &root,
-        "--level",
-        &level_id,
-        "--step",
-        &step,
-        "--to",
-        &to,
-        "--actor",
+        "grid", "restore", &root, "--level", &level_id, "--step", &step, "--to", &to, "--actor",
         USER_ACTOR,
     ])
 }
@@ -893,16 +905,7 @@ fn create_level(path: String, stage_id: String, width: u32, height: u32) -> Resu
     let root = canon(path).to_string_lossy().to_string();
     let (w, h) = (width.to_string(), height.to_string());
     run_canon(&[
-        "level",
-        "create",
-        &root,
-        "--stage",
-        &stage_id,
-        "--width",
-        &w,
-        "--height",
-        &h,
-        "--actor",
+        "level", "create", &root, "--stage", &stage_id, "--width", &w, "--height", &h, "--actor",
         USER_ACTOR,
     ])
 }
@@ -1817,11 +1820,7 @@ struct JobOutcome {
 /// `{status: "cancelled", result: {cancelled, kept, exit_code}}` with `kept`
 /// read from the step log's cancel-aware `run_end`, whatever canon's exit
 /// status was — the child was told to stop, and what landed stays.
-fn run_job_worker(
-    app: AppHandle,
-    rx: std::sync::mpsc::Receiver<QueuedJob>,
-    state: Arc<JobState>,
-) {
+fn run_job_worker(app: AppHandle, rx: std::sync::mpsc::Receiver<QueuedJob>, state: Arc<JobState>) {
     for job in rx {
         if state.take_dropped(&job.id) {
             continue;
@@ -2081,7 +2080,9 @@ fn progress_contract(event: &mut serde_json::Map<String, Value>) {
             .and_then(Value::as_f64)
             .map(|usd| Value::from((usd * 100.0).round() as i64))
     });
-    event.entry("spentCents").or_insert(spent.unwrap_or(Value::Null));
+    event
+        .entry("spentCents")
+        .or_insert(spent.unwrap_or(Value::Null));
 }
 
 /// The `kept` list of the LAST `run_end` in a step log (canon's cancel-aware
@@ -2135,7 +2136,10 @@ mod cancel_tests {
         assert!(state.take_dropped("a"));
         assert!(!state.take_dropped("b"));
         assert!(!state.is_running("a"));
-        assert!(state.child_finished("a"), "an unretained child counts as finished");
+        assert!(
+            state.child_finished("a"),
+            "an unretained child counts as finished"
+        );
     }
 
     #[test]
@@ -2148,7 +2152,10 @@ mod cancel_tests {
         );
         assert_eq!(kept_from_log(log).unwrap(), vec!["phase:w", "phase:x:a"]);
         assert_eq!(kept_from_log("{\"event\":\"node_start\"}\n"), None);
-        assert_eq!(kept_from_log("{\"event\":\"run_end\",\"ok\":true}\n").unwrap(), Vec::<String>::new());
+        assert_eq!(
+            kept_from_log("{\"event\":\"run_end\",\"ok\":true}\n").unwrap(),
+            Vec::<String>::new()
+        );
     }
 
     #[test]
@@ -2461,13 +2468,7 @@ fn world_map_edit(path: String, edit: Value) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let edit_str = serde_json::to_string(&edit).map_err(|e| e.to_string())?;
     run_canon(&[
-        "world",
-        "map-edit",
-        &root,
-        "--json",
-        &edit_str,
-        "--actor",
-        USER_ACTOR,
+        "world", "map-edit", &root, "--json", &edit_str, "--actor", USER_ACTOR,
     ])
 }
 
@@ -2570,17 +2571,8 @@ fn anim_edit(path: String, target: String, state: String, edit: Value) -> Result
     let root = canon(path).to_string_lossy().to_string();
     let edit_str = serde_json::to_string(&edit).map_err(|e| e.to_string())?;
     run_canon(&[
-        "anim",
-        "edit",
-        &root,
-        "--target",
-        &target,
-        "--state",
-        &state,
-        "--json",
-        &edit_str,
-        "--actor",
-        USER_ACTOR,
+        "anim", "edit", &root, "--target", &target, "--state", &state, "--json", &edit_str,
+        "--actor", USER_ACTOR,
     ])
 }
 
@@ -2870,15 +2862,7 @@ fn asset_lineage(path: String, target: String) -> Result<Value, String> {
 fn asset_restore(path: String, target: String, to: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "asset",
-        "restore",
-        &root,
-        "--target",
-        &target,
-        "--to",
-        &to,
-        "--actor",
-        USER_ACTOR,
+        "asset", "restore", &root, "--target", &target, "--to", &to, "--actor", USER_ACTOR,
     ])
 }
 
@@ -2918,13 +2902,7 @@ fn library_list(
 fn library_publish(path: String, target: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "library",
-        "publish",
-        &root,
-        "--target",
-        &target,
-        "--actor",
-        USER_ACTOR,
+        "library", "publish", &root, "--target", &target, "--actor", USER_ACTOR,
     ])
 }
 
@@ -2959,15 +2937,7 @@ fn library_cat(hash: String) -> Result<Value, String> {
 fn asset_assign(path: String, source: String, to: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "asset",
-        "assign",
-        &root,
-        "--source",
-        &source,
-        "--to",
-        &to,
-        "--actor",
-        USER_ACTOR,
+        "asset", "assign", &root, "--source", &source, "--to", &to, "--actor", USER_ACTOR,
     ])
 }
 
@@ -3325,15 +3295,7 @@ fn animate_asset(
 fn replace_asset(path: String, target: String, file: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "asset",
-        "replace",
-        &root,
-        "--target",
-        &target,
-        "--from",
-        &file,
-        "--actor",
-        USER_ACTOR,
+        "asset", "replace", &root, "--target", &target, "--from", &file, "--actor", USER_ACTOR,
     ])
 }
 

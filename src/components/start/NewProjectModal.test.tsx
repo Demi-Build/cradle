@@ -512,7 +512,8 @@ describe("what a landed create records", () => {
         ? Promise.resolve({ total_cost_usd: total })
         : Promise.resolve({ seed: "x" }),
     );
-  const spendRow = () => (recordSpend.mock.calls[0] as unknown as [string, Record<string, unknown>])[1];
+  const spendRow = () =>
+    (recordSpend.mock.calls[0] as unknown as [string, Record<string, unknown>])[1];
   const jobRow = () => (recordJob.mock.calls[0] as unknown as [string, Record<string, unknown>])[1];
   const started = async () => {
     await open("platformer");

@@ -13,6 +13,7 @@ rehashes, stamps `user_edited`, and journals provenance to `.canon/journal.jsonl
 plus a content-addressed object store (`.canon/objects/`).
 
 **Everything is proven in halves, never assembled:**
+
 - The UI loop (render/select/drag/save-chip) ran in a **browser mock** — saves were
   faked in memory (`src/lib/devMock.ts`).
 - The disk writes (`canon level apply-edit / baseline / versions / restore`) were
@@ -61,6 +62,7 @@ CANON_BIN=/Users/wolfgangblack/Documents/projects/canon-ai/.venv/bin/canon npm r
 In the app: **Open world from disk** → select `~/Documents/projects/plat_lantern_edit`.
 
 Expect:
+
 - Left nav shows **LEVELS (9)** and **ENEMIES (7)** (platformer packs skip the
   MazeWorld Bible view; the first level opens automatically).
 - The level detail shows chips (display name, dims, enemies, items), a brief, and
@@ -69,6 +71,7 @@ Expect:
 ## Step 3 — verification checklist
 
 ### A. Rendering (exercises convertFileSrc + Tauri asset protocol)
+
 1. **Art mode**: real tilesheet terrain, parallax forest backdrop, enemy/item
    sprites, checkpoint props, translucent water. ⚠️ This is the riskiest untested
    piece — sprites load from absolute paths via `convertFileSrc`. If images are
@@ -82,6 +85,7 @@ Expect:
    export crash is fixed; if a room errors, the canon-side fix isn't loaded.)
 
 ### B. The edit loop (the core of this task)
+
 4. Click an enemy → inspector panel appears (sprite thumbnail, enemy id, variant,
    archetype, size, cell; "open enemy →" link works).
 5. **Drag it to a new cell → drop.** Expect the chip **"saved · user_edited ✓"**.
@@ -128,17 +132,17 @@ $C level restore "$P" --level l1 --step entities --to "$ORIG"
 ```
 
 **STATUS: verified 2026-07-21** — restore ran on the edit copy; entities.json byte-
-matched the generated original afterward, journal tail = `op:"restore"`.
-7. Back in cradle, click away to another level and back to l1 — the enemy should be
-   at its **original** generated position again (bundle re-exports from disk).
-8. `canon level versions` again — the chain now ends with an `op:"restore"` event;
-   nothing was lost from `.canon/objects/`.
+matched the generated original afterward, journal tail = `op:"restore"`. 7. Back in cradle, click away to another level and back to l1 — the enemy should be
+at its **original** generated position again (bundle re-exports from disk). 8. `canon level versions` again — the chain now ends with an `op:"restore"` event;
+nothing was lost from `.canon/objects/`.
 
 ### D. Persistence sanity
+
 9. Quit the app entirely, relaunch, reopen the pack — edited/restored state is
    what's on disk (no cache surprises).
 
 ## Known limitations (don't chase these — they're tracked tasks)
+
 - Only **move** editing exists. No add/delete/swap of placements yet (tasks #1, #2),
   no terrain paint (#3), no DB editing (#4).
 - Nav only shows Levels + Enemies — no items/tilesets/backdrops/audio yet, enemy DB
@@ -148,6 +152,7 @@ matched the generated original afterward, journal tail = `op:"restore"`.
   in-app restore UI is task #6.
 
 ## Cleanup after verification (part of this task)
+
 - The browser-mock scaffolding lives at: `src/lib/devMock.ts`, the
   `VITE_CRADLE_MOCK` block in `src/main.tsx`, `public/__mockdata__/`, and the
   `public/__mockassets__` symlink (points at the paid pack). Either delete them or
@@ -156,6 +161,7 @@ matched the generated original afterward, journal tail = `op:"restore"`.
 - Delete the scratch pack copy when done, or keep it as an editing sandbox.
 
 ## Outcome to record
+
 Report pass/fail per checklist letter (A rendering / B edit loop / C restore /
 D persistence), any console errors, and whether cleanup was done — then mark
 task #7 accordingly (it's in the session task list; the memory file

@@ -2011,16 +2011,12 @@ function dispatch(cmd: string, args: Record<string, unknown>, d: MockData): unkn
       // skipped / files ride beside the platformer's older keys.
       const target = String(args.target);
       const planned =
-        target === "missing"
-          ? MOCK_GENERATION_STATS.failures.map((f) => f.target)
-          : [target];
+        target === "missing" ? MOCK_GENERATION_STATS.failures.map((f) => f.target) : [target];
       const skipped: Record<string, string> = {};
       if (target === "missing" && !args.musicBackend) {
         skipped.music = "no --music-backend given — its 1 asset(s) were left as they are";
       }
-      const landed = planned.filter(
-        (t) => !(t.startsWith("music:") && skipped.music),
-      );
+      const landed = planned.filter((t) => !(t.startsWith("music:") && skipped.music));
       return simulateJob(args.jobId as string, {
         target,
         generated: landed.length > 0,

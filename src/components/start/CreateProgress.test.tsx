@@ -249,24 +249,23 @@ describe("CreateProgress · post-create asset summary", () => {
       }
       return Promise.reject(new Error(`unexpected ${cmd}`));
     });
-    render(
-      <CreateProgress progress={finished} startedAt={Date.now()} paid ended packDir="/p" />,
-    );
+    render(<CreateProgress progress={finished} startedAt={Date.now()} paid ended packDir="/p" />);
     const summary = await screen.findByTestId("cp-asset-summary");
     expect(summary.textContent).toContain("44 images · 43 landed · 1 failed");
     expect(summary.textContent).toContain("4 sfx · all landed — see list");
     // the list is right there, one click away
     expect(screen.getByText("npc:1003")).toBeInTheDocument();
     expect(screen.getByText(/repair with/)).toBeInTheDocument();
-    expect(invokeMock).toHaveBeenCalledWith("read_world_json", { path: "/p", name: "generation_stats" });
+    expect(invokeMock).toHaveBeenCalledWith("read_world_json", {
+      path: "/p",
+      name: "generation_stats",
+    });
   });
 
   it("says every asset landed when the stats carry no failures", async () => {
     invokeMock.mockReset();
     invokeMock.mockResolvedValue({ images_succeeded: 50, failures: [] });
-    render(
-      <CreateProgress progress={finished} startedAt={Date.now()} paid ended packDir="/p" />,
-    );
+    render(<CreateProgress progress={finished} startedAt={Date.now()} paid ended packDir="/p" />);
     const summary = await screen.findByTestId("cp-asset-summary");
     expect(summary.textContent).toBe("50 images · all landed");
     expect(screen.queryByTestId("asset-failures")).toBeNull();
@@ -284,9 +283,7 @@ describe("CreateProgress · post-create asset summary", () => {
       sfx_attempted: 15,
       sfx_succeeded: 4,
     });
-    render(
-      <CreateProgress progress={finished} startedAt={Date.now()} paid ended packDir="/p" />,
-    );
+    render(<CreateProgress progress={finished} startedAt={Date.now()} paid ended packDir="/p" />);
     const summary = await screen.findByTestId("cp-asset-summary");
     expect(summary.textContent).toBe(
       "43 images landed of 50 attempted / 0 music landed of 8 attempted / 4 sfx landed of 15 attempted",
@@ -297,7 +294,10 @@ describe("CreateProgress · post-create asset summary", () => {
   it("reads nothing while the run is still going, and nothing without a folder", () => {
     invokeMock.mockReset();
     invokeMock.mockResolvedValue(withFailures);
-    const running: JobProgress = { phases: [{ node: "phase:assets", status: "running" }], total: 1 };
+    const running: JobProgress = {
+      phases: [{ node: "phase:assets", status: "running" }],
+      total: 1,
+    };
     render(<CreateProgress progress={running} startedAt={Date.now()} paid packDir="/p" />);
     render(<CreateProgress progress={finished} startedAt={Date.now()} paid ended />);
     expect(invokeMock).not.toHaveBeenCalled();
@@ -307,9 +307,7 @@ describe("CreateProgress · post-create asset summary", () => {
   it("stays silent about assets when the stats cannot be read", async () => {
     invokeMock.mockReset();
     invokeMock.mockRejectedValue(new Error("no such file"));
-    render(
-      <CreateProgress progress={finished} startedAt={Date.now()} paid ended packDir="/p" />,
-    );
+    render(<CreateProgress progress={finished} startedAt={Date.now()} paid ended packDir="/p" />);
     await screen.findByText("Finished");
     expect(screen.queryByTestId("cp-asset-summary")).toBeNull();
   });

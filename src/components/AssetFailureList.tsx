@@ -36,8 +36,8 @@ export function AssetFailureList({
     <div className={`asset-failures${compact ? " compact" : ""}`} data-testid="asset-failures">
       {!compact && (
         <p className="asset-failures-intro">
-          {failures.length} asset{failures.length === 1 ? "" : "s"} did not land. Nothing else
-          was held back — each row names the command that brings it back.
+          {failures.length} asset{failures.length === 1 ? "" : "s"} did not land. Nothing else was
+          held back — each row names the command that brings it back.
         </p>
       )}
       <ul className="asset-failure-rows" style={{ listStyle: "none", margin: 0, padding: 0 }}>
@@ -53,7 +53,9 @@ export function AssetFailureList({
               style={{ padding: "6px 0", borderTop: i ? "1px solid var(--border)" : undefined }}
             >
               <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
-                <code className="asset-failure-target">{f.target ?? f.path ?? "(unnamed asset)"}</code>
+                <code className="asset-failure-target">
+                  {f.target ?? f.path ?? "(unnamed asset)"}
+                </code>
                 {f.kind && <span className="chip chip-muted">{f.kind}</span>}
                 {where && <span className="chip chip-muted">{where}</span>}
                 {typeof f.attempts === "number" && (

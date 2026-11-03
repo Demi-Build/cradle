@@ -552,7 +552,9 @@ describe("devMock parity for the asset-failure surface (I7)", () => {
       expect(typeof f.attempts).toBe("number");
     }
     // the manifest the bible view also asks for, and a file the pack has not
-    expect(await mockInvoke()("read_world_json", { path: "mock://pack", name: "manifest" })).toEqual({});
+    expect(
+      await mockInvoke()("read_world_json", { path: "mock://pack", name: "manifest" }),
+    ).toEqual({});
     await expect(
       mockInvoke()("read_world_json", { path: "mock://pack", name: "nope" }),
     ).rejects.toThrow(/no nope\.json/);
@@ -561,7 +563,17 @@ describe("devMock parity for the asset-failure surface (I7)", () => {
   it("generate_asset accepts --target missing and answers the dungeon verb's shape", async () => {
     vi.useFakeTimers();
     useStore.setState({
-      jobs: [{ id: "job-missing", op: "asset", label: "repair", target: "missing", targetType: "", status: "queued", ts: 0 }],
+      jobs: [
+        {
+          id: "job-missing",
+          op: "asset",
+          label: "repair",
+          target: "missing",
+          targetType: "",
+          status: "queued",
+          ts: 0,
+        },
+      ],
     } as never);
     const ack = (await mockInvoke()("generate_asset", {
       path: "mock://pack",

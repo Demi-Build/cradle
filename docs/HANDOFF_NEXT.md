@@ -16,10 +16,10 @@ Read, in this order:
 
 ## Repos
 
-| repo | branch | role |
-|---|---|---|
-| `~/Documents/projects/canon-ai` | `cradle_editor_surface` | generator (Python) |
-| `~/Documents/projects/cradle` | `feat/platformeditor` | editor (Tauri 2 / React 19 / Rust) |
+| repo                            | branch                  | role                               |
+| ------------------------------- | ----------------------- | ---------------------------------- |
+| `~/Documents/projects/canon-ai` | `cradle_editor_surface` | generator (Python)                 |
+| `~/Documents/projects/cradle`   | `feat/platformeditor`   | editor (Tauri 2 / React 19 / Rust) |
 
 **Start a new branch for this epic.** Use `.venv/bin/python` and
 `.venv/bin/canon` in canon-ai. **The user handles all git — stop at the staging
@@ -129,7 +129,7 @@ Game tuning is a separate, later surface. Do not drift into physics.
 - **Paid legs are user-run.** Prep the command and hand it over; don't spend.
 - **Disabled-with-a-reason beats hidden.**
 - **Colour comes from `src/styles/tokens.css` only**; canvases resolve the same
-  tokens via `lib/canvasTheme.ts`. Game *content* colours are deliberately
+  tokens via `lib/canvasTheme.ts`. Game _content_ colours are deliberately
   literal.
 - **Verify rendering by comparing both engines, never by trusting `PLAT_TRAJ`**
   — it is position-only and structurally blind to rendering and to animation

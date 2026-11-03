@@ -94,8 +94,9 @@ export function CostDashboard() {
     void (async () => {
       let c: unknown;
       try {
-        c = ((await api.readWorldJson(worldPath, "generation_stats")) as { total_cost_usd?: unknown })
-          ?.total_cost_usd;
+        c = (
+          (await api.readWorldJson(worldPath, "generation_stats")) as { total_cost_usd?: unknown }
+        )?.total_cost_usd;
       } catch {
         /* no standalone file */
       }

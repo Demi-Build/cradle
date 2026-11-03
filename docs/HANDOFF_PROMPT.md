@@ -18,6 +18,7 @@ STATE: a LARGE body of work sits UNCOMMITTED in both repos, suites green
 cradle: tsc + cargo check + 137 vitest). Shipped this session, all adversarially
 reviewed (3 workflow fleets: 26+18+14 confirmed findings, ALL fixed — details in
 memory):
+
 1. DB editing: `canon db update` (rows / tile:<stage>/<name> gameplay knobs) +
    `canon db schema` (pack-local roll-table overrides; pipeline phases resolve
    them at run time) + RowEditor edit-mode / TileSlotEditor / SchemaEditor.
@@ -38,8 +39,8 @@ memory):
    rows (sprite-facet event hashes → lineage shows the shared node). Cradle:
    🗂 LIBRARY nav surface (all/this-project scope by PACK PATH, kind filter,
    debounced search, import), ⬆ Publish in GenActions.
-NEXT USER STEP: native hand-test (script provided last session), then user
-commits.
+   NEXT USER STEP: native hand-test (script provided last session), then user
+   commits.
 
 RUN: CANON_ENV_FILE=~/Documents/projects/canon-ai/.env
 CANON_BIN=~/Documents/projects/canon-ai/.venv/bin/canon npm run tauri dev
@@ -49,6 +50,7 @@ Suites: cradle `npm test` + `npx tsc --noEmit` + `cargo check`; canon
 .venv/bin/python -m pytest tests/test_platformer_ops.py tests/test_platformer_import_grids.py
 
 DO NEXT (in order, unless the user redirects):
+
 1. Fix anything the user's hand-test surfaced.
 2. Finish Library remainder: Piece B badges (status/version-count chips on the
    type views — browsing already exists), art-phase prompt journaling (sprite
@@ -66,8 +68,10 @@ paths EMBEDDED in frames.json/atlas.json; DetailPane branches must precede the
 payload-null guard for payload-less panels; world.name in cradle = pack DIR
 BASENAME (use worldPath for project identity); window.confirm flows can't be
 tested in the headless browser pane; the browser console buffer is sticky and
-the a11y tree names inputs by placeholder; PLAT_* env vars hijack the play
+the a11y tree names inputs by placeholder; PLAT\_\* env vars hijack the play
 harness (Rust strips them; PLAT_PLAIN/PLAT_LEVEL are deliberate); CANON_LIBRARY
 env isolates library tests; canon never auto-reads .env; zsh chokes on inline
+
 # comments; adversarial review workflows caught 58 real bugs across 3 passes —
+
 keep using them on substantive diffs.

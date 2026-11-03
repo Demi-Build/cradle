@@ -88,7 +88,7 @@ python3 -c "import json;print(json.load(open('$HOME/Documents/projects/plat_lant
 $C level publish "$P" --level l10 --remove
 ```
 
-   (use your actual new level id; nav reverts to draft after reopening).
+(use your actual new level id; nav reverts to draft after reopening).
 
 ## D — Replace / Switch (#1)
 
@@ -104,7 +104,7 @@ $C level publish "$P" --level l10 --remove
 $C level history "$P" | tail -20
 ```
 
-   expect `import` events for the replaces with `before_hash`/`after_hash`.
+expect `import` events for the replaces with `before_hash`/`after_hash`.
 
 ## E — Generation, $0 sanity (optional, CLI, fake backends)
 
@@ -132,7 +132,7 @@ errors with "no base sprite", first run:
    `sprite/enemy/<id>/base.png` exists.
 3. **Animate:** 🎬 Animate → confirm (~$0.04 × 4 states + Sonnet VLM tokens).
    Expect `<id>/idle.png walk.png hurt.png death.png frames.json atlas.png
-   atlas.json` and `stats.animation` in Raw JSON with a per-state motion spec.
+atlas.json` and `stats.animation` in Raw JSON with a per-state motion spec.
 4. **Re-complete:** ✍️ LLM re-complete (locks archetype/size/rarity) — name/
    flavor re-authored, mechanics untouched.
 5. **Place it:** open a level — your new enemy is in the palette with its real
@@ -149,9 +149,9 @@ for line in p.read_text().splitlines()[-8:]:
 EOF
 ```
 
-   expect the trail: `generate db_new` (llm_model = a real Haiku id) →
-   `regenerate asset_generate` (image_model fal…) → `regenerate asset_animate`
-   (image + vlm models) — locked fields recorded in the db_new detail.
+expect the trail: `generate db_new` (llm_model = a real Haiku id) →
+`regenerate asset_generate` (image_model fal…) → `regenerate asset_animate`
+(image + vlm models) — locked fields recorded in the db_new detail.
 
 ## G — Versions / provenance round-trip
 
@@ -176,6 +176,7 @@ ops in `$C level history "$P"`.
 ## Known gaps (don't chase — acknowledge or file)
 
 **Untested (headless couldn't):**
+
 - The entire **paid path** (F) — fakes only so far; F is its first real run.
 - **`CANON_ENV_FILE` loader** — written, not exercised by tests; F1 is its
   first live use (a key error will say which var is missing).
@@ -186,6 +187,7 @@ ops in `$C level history "$P"`.
 - `db complete --reroll` path.
 
 **Known limitations (by design or deferred):**
+
 - Generation UI hardcodes fal + anthropic; no backend picker; confirm-dialog
   costs are static text, not computed from cost_model.
 - Backdrop/audio generation is CLI-only (no UI buttons yet).

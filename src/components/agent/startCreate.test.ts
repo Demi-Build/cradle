@@ -104,7 +104,10 @@ describe("measuredCreateCost — the one reader every create settle shares", () 
   it("then the standalone generation_stats.json, with no manifest block needed", async () => {
     onDisk({ generation_stats: { total_cost_usd: 2.6 }, manifest: { seed: "x" } });
     expect(await measuredCreateCost(PACK_DIR, { changed: true })).toEqual({ actual_usd: 2.6 });
-    expect(invokeMock).toHaveBeenCalledWith("read_world_json", { path: PACK_DIR, name: "generation_stats" });
+    expect(invokeMock).toHaveBeenCalledWith("read_world_json", {
+      path: PACK_DIR,
+      name: "generation_stats",
+    });
   });
 
   it("then a dungeon manifest's embedded copy, as the fallback only", async () => {
@@ -125,12 +128,22 @@ describe("settleCreate — both ledgers, in the created pack, for every ending",
   it("records the verb's actual on a landed run", async () => {
     onDisk({ generation_stats: { total_cost_usd: 9.99 } });
     const jobId = await inFlight();
-    await settleCreate({ id: jobId, status: "ok", result: { changed: true, actual_usd: 1.25 }, ts: 1, endedAt: 5 });
+    await settleCreate({
+      id: jobId,
+      status: "ok",
+      result: { changed: true, actual_usd: 1.25 },
+      ts: 1,
+      endedAt: 5,
+    });
     expect(currentCreate().status).toBe("done");
     expect(rows("spend_record")).toHaveLength(1);
     expect(rows("spend_record")[0].path).toBe(PACK_DIR);
     expect(rows("spend_record")[0].entry).toMatchObject({ op: "world", actual_usd: 1.25 });
-    expect(rows("jobs_record")[0].entry).toMatchObject({ job_id: jobId, status: "ok", actual_usd: 1.25 });
+    expect(rows("jobs_record")[0].entry).toMatchObject({
+      job_id: jobId,
+      status: "ok",
+      actual_usd: 1.25,
+    });
     expect(currentCreate().warnings).toEqual([]);
   });
 
@@ -156,7 +169,13 @@ describe("settleCreate — both ledgers, in the created pack, for every ending",
   it("records a FAILED create in both ledgers, with what its stats file holds", async () => {
     onDisk({ generation_stats: { total_cost_usd: 1.7 } });
     const jobId = await inFlight();
-    await settleCreate({ id: jobId, status: "failed", error: "provider timed out", ts: 1, endedAt: 9 });
+    await settleCreate({
+      id: jobId,
+      status: "failed",
+      error: "provider timed out",
+      ts: 1,
+      endedAt: 9,
+    });
     expect(currentCreate().status).toBe("failed");
     expect(currentCreate().error).toBe("provider timed out");
     expect(rows("spend_record")[0].entry).toMatchObject({ op: "world", actual_usd: 1.7 });
@@ -182,7 +201,11 @@ describe("settleCreate — both ledgers, in the created pack, for every ending",
   it("records a STOPPED create too — it billed what it billed", async () => {
     onDisk({});
     const jobId = await inFlight();
-    await settleCreate({ id: jobId, status: "cancelled", result: { cancelled: true, kept: ["phase:plat:world"] } });
+    await settleCreate({
+      id: jobId,
+      status: "cancelled",
+      result: { cancelled: true, kept: ["phase:plat:world"] },
+    });
     expect(currentCreate().status).toBe("stopped");
     expect(currentCreate().kept).toEqual(["phase:plat:world"]);
     expect(rows("jobs_record")[0].entry).toMatchObject({ status: "cancelled", changed: true });

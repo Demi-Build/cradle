@@ -269,7 +269,10 @@ describe("CostDashboard", () => {
     // line blank for a $2.60 run.
     invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
       if (cmd === "journal_list") {
-        return Promise.resolve({ result: "journal_list", summary: summarizeJournal(EVENTS, TODAY) });
+        return Promise.resolve({
+          result: "journal_list",
+          summary: summarizeJournal(EVENTS, TODAY),
+        });
       }
       if (cmd === "read_world_json") {
         return args?.name === "generation_stats"
@@ -282,13 +285,19 @@ describe("CostDashboard", () => {
     const dash = await screen.findByTestId("cost-dashboard");
     await waitFor(() => expect(dash.textContent).toContain("Last full generation run"));
     expect(dash.textContent).toContain("$2.60");
-    expect(invokeMock).toHaveBeenCalledWith("read_world_json", { path: "/w", name: "generation_stats" });
+    expect(invokeMock).toHaveBeenCalledWith("read_world_json", {
+      path: "/w",
+      name: "generation_stats",
+    });
   });
 
   it("falls back to a manifest's embedded stats block only when there is no standalone file", async () => {
     invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
       if (cmd === "journal_list") {
-        return Promise.resolve({ result: "journal_list", summary: summarizeJournal(EVENTS, TODAY) });
+        return Promise.resolve({
+          result: "journal_list",
+          summary: summarizeJournal(EVENTS, TODAY),
+        });
       }
       if (cmd === "read_world_json") {
         return args?.name === "generation_stats"

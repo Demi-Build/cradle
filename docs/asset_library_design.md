@@ -1,15 +1,15 @@
 # Asset Library / CMS — design for sign-off
 
-*2026-07-22 · draft for review — nothing here is built yet (per agreement: sign-off
+_2026-07-22 · draft for review — nothing here is built yet (per agreement: sign-off
 before the library layer lands). Scope: cradle UI + canon verbs on top of the
-existing provenance substrate.*
+existing provenance substrate._
 
 ## 1. What we're building
 
 Three user-facing capabilities, in build order:
 
 1. **Version timeline per asset** — see every version of a thing (sprite, tile
-   sheet, backdrop band, audio, DB row, level step), make any asset from an assets history the current asset. Doing this does not delete the more recent assets. We can keep any of the assets. We create a tree diagram to show 'lineage' - this shows the evolution of how assets are changing. I'd like the lineage/tree to show what assets exist in the history starting with upload/generation. We should see its prompt if generated. Then any changes we see as the branch line (reprompted, used with edit to animate, user did some paint/manual action - something we'll enable later). Multiple assets in a lineage can be used in different parts of the game, so we should also see badges on how/where its used. For instance a asset could be generated as a red enemy. The user could pass to an edit image call, creating an animation sheet. They could then update this sheet by painting red -> blue, and doing that both for the animation sheet+ whatever. They could then assign this to another enemy db row. We'd be able to see in lineage how these assets are connected, even if in the asset library/database they appeared as different assets. Some substrate exists that may enable this (journal +   CAS + `canon level versions/restore`); there is no UI and the verbs only
+   sheet, backdrop band, audio, DB row, level step), make any asset from an assets history the current asset. Doing this does not delete the more recent assets. We can keep any of the assets. We create a tree diagram to show 'lineage' - this shows the evolution of how assets are changing. I'd like the lineage/tree to show what assets exist in the history starting with upload/generation. We should see its prompt if generated. Then any changes we see as the branch line (reprompted, used with edit to animate, user did some paint/manual action - something we'll enable later). Multiple assets in a lineage can be used in different parts of the game, so we should also see badges on how/where its used. For instance a asset could be generated as a red enemy. The user could pass to an edit image call, creating an animation sheet. They could then update this sheet by painting red -> blue, and doing that both for the animation sheet+ whatever. They could then assign this to another enemy db row. We'd be able to see in lineage how these assets are connected, even if in the asset library/database they appeared as different assets. Some substrate exists that may enable this (journal + CAS + `canon level versions/restore`); there is no UI and the verbs only
    cover level steps today.
 
 2. **Browsable asset catalog** — every asset in the open pack, filterable by
@@ -23,7 +23,7 @@ Three user-facing capabilities, in build order:
 
 **Non-goals (v1):** remote sync (consent gate unresolved — spec §8), asset
 marketplace semantics, editing library entries in place (a library entry is
-immutable; you import it into a pack and edit *there*), MazeWorld types
+immutable; you import it into a pack and edit _there_), MazeWorld types
 (joins when its specs land in the generic registry).
 
 ## 2. Substrate we already have
@@ -70,7 +70,7 @@ immutable; you import it into a pack and edit *there*), MazeWorld types
   enemy/item row = JSON write + rehash (reuse `update_db_row` plumbing);
   level steps keep the existing verb.
 - `canon object cat <pack> <hash> [--out <file>]` → raw bytes for previews
-  (cradle needs to render *old* versions that live only in the CAS).
+  (cradle needs to render _old_ versions that live only in the CAS).
 
 **Cradle:** a **History drawer** on every entity/asset detail view (enemies,
 items, player, tilesets, backdrops, audio, levels): vertical timeline from
@@ -94,11 +94,13 @@ needed beyond `asset versions`.
 ## 5. Piece C — the global library (cross-project sharing)
 
 **Store** (local-first, no remote): `~/.canon/library/`
+
 ```
 ~/.canon/library/
   objects/<sha256>        # CAS, same format as pack stores — dedup is free
   index.jsonl             # append-only: one entry per published asset
 ```
+
 Index entry: `{library_id, kind (sprite|tile|backdrop|audio|enemy_def|item_def),
 name, tags, content_hash(es), preview_hash, source: {pack_path, pack_name,
 artifact_id, provenance_hash}, published_ts, actor}`.
@@ -108,15 +110,16 @@ JSON + base sprite + animation atlas/frames (each a CAS object, listed in the
 entry); publishing a **tile** bundles the flattened tile art + its slot params.
 
 **Verbs:**
+
 - `canon library publish <pack> --target <artifact_id> [--name --tags]` —
   snapshot bytes into the library CAS + append index entry. Journals
-  `op:"keep"`-adjacent event in the *pack* (`detail.kind:"library_publish"`)
+  `op:"keep"`-adjacent event in the _pack_ (`detail.kind:"library_publish"`)
   — publishing is a strong positive signal (user chose to reuse it).
 - `canon library list [--kind --tag --query]` — the index, for cradle's browser.
 - `canon library import <pack> --id <library_id> [--as <new_id>]` — bytes into
   the pack (new row id / sprite path as appropriate), journal **`op:"import"`,
   `source:"import"`, `detail: {kind:"library_import", library_id, source_pack,
-  source_artifact}`** — the provenance chain crosses projects without breaking:
+source_artifact}`** — the provenance chain crosses projects without breaking:
   the pack knows exactly where the asset came from, and the training corpus
   sees "imported from own library" as distinct from "uploaded external bytes".
 
@@ -136,7 +139,7 @@ zips/ships alone).
 1. **`library_id` stamping** — every import stamps a durable library identity
    (+ source hash) into the imported artifact's provenance, so a future
    "check for updates / re-import everywhere" op can find divergent copies.
-   Copy semantics stay (packs ship alone); propagation becomes *possible*.
+   Copy semantics stay (packs ship alone); propagation becomes _possible_.
 2. **The `assign` op** — the in-project Mario-Maker gesture: "use this
    asset here." Copies a source artifact's art bundle (sprite + animation)
    onto another row with a cross-artifact provenance edge (`op:"import"`,
@@ -160,12 +163,12 @@ generation they went back to). No remote sink; consent gate untouched.
 
 ## 7. Build order & estimates
 
-| Phase | Contents | Size |
-|---|---|---|
-| A | `asset versions/cat/restore` verbs + History drawer + restore + diffs | the big one — touches every detail view; ~1 session |
-| B | pack catalog surface | small; read-model only |
-| C | library store + publish/list/import verbs + shared-library UI | ~1 session |
-| D | polish: onion-skin diff, publish-any-version, tags/search | trailing |
+| Phase | Contents                                                              | Size                                                |
+| ----- | --------------------------------------------------------------------- | --------------------------------------------------- |
+| A     | `asset versions/cat/restore` verbs + History drawer + restore + diffs | the big one — touches every detail view; ~1 session |
+| B     | pack catalog surface                                                  | small; read-model only                              |
+| C     | library store + publish/list/import verbs + shared-library UI         | ~1 session                                          |
+| D     | polish: onion-skin diff, publish-any-version, tags/search             | trailing                                            |
 
 A ships alone (it's the user's "in-app version timeline" ask and needs no
 sign-off beyond this doc). B/C are where the layout below needs your call.
@@ -179,9 +182,9 @@ sign-off beyond this doc). B/C are where the layout below needs your call.
 > auto-suggest on keep/pin (suggest lands with the keep op, task #7).
 > (4) fresh id on collision, never overwrite.
 
-1. **Library location** — `~/.canon/library/` global-per-user OK? - for now we can do this, and make sure the assets are global per user but also linked and easily found by project. We should be able to toggle on/off global or project view and sort by project so we don't have to see mazeworld stuff when we're messing with platformers. Eventually cradle should copy canon data into it's own database, and any updates, etc can be broadcast back to the proper project file to be a playable game. This will also allow cradle to publish games into the proper engine/exes 
+1. **Library location** — `~/.canon/library/` global-per-user OK? - for now we can do this, and make sure the assets are global per user but also linked and easily found by project. We should be able to toggle on/off global or project view and sort by project so we don't have to see mazeworld stuff when we're messing with platformers. Eventually cradle should copy canon data into it's own database, and any updates, etc can be broadcast back to the proper project file to be a playable game. This will also allow cradle to publish games into the proper engine/exes
 2. **v1 shareable kinds** — proposal: enemy defs (bundled), item defs, single
-   tiles, backdrops, audio tracks, player skin. Whole *levels/stages* excluded
+   tiles, backdrops, audio tracks, player skin. Whole _levels/stages_ excluded
    v1 (heavy cross-refs). Agree? yes, though eventually levels are also sharable (V2)
 3. **Publish trigger** — explicit "⬆ Publish" only (proposal), or also
    auto-suggest on `keep`/pin ("add approved art to your library?")? Yes...
@@ -359,7 +362,6 @@ The source implementation also contains: a theming system, a shared thumbnail co
 
 ```
 
-Note: the above talks about databases and decisions - we don't have any of that rooted from canon. Canon creates jsons. Cradle is able to then use those jsons and form it's own working backend database. We can make some decisions 
+Note: the above talks about databases and decisions - we don't have any of that rooted from canon. Canon creates jsons. Cradle is able to then use those jsons and form it's own working backend database. We can make some decisions
 
-consider it as a starting piece - but again, we want something more evolved... 
-
+consider it as a starting piece - but again, we want something more evolved...

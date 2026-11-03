@@ -8,6 +8,7 @@ package is adopted into `canon-ai/docs/Phase_1_prd.md` (build row A0; the
 September dialogue-design row #2 is the precedent) and A5 builds to it.
 
 **Background to attach alongside this brief:**
+
 - The PRD artifact: https://claude.ai/code/artifact/f3469c77-0c51-4973-bcbd-f599bd4582e0
 - Screenshots of the current app in `docs/screenshots/agent_brief_*.png`
   (start page, level editor, entity overview) — the design must feel native
@@ -86,7 +87,7 @@ and its money and edits are first-class citizens of the existing History and
 - Desktop app; dark-first with a working light theme toggle.
 - Every chrome colour from `src/styles/tokens.css` custom properties;
   canvases resolve the same tokens via `lib/canvasTheme.ts`. **No new hex
-  literals for chrome.** Game *content* colours stay literal.
+  literals for chrome.** Game _content_ colours stay literal.
 - Pixel-art content is never smooth-scaled.
 - Shell geometry is fixed: 36px TopBar / (208px LeftNav | detail) / 24px
   ValidationBar; scrollbars are hidden app-wide; `--shell-max` applies to

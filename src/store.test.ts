@@ -193,7 +193,12 @@ describe("store: loadWorldByPath", () => {
     invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
       switch (cmd) {
         case "load_world":
-          return Promise.resolve({ path: "/d", name: "d", world_kind: "dungeon", entity_counts: [] });
+          return Promise.resolve({
+            path: "/d",
+            name: "d",
+            world_kind: "dungeon",
+            entity_counts: [],
+          });
         case "get_world_bible":
           return Promise.resolve({ story: { title: "T" } });
         case "read_world_json":
@@ -335,7 +340,12 @@ describe("store: enrichRecent", () => {
     invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
       switch (cmd) {
         case "load_world":
-          return Promise.resolve({ path: "/w", name: "plat", world_kind: "platformer", entity_counts: [] });
+          return Promise.resolve({
+            path: "/w",
+            name: "plat",
+            world_kind: "platformer",
+            entity_counts: [],
+          });
         case "get_world_bible":
           return Promise.reject(new Error("no bible"));
         case "read_world_json":
@@ -354,7 +364,12 @@ describe("store: enrichRecent", () => {
     invokeMock.mockImplementation((cmd: string, args?: Record<string, unknown>) => {
       switch (cmd) {
         case "load_world":
-          return Promise.resolve({ path: "/w", name: "plat", world_kind: "platformer", entity_counts: [] });
+          return Promise.resolve({
+            path: "/w",
+            name: "plat",
+            world_kind: "platformer",
+            entity_counts: [],
+          });
         case "get_world_bible":
           return Promise.reject(new Error("no bible"));
         case "read_world_json":

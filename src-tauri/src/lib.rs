@@ -93,27 +93,42 @@ fn parse_port_line(line: &str) -> Result<(u16, u32), String> {
 ///    shadow the file — which is exactly what happened when cradle's own
 ///    inherited environment used to sit between a keychain and the file;
 /// 2. the file's pairs are set explicitly. In the child, an explicit `env`
-///    beats an inherited one, and canon's own `--env-file` loading is
-///    setdefault, so the file wins over everything.
+///    beats an inherited one;
+/// 3. `CANON_ENV_FILE` is set to the file's path. canon itself treats its
+///    key file as the only source of keys (`canon.keyfile`): every entry
+///    point drops provider names from its environment and reloads them from
+///    that file. Naming the file is what makes canon load the SAME file
+///    cradle's Settings pane writes, rather than a `.env` in whatever
+///    directory the child happens to start in — and it is what still strips
+///    the shell's keys on the canon side if the name fetch in step 1 failed.
 ///
 /// Values pass from the file straight into the child; nothing here logs,
 /// stores, or returns one.
 fn apply_provider_env(cmd: &mut std::process::Command) {
-    apply_provider_env_from(cmd, &provider_var_names(), env_file_pairs());
+    apply_provider_env_from(
+        cmd,
+        &provider_var_names(),
+        env_file_pairs(),
+        env_file_path().as_deref(),
+    );
 }
 
-/// `apply_provider_env` over explicit inputs, so both halves are testable
+/// `apply_provider_env` over explicit inputs, so every step is testable
 /// without canon, a real key file, or a mutated process environment.
 fn apply_provider_env_from(
     cmd: &mut std::process::Command,
     strip: &[String],
     env_file: Vec<(String, String)>,
+    env_file_path: Option<&std::path::Path>,
 ) {
     for name in strip {
         cmd.env_remove(name);
     }
     for (k, v) in env_file {
         cmd.env(k, v);
+    }
+    if let Some(path) = env_file_path {
+        cmd.env("CANON_ENV_FILE", path);
     }
 }
 
@@ -309,7 +324,8 @@ fn agent_start(
     let mut child = cmd
         .spawn()
         .map_err(|e| format!("failed to launch `{command}`: {e}"))?;
-    let stderr_buf: Arc<std::sync::Mutex<Vec<String>>> = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let stderr_buf: Arc<std::sync::Mutex<Vec<String>>> =
+        Arc::new(std::sync::Mutex::new(Vec::new()));
     let exit_code: Arc<std::sync::Mutex<Option<i32>>> = Arc::new(std::sync::Mutex::new(None));
 
     // Drain stderr for the failure copy (and so the child never blocks on a
@@ -346,7 +362,10 @@ fn agent_start(
         other => {
             let _ = child.kill();
             let _ = child.wait();
-            let tail = stderr_buf.lock().unwrap_or_else(|e| e.into_inner()).join("\n");
+            let tail = stderr_buf
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .join("\n");
             let why = match other {
                 Ok(Ok(_)) => "the service exited before printing its port".to_string(),
                 Ok(Err(e)) => format!("could not read the service's stdout: {e}"),
@@ -363,7 +382,10 @@ fn agent_start(
         Err(e) => {
             let _ = child.kill();
             let _ = child.wait();
-            let tail = stderr_buf.lock().unwrap_or_else(|e| e.into_inner()).join("\n");
+            let tail = stderr_buf
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .join("\n");
             return Err(format!("{e}\ncommand: {command}\nstderr:\n{tail}"));
         }
     };
@@ -444,7 +466,10 @@ mod sidecar_tests {
 
     #[test]
     fn reads_the_port_line_the_service_prints_first() {
-        assert_eq!(parse_port_line("{\"port\": 51234, \"pid\": 77}\n").unwrap(), (51234, 77));
+        assert_eq!(
+            parse_port_line("{\"port\": 51234, \"pid\": 77}\n").unwrap(),
+            (51234, 77)
+        );
         // pid is optional — cradle falls back to the child's own id.
         assert_eq!(parse_port_line("{\"port\": 8}").unwrap(), (8, 0));
     }
@@ -627,13 +652,24 @@ mod pack_type_tests {
 
     #[test]
     fn reads_the_pack_type_verbatim_as_open_data() {
-        assert_eq!(pack_type_of(&json!({"pack_type": "platformer"})).unwrap(), "platformer");
-        assert_eq!(pack_type_of(&json!({"pack_type": "shooter"})).unwrap(), "shooter");
+        assert_eq!(
+            pack_type_of(&json!({"pack_type": "platformer"})).unwrap(),
+            "platformer"
+        );
+        assert_eq!(
+            pack_type_of(&json!({"pack_type": "shooter"})).unwrap(),
+            "shooter"
+        );
     }
 
     #[test]
     fn a_missing_empty_or_non_string_pack_type_is_a_named_error() {
-        for doc in [json!({}), json!({"pack_type": ""}), json!({"pack_type": 3}), json!({"pack_type": null})] {
+        for doc in [
+            json!({}),
+            json!({"pack_type": ""}),
+            json!({"pack_type": 3}),
+            json!({"pack_type": null}),
+        ] {
             let err = pack_type_of(&doc).unwrap_err();
             assert!(err.contains("without a pack_type"), "{err}");
         }
@@ -858,16 +894,7 @@ fn restore_grid_step(
 ) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "grid",
-        "restore",
-        &root,
-        "--level",
-        &level_id,
-        "--step",
-        &step,
-        "--to",
-        &to,
-        "--actor",
+        "grid", "restore", &root, "--level", &level_id, "--step", &step, "--to", &to, "--actor",
         USER_ACTOR,
     ])
 }
@@ -878,16 +905,7 @@ fn create_level(path: String, stage_id: String, width: u32, height: u32) -> Resu
     let root = canon(path).to_string_lossy().to_string();
     let (w, h) = (width.to_string(), height.to_string());
     run_canon(&[
-        "level",
-        "create",
-        &root,
-        "--stage",
-        &stage_id,
-        "--width",
-        &w,
-        "--height",
-        &h,
-        "--actor",
+        "level", "create", &root, "--stage", &stage_id, "--width", &w, "--height", &h, "--actor",
         USER_ACTOR,
     ])
 }
@@ -1802,11 +1820,7 @@ struct JobOutcome {
 /// `{status: "cancelled", result: {cancelled, kept, exit_code}}` with `kept`
 /// read from the step log's cancel-aware `run_end`, whatever canon's exit
 /// status was — the child was told to stop, and what landed stays.
-fn run_job_worker(
-    app: AppHandle,
-    rx: std::sync::mpsc::Receiver<QueuedJob>,
-    state: Arc<JobState>,
-) {
+fn run_job_worker(app: AppHandle, rx: std::sync::mpsc::Receiver<QueuedJob>, state: Arc<JobState>) {
     for job in rx {
         if state.take_dropped(&job.id) {
             continue;
@@ -2066,7 +2080,9 @@ fn progress_contract(event: &mut serde_json::Map<String, Value>) {
             .and_then(Value::as_f64)
             .map(|usd| Value::from((usd * 100.0).round() as i64))
     });
-    event.entry("spentCents").or_insert(spent.unwrap_or(Value::Null));
+    event
+        .entry("spentCents")
+        .or_insert(spent.unwrap_or(Value::Null));
 }
 
 /// The `kept` list of the LAST `run_end` in a step log (canon's cancel-aware
@@ -2120,7 +2136,10 @@ mod cancel_tests {
         assert!(state.take_dropped("a"));
         assert!(!state.take_dropped("b"));
         assert!(!state.is_running("a"));
-        assert!(state.child_finished("a"), "an unretained child counts as finished");
+        assert!(
+            state.child_finished("a"),
+            "an unretained child counts as finished"
+        );
     }
 
     #[test]
@@ -2133,7 +2152,10 @@ mod cancel_tests {
         );
         assert_eq!(kept_from_log(log).unwrap(), vec!["phase:w", "phase:x:a"]);
         assert_eq!(kept_from_log("{\"event\":\"node_start\"}\n"), None);
-        assert_eq!(kept_from_log("{\"event\":\"run_end\",\"ok\":true}\n").unwrap(), Vec::<String>::new());
+        assert_eq!(
+            kept_from_log("{\"event\":\"run_end\",\"ok\":true}\n").unwrap(),
+            Vec::<String>::new()
+        );
     }
 
     #[test]
@@ -2446,13 +2468,7 @@ fn world_map_edit(path: String, edit: Value) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     let edit_str = serde_json::to_string(&edit).map_err(|e| e.to_string())?;
     run_canon(&[
-        "world",
-        "map-edit",
-        &root,
-        "--json",
-        &edit_str,
-        "--actor",
-        USER_ACTOR,
+        "world", "map-edit", &root, "--json", &edit_str, "--actor", USER_ACTOR,
     ])
 }
 
@@ -2555,17 +2571,8 @@ fn anim_edit(path: String, target: String, state: String, edit: Value) -> Result
     let root = canon(path).to_string_lossy().to_string();
     let edit_str = serde_json::to_string(&edit).map_err(|e| e.to_string())?;
     run_canon(&[
-        "anim",
-        "edit",
-        &root,
-        "--target",
-        &target,
-        "--state",
-        &state,
-        "--json",
-        &edit_str,
-        "--actor",
-        USER_ACTOR,
+        "anim", "edit", &root, "--target", &target, "--state", &state, "--json", &edit_str,
+        "--actor", USER_ACTOR,
     ])
 }
 
@@ -2855,15 +2862,7 @@ fn asset_lineage(path: String, target: String) -> Result<Value, String> {
 fn asset_restore(path: String, target: String, to: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "asset",
-        "restore",
-        &root,
-        "--target",
-        &target,
-        "--to",
-        &to,
-        "--actor",
-        USER_ACTOR,
+        "asset", "restore", &root, "--target", &target, "--to", &to, "--actor", USER_ACTOR,
     ])
 }
 
@@ -2903,13 +2902,7 @@ fn library_list(
 fn library_publish(path: String, target: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "library",
-        "publish",
-        &root,
-        "--target",
-        &target,
-        "--actor",
-        USER_ACTOR,
+        "library", "publish", &root, "--target", &target, "--actor", USER_ACTOR,
     ])
 }
 
@@ -2944,15 +2937,7 @@ fn library_cat(hash: String) -> Result<Value, String> {
 fn asset_assign(path: String, source: String, to: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "asset",
-        "assign",
-        &root,
-        "--source",
-        &source,
-        "--to",
-        &to,
-        "--actor",
-        USER_ACTOR,
+        "asset", "assign", &root, "--source", &source, "--to", &to, "--actor", USER_ACTOR,
     ])
 }
 
@@ -3310,15 +3295,7 @@ fn animate_asset(
 fn replace_asset(path: String, target: String, file: String) -> Result<Value, String> {
     let root = canon(path).to_string_lossy().to_string();
     run_canon(&[
-        "asset",
-        "replace",
-        &root,
-        "--target",
-        &target,
-        "--from",
-        &file,
-        "--actor",
-        USER_ACTOR,
+        "asset", "replace", &root, "--target", &target, "--from", &file, "--actor", USER_ACTOR,
     ])
 }
 
@@ -4386,7 +4363,7 @@ mod settings_tests {
         let var = "CRADLE_TEST_SHELL_ONLY_KEY";
         std::env::set_var(var, "from-the-shell");
         let mut cmd = std::process::Command::new("sh");
-        apply_provider_env_from(&mut cmd, &[var.to_string()], Vec::new());
+        apply_provider_env_from(&mut cmd, &[var.to_string()], Vec::new(), None);
         // The builder explicitly removed it — not merely left it unset.
         assert_eq!(envs_of(&cmd).get(var), Some(&None));
         #[cfg(unix)]
@@ -4405,6 +4382,7 @@ mod settings_tests {
             &mut cmd,
             &[var.to_string()],
             vec![(var.to_string(), "from-the-file".to_string())],
+            None,
         );
         assert_eq!(
             envs_of(&cmd).get(var),
@@ -4424,7 +4402,7 @@ mod settings_tests {
         file.set("CRADLE_TEST_INJECTED_KEY", "from-the-file")
             .unwrap();
         let mut cmd = std::process::Command::new("true");
-        apply_provider_env_from(&mut cmd, &[], file.pairs());
+        apply_provider_env_from(&mut cmd, &[], file.pairs(), None);
         assert_eq!(
             envs_of(&cmd).get("CRADLE_TEST_INJECTED_KEY"),
             Some(&Some("from-the-file".to_string()))
@@ -4437,8 +4415,31 @@ mod settings_tests {
     #[test]
     fn an_empty_file_and_no_names_touch_nothing() {
         let mut cmd = std::process::Command::new("true");
-        apply_provider_env_from(&mut cmd, &[], Vec::new());
+        apply_provider_env_from(&mut cmd, &[], Vec::new(), None);
         assert_eq!(cmd.get_envs().count(), 0);
+    }
+
+    /// The child is told WHICH file is the key file, so canon's own loader
+    /// (which drops every provider name and reloads from that file) reads
+    /// exactly the file the Settings pane writes — even one that does not
+    /// exist yet, which canon reads as "no keys" rather than falling back to
+    /// a stray `.env` in the child's working directory.
+    #[test]
+    fn the_child_is_told_which_file_holds_the_keys() {
+        let dir = temp_dir("names-the-file");
+        let path = dir.join("provider-keys.env");
+        let mut cmd = std::process::Command::new("sh");
+        apply_provider_env_from(&mut cmd, &[], Vec::new(), Some(&path));
+        assert_eq!(
+            envs_of(&cmd).get("CANON_ENV_FILE"),
+            Some(&Some(path.to_string_lossy().into_owned()))
+        );
+        #[cfg(unix)]
+        assert_eq!(
+            child_sees(&mut cmd, "CANON_ENV_FILE").as_deref(),
+            Some(path.to_string_lossy().as_ref())
+        );
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     /// The names to strip are canon's TABLE — `env_var` and every alias —
@@ -4498,7 +4499,15 @@ mod settings_tests {
         assert_eq!(doc["keys"], serde_json::json!(["CRADLE_TEST_PRESENT_KEY"]));
         // …and the value is not, in any form.
         assert!(!flat.contains(secret), "a key VALUE reached the frontend");
-        assert!(!flat.contains(&secret.len().to_string()));
+        // The length check ignores the two PATHS in the answer: a temp dir
+        // named by pid and clock can contain "31" by chance.
+        let mut no_paths = flat.clone();
+        for key in ["env_file", "config_dir"] {
+            if let Some(p) = doc[key].as_str() {
+                no_paths = no_paths.replace(&serde_json::to_string(p).unwrap(), "");
+            }
+        }
+        assert!(!no_paths.contains(&secret.len().to_string()));
         std::fs::remove_dir_all(&dir).ok();
     }
 

@@ -93,27 +93,42 @@ fn parse_port_line(line: &str) -> Result<(u16, u32), String> {
 ///    shadow the file — which is exactly what happened when cradle's own
 ///    inherited environment used to sit between a keychain and the file;
 /// 2. the file's pairs are set explicitly. In the child, an explicit `env`
-///    beats an inherited one, and canon's own `--env-file` loading is
-///    setdefault, so the file wins over everything.
+///    beats an inherited one;
+/// 3. `CANON_ENV_FILE` is set to the file's path. canon itself treats its
+///    key file as the only source of keys (`canon.keyfile`): every entry
+///    point drops provider names from its environment and reloads them from
+///    that file. Naming the file is what makes canon load the SAME file
+///    cradle's Settings pane writes, rather than a `.env` in whatever
+///    directory the child happens to start in — and it is what still strips
+///    the shell's keys on the canon side if the name fetch in step 1 failed.
 ///
 /// Values pass from the file straight into the child; nothing here logs,
 /// stores, or returns one.
 fn apply_provider_env(cmd: &mut std::process::Command) {
-    apply_provider_env_from(cmd, &provider_var_names(), env_file_pairs());
+    apply_provider_env_from(
+        cmd,
+        &provider_var_names(),
+        env_file_pairs(),
+        env_file_path().as_deref(),
+    );
 }
 
-/// `apply_provider_env` over explicit inputs, so both halves are testable
+/// `apply_provider_env` over explicit inputs, so every step is testable
 /// without canon, a real key file, or a mutated process environment.
 fn apply_provider_env_from(
     cmd: &mut std::process::Command,
     strip: &[String],
     env_file: Vec<(String, String)>,
+    env_file_path: Option<&std::path::Path>,
 ) {
     for name in strip {
         cmd.env_remove(name);
     }
     for (k, v) in env_file {
         cmd.env(k, v);
+    }
+    if let Some(path) = env_file_path {
+        cmd.env("CANON_ENV_FILE", path);
     }
 }
 
@@ -4386,7 +4401,7 @@ mod settings_tests {
         let var = "CRADLE_TEST_SHELL_ONLY_KEY";
         std::env::set_var(var, "from-the-shell");
         let mut cmd = std::process::Command::new("sh");
-        apply_provider_env_from(&mut cmd, &[var.to_string()], Vec::new());
+        apply_provider_env_from(&mut cmd, &[var.to_string()], Vec::new(), None);
         // The builder explicitly removed it — not merely left it unset.
         assert_eq!(envs_of(&cmd).get(var), Some(&None));
         #[cfg(unix)]
@@ -4405,6 +4420,7 @@ mod settings_tests {
             &mut cmd,
             &[var.to_string()],
             vec![(var.to_string(), "from-the-file".to_string())],
+            None,
         );
         assert_eq!(
             envs_of(&cmd).get(var),
@@ -4424,7 +4440,7 @@ mod settings_tests {
         file.set("CRADLE_TEST_INJECTED_KEY", "from-the-file")
             .unwrap();
         let mut cmd = std::process::Command::new("true");
-        apply_provider_env_from(&mut cmd, &[], file.pairs());
+        apply_provider_env_from(&mut cmd, &[], file.pairs(), None);
         assert_eq!(
             envs_of(&cmd).get("CRADLE_TEST_INJECTED_KEY"),
             Some(&Some("from-the-file".to_string()))
@@ -4437,8 +4453,31 @@ mod settings_tests {
     #[test]
     fn an_empty_file_and_no_names_touch_nothing() {
         let mut cmd = std::process::Command::new("true");
-        apply_provider_env_from(&mut cmd, &[], Vec::new());
+        apply_provider_env_from(&mut cmd, &[], Vec::new(), None);
         assert_eq!(cmd.get_envs().count(), 0);
+    }
+
+    /// The child is told WHICH file is the key file, so canon's own loader
+    /// (which drops every provider name and reloads from that file) reads
+    /// exactly the file the Settings pane writes — even one that does not
+    /// exist yet, which canon reads as "no keys" rather than falling back to
+    /// a stray `.env` in the child's working directory.
+    #[test]
+    fn the_child_is_told_which_file_holds_the_keys() {
+        let dir = temp_dir("names-the-file");
+        let path = dir.join("provider-keys.env");
+        let mut cmd = std::process::Command::new("sh");
+        apply_provider_env_from(&mut cmd, &[], Vec::new(), Some(&path));
+        assert_eq!(
+            envs_of(&cmd).get("CANON_ENV_FILE"),
+            Some(&Some(path.to_string_lossy().into_owned()))
+        );
+        #[cfg(unix)]
+        assert_eq!(
+            child_sees(&mut cmd, "CANON_ENV_FILE").as_deref(),
+            Some(path.to_string_lossy().as_ref())
+        );
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     /// The names to strip are canon's TABLE — `env_var` and every alias —
@@ -4498,7 +4537,15 @@ mod settings_tests {
         assert_eq!(doc["keys"], serde_json::json!(["CRADLE_TEST_PRESENT_KEY"]));
         // …and the value is not, in any form.
         assert!(!flat.contains(secret), "a key VALUE reached the frontend");
-        assert!(!flat.contains(&secret.len().to_string()));
+        // The length check ignores the two PATHS in the answer: a temp dir
+        // named by pid and clock can contain "31" by chance.
+        let mut no_paths = flat.clone();
+        for key in ["env_file", "config_dir"] {
+            if let Some(p) = doc[key].as_str() {
+                no_paths = no_paths.replace(&serde_json::to_string(p).unwrap(), "");
+            }
+        }
+        assert!(!no_paths.contains(&secret.len().to_string()));
         std::fs::remove_dir_all(&dir).ok();
     }
 

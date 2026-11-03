@@ -9,6 +9,7 @@ import { StartStatusBar } from "./StartStatusBar";
 import { ReturningHero } from "./ReturningHero";
 import { RecentsRail } from "./RecentsRail";
 import { FirstRunCard } from "./FirstRunCard";
+import { KeySetupCard } from "./KeySetupCard";
 import { NotesDrawer } from "./NotesDrawer";
 import { StartAgentPanel } from "../agent/StartAgentPanel";
 import { LiveProjectCard } from "./LiveProjectCard";
@@ -95,6 +96,7 @@ export function StartScreen() {
 
       <main className="atmo">
         <section className="atmo-hero">
+          <KeySetupCard />
           {mode === "returning" && last && (
             <ReturningHero
               last={last}
